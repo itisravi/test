@@ -1,0 +1,329 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - arch/x86/include/asm/atomic.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">arch/x86/include/asm</a> - atomic.h<span style="font-size: 80%;"> (source / <a href="atomic.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _ASM_X86_ATOMIC_H</a>
+<span class="lineNum">       2 </span>            : #define _ASM_X86_ATOMIC_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;linux/compiler.h&gt;
+<span class="lineNum">       5 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">       6 </span>            : #include &lt;asm/processor.h&gt;
+<span class="lineNum">       7 </span>            : #include &lt;asm/alternative.h&gt;
+<span class="lineNum">       8 </span>            : #include &lt;asm/cmpxchg.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;asm/rmwcc.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;asm/barrier.h&gt;
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : /*
+<span class="lineNum">      13 </span>            :  * Atomic operations that C can't guarantee us.  Useful for
+<span class="lineNum">      14 </span>            :  * resource counting etc..
+<span class="lineNum">      15 </span>            :  */
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : #define ATOMIC_INIT(i)  { (i) }
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : /**
+<span class="lineNum">      20 </span>            :  * atomic_read - read atomic variable
+<span class="lineNum">      21 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">      22 </span>            :  *
+<span class="lineNum">      23 </span>            :  * Atomically reads the value of @v.
+<span class="lineNum">      24 </span>            :  */
+<span class="lineNum">      25 </span>            : static inline int atomic_read(const atomic_t *v)
+<span class="lineNum">      26 </span>            : {
+<span class="lineNum">      27 </span><span class="lineCov">   71954855 :         return (*(volatile int *)&amp;(v)-&gt;counter);</span>
+<span class="lineNum">      28 </span>            : }
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : /**
+<span class="lineNum">      31 </span>            :  * atomic_set - set atomic variable
+<span class="lineNum">      32 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">      33 </span>            :  * @i: required value
+<span class="lineNum">      34 </span>            :  *
+<span class="lineNum">      35 </span>            :  * Atomically sets the value of @v to @i.
+<span class="lineNum">      36 </span>            :  */
+<span class="lineNum">      37 </span>            : static inline void atomic_set(atomic_t *v, int i)
+<span class="lineNum">      38 </span>            : {
+<span class="lineNum">      39 </span><span class="lineCov">    8005241 :         v-&gt;counter = i;</span>
+<span class="lineNum">      40 </span>            : }
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : /**
+<span class="lineNum">      43 </span>            :  * atomic_add - add integer to atomic variable
+<span class="lineNum">      44 </span>            :  * @i: integer value to add
+<span class="lineNum">      45 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">      46 </span>            :  *
+<span class="lineNum">      47 </span>            :  * Atomically adds @i to @v.
+<span class="lineNum">      48 </span>            :  */
+<span class="lineNum">      49 </span>            : static inline void atomic_add(int i, atomic_t *v)
+<span class="lineNum">      50 </span>            : {
+<span class="lineNum">      51 </span><span class="lineCov">      22540 :         asm volatile(LOCK_PREFIX &quot;addl %1,%0&quot;</span>
+<span class="lineNum">      52 </span>            :                      : &quot;+m&quot; (v-&gt;counter)
+<span class="lineNum">      53 </span>            :                      : &quot;ir&quot; (i));
+<span class="lineNum">      54 </span>            : }
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : /**
+<span class="lineNum">      57 </span>            :  * atomic_sub - subtract integer from atomic variable
+<span class="lineNum">      58 </span>            :  * @i: integer value to subtract
+<span class="lineNum">      59 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">      60 </span>            :  *
+<span class="lineNum">      61 </span>            :  * Atomically subtracts @i from @v.
+<span class="lineNum">      62 </span>            :  */
+<span class="lineNum">      63 </span>            : static inline void atomic_sub(int i, atomic_t *v)
+<span class="lineNum">      64 </span>            : {
+<span class="lineNum">      65 </span><span class="lineCov">    6317887 :         asm volatile(LOCK_PREFIX &quot;subl %1,%0&quot;</span>
+<span class="lineNum">      66 </span>            :                      : &quot;+m&quot; (v-&gt;counter)
+<span class="lineNum">      67 </span>            :                      : &quot;ir&quot; (i));
+<span class="lineNum">      68 </span>            : }
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : /**
+<span class="lineNum">      71 </span>            :  * atomic_sub_and_test - subtract value from variable and test result
+<span class="lineNum">      72 </span>            :  * @i: integer value to subtract
+<span class="lineNum">      73 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">      74 </span>            :  *
+<span class="lineNum">      75 </span>            :  * Atomically subtracts @i from @v and returns
+<span class="lineNum">      76 </span>            :  * true if the result is zero, or false for all
+<span class="lineNum">      77 </span>            :  * other cases.
+<span class="lineNum">      78 </span>            :  */
+<span class="lineNum">      79 </span>            : static inline int atomic_sub_and_test(int i, atomic_t *v)
+<span class="lineNum">      80 </span>            : {
+<span class="lineNum">      81 </span><span class="lineCov">      27223 :         GEN_BINARY_RMWcc(LOCK_PREFIX &quot;subl&quot;, v-&gt;counter, &quot;er&quot;, i, &quot;%0&quot;, &quot;e&quot;);</span>
+<span class="lineNum">      82 </span>            : }
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : /**
+<span class="lineNum">      85 </span>            :  * atomic_inc - increment atomic variable
+<span class="lineNum">      86 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">      87 </span>            :  *
+<span class="lineNum">      88 </span>            :  * Atomically increments @v by 1.
+<span class="lineNum">      89 </span>            :  */
+<span class="lineNum">      90 </span>            : static inline void atomic_inc(atomic_t *v)
+<span class="lineNum">      91 </span>            : {
+<span class="lineNum">      92 </span><span class="lineCov">   35842020 :         asm volatile(LOCK_PREFIX &quot;incl %0&quot;</span>
+<span class="lineNum">      93 </span>            :                      : &quot;+m&quot; (v-&gt;counter));
+<span class="lineNum">      94 </span>            : }
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            : /**
+<span class="lineNum">      97 </span>            :  * atomic_dec - decrement atomic variable
+<span class="lineNum">      98 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">      99 </span>            :  *
+<span class="lineNum">     100 </span>            :  * Atomically decrements @v by 1.
+<span class="lineNum">     101 </span>            :  */
+<span class="lineNum">     102 </span>            : static inline void atomic_dec(atomic_t *v)
+<span class="lineNum">     103 </span>            : {
+<span class="lineNum">     104 </span><span class="lineCov">   11458051 :         asm volatile(LOCK_PREFIX &quot;decl %0&quot;</span>
+<span class="lineNum">     105 </span>            :                      : &quot;+m&quot; (v-&gt;counter));
+<span class="lineNum">     106 </span>            : }
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : /**
+<span class="lineNum">     109 </span>            :  * atomic_dec_and_test - decrement and test
+<span class="lineNum">     110 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">     111 </span>            :  *
+<span class="lineNum">     112 </span>            :  * Atomically decrements @v by 1 and
+<span class="lineNum">     113 </span>            :  * returns true if the result is 0, or false for all other
+<span class="lineNum">     114 </span>            :  * cases.
+<span class="lineNum">     115 </span>            :  */
+<span class="lineNum">     116 </span>            : static inline int atomic_dec_and_test(atomic_t *v)
+<span class="lineNum">     117 </span>            : {
+<span class="lineNum">     118 </span><span class="lineCov">   32602655 :         GEN_UNARY_RMWcc(LOCK_PREFIX &quot;decl&quot;, v-&gt;counter, &quot;%0&quot;, &quot;e&quot;);</span>
+<span class="lineNum">     119 </span>            : }
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            : /**
+<span class="lineNum">     122 </span>            :  * atomic_inc_and_test - increment and test
+<span class="lineNum">     123 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">     124 </span>            :  *
+<span class="lineNum">     125 </span>            :  * Atomically increments @v by 1
+<span class="lineNum">     126 </span>            :  * and returns true if the result is zero, or false for all
+<span class="lineNum">     127 </span>            :  * other cases.
+<span class="lineNum">     128 </span>            :  */
+<span class="lineNum">     129 </span>            : static inline int atomic_inc_and_test(atomic_t *v)
+<span class="lineNum">     130 </span>            : {
+<span class="lineNum">     131 </span>            :         GEN_UNARY_RMWcc(LOCK_PREFIX &quot;incl&quot;, v-&gt;counter, &quot;%0&quot;, &quot;e&quot;);
+<span class="lineNum">     132 </span>            : }
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            : /**
+<span class="lineNum">     135 </span>            :  * atomic_add_negative - add and test if negative
+<span class="lineNum">     136 </span>            :  * @i: integer value to add
+<span class="lineNum">     137 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">     138 </span>            :  *
+<span class="lineNum">     139 </span>            :  * Atomically adds @i to @v and returns true
+<span class="lineNum">     140 </span>            :  * if the result is negative, or false when
+<span class="lineNum">     141 </span>            :  * result is greater than or equal to zero.
+<span class="lineNum">     142 </span>            :  */
+<span class="lineNum">     143 </span>            : static inline int atomic_add_negative(int i, atomic_t *v)
+<span class="lineNum">     144 </span>            : {
+<span class="lineNum">     145 </span>            :         GEN_BINARY_RMWcc(LOCK_PREFIX &quot;addl&quot;, v-&gt;counter, &quot;er&quot;, i, &quot;%0&quot;, &quot;s&quot;);
+<span class="lineNum">     146 </span>            : }
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            : /**
+<span class="lineNum">     149 </span>            :  * atomic_add_return - add integer and return
+<span class="lineNum">     150 </span>            :  * @i: integer value to add
+<span class="lineNum">     151 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">     152 </span>            :  *
+<span class="lineNum">     153 </span>            :  * Atomically adds @i to @v and returns @i + @v
+<span class="lineNum">     154 </span>            :  */
+<span class="lineNum">     155 </span>            : static inline int atomic_add_return(int i, atomic_t *v)
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span><span class="lineCov">     411586 :         return i + xadd(&amp;v-&gt;counter, i);</span>
+<span class="lineNum">     158 </span>            : }
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            : /**
+<span class="lineNum">     161 </span>            :  * atomic_sub_return - subtract integer and return
+<span class="lineNum">     162 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">     163 </span>            :  * @i: integer value to subtract
+<span class="lineNum">     164 </span>            :  *
+<span class="lineNum">     165 </span>            :  * Atomically subtracts @i from @v and returns @v - @i
+<span class="lineNum">     166 </span>            :  */
+<span class="lineNum">     167 </span>            : static inline int atomic_sub_return(int i, atomic_t *v)
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span><span class="lineCov">        211 :         return atomic_add_return(-i, v);</span>
+<span class="lineNum">     170 </span>            : }
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            : #define atomic_inc_return(v)  (atomic_add_return(1, v))
+<span class="lineNum">     173 </span>            : #define atomic_dec_return(v)  (atomic_sub_return(1, v))
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            : static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+<span class="lineNum">     176 </span>            : {
+<span class="lineNum">     177 </span><span class="lineCov">    7864675 :         return cmpxchg(&amp;v-&gt;counter, old, new);</span>
+<span class="lineNum">     178 </span>            : }
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            : static inline int atomic_xchg(atomic_t *v, int new)
+<span class="lineNum">     181 </span>            : {
+<span class="lineNum">     182 </span><span class="lineCov">         30 :         return xchg(&amp;v-&gt;counter, new);</span>
+<span class="lineNum">     183 </span>            : }
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            : /**
+<span class="lineNum">     186 </span>            :  * __atomic_add_unless - add unless the number is already a given value
+<span class="lineNum">     187 </span>            :  * @v: pointer of type atomic_t
+<span class="lineNum">     188 </span>            :  * @a: the amount to add to v...
+<span class="lineNum">     189 </span>            :  * @u: ...unless v is equal to u.
+<span class="lineNum">     190 </span>            :  *
+<span class="lineNum">     191 </span>            :  * Atomically adds @a to @v, so long as @v was not already @u.
+<span class="lineNum">     192 </span>            :  * Returns the old value of @v.
+<span class="lineNum">     193 </span>            :  */
+<span class="lineNum">     194 </span>            : static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+<span class="lineNum">     195 </span>            : {
+<span class="lineNum">     196 </span>            :         int c, old;
+<span class="lineNum">     197 </span>            :         c = atomic_read(v);
+<span class="lineNum">     198 </span>            :         for (;;) {
+<span class="lineNum">     199 </span><span class="lineCov">    5450420 :                 if (unlikely(c == (u)))</span>
+<span class="lineNum">     200 </span>            :                         break;
+<span class="lineNum">     201 </span><span class="lineCov">    5449710 :                 old = atomic_cmpxchg((v), c, c + (a));</span>
+<span class="lineNum">     202 </span><span class="lineCov">    5452262 :                 if (likely(old == c))</span>
+<span class="lineNum">     203 </span>            :                         break;
+<span class="lineNum">     204 </span>            :                 c = old;
+<span class="lineNum">     205 </span>            :         }
+<span class="lineNum">     206 </span>            :         return c;
+<span class="lineNum">     207 </span>            : }
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            : /**
+<span class="lineNum">     210 </span>            :  * atomic_inc_short - increment of a short integer
+<span class="lineNum">     211 </span>            :  * @v: pointer to type int
+<span class="lineNum">     212 </span>            :  *
+<span class="lineNum">     213 </span>            :  * Atomically adds 1 to @v
+<span class="lineNum">     214 </span>            :  * Returns the new value of @u
+<span class="lineNum">     215 </span>            :  */
+<span class="lineNum">     216 </span>            : static inline short int atomic_inc_short(short int *v)
+<span class="lineNum">     217 </span>            : {
+<span class="lineNum">     218 </span>            :         asm(LOCK_PREFIX &quot;addw $1, %0&quot; : &quot;+m&quot; (*v));
+<span class="lineNum">     219 </span>            :         return *v;
+<span class="lineNum">     220 </span>            : }
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            : #ifdef CONFIG_X86_64
+<span class="lineNum">     223 </span>            : /**
+<span class="lineNum">     224 </span>            :  * atomic_or_long - OR of two long integers
+<span class="lineNum">     225 </span>            :  * @v1: pointer to type unsigned long
+<span class="lineNum">     226 </span>            :  * @v2: pointer to type unsigned long
+<span class="lineNum">     227 </span>            :  *
+<span class="lineNum">     228 </span>            :  * Atomically ORs @v1 and @v2
+<span class="lineNum">     229 </span>            :  * Returns the result of the OR
+<span class="lineNum">     230 </span>            :  */
+<span class="lineNum">     231 </span>            : static inline void atomic_or_long(unsigned long *v1, unsigned long v2)
+<span class="lineNum">     232 </span>            : {
+<span class="lineNum">     233 </span>            :         asm(LOCK_PREFIX &quot;orq %1, %0&quot; : &quot;+m&quot; (*v1) : &quot;r&quot; (v2));
+<span class="lineNum">     234 </span>            : }
+<span class="lineNum">     235 </span>            : #endif
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            : /* These are x86-specific, used by some header files */
+<span class="lineNum">     238 </span>            : #define atomic_clear_mask(mask, addr)                           \
+<span class="lineNum">     239 </span>            :         asm volatile(LOCK_PREFIX &quot;andl %0,%1&quot;                 \
+<span class="lineNum">     240 </span>            :                      : : &quot;r&quot; (~(mask)), &quot;m&quot; (*(addr)) : &quot;memory&quot;)
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            : #define atomic_set_mask(mask, addr)                             \
+<span class="lineNum">     243 </span>            :         asm volatile(LOCK_PREFIX &quot;orl %0,%1&quot;                  \
+<span class="lineNum">     244 </span>            :                      : : &quot;r&quot; ((unsigned)(mask)), &quot;m&quot; (*(addr))      \
+<span class="lineNum">     245 </span>            :                      : &quot;memory&quot;)
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            : #ifdef CONFIG_X86_32
+<span class="lineNum">     248 </span>            : # include &lt;asm/atomic64_32.h&gt;
+<span class="lineNum">     249 </span>            : #else
+<span class="lineNum">     250 </span>            : # include &lt;asm/atomic64_64.h&gt;
+<span class="lineNum">     251 </span>            : #endif
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            : #endif /* _ASM_X86_ATOMIC_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

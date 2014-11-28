@@ -1,0 +1,330 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/srcu.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - srcu.h<span style="font-size: 80%;"> (source / <a href="srcu.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Sleepable Read-Copy Update mechanism for mutual exclusion
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or modify
+<span class="lineNum">       5 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       6 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       7 </span>            :  * (at your option) any later version.
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">      10 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      11 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      12 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      13 </span>            :  *
+<span class="lineNum">      14 </span>            :  * You should have received a copy of the GNU General Public License
+<span class="lineNum">      15 </span>            :  * along with this program; if not, you can access it online at
+<span class="lineNum">      16 </span>            :  * http://www.gnu.org/licenses/gpl-2.0.html.
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * Copyright (C) IBM Corporation, 2006
+<span class="lineNum">      19 </span>            :  * Copyright (C) Fujitsu, 2012
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * Author: Paul McKenney &lt;paulmck@us.ibm.com&gt;
+<span class="lineNum">      22 </span>            :  *         Lai Jiangshan &lt;laijs@cn.fujitsu.com&gt;
+<span class="lineNum">      23 </span>            :  *
+<span class="lineNum">      24 </span>            :  * For detailed explanation of Read-Copy Update mechanism see -
+<span class="lineNum">      25 </span>            :  *              Documentation/RCU/ *.txt
+<span class="lineNum">      26 </span>            :  *
+<span class="lineNum">      27 </span>            :  */
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #ifndef _LINUX_SRCU_H
+<span class="lineNum">      30 </span>            : #define _LINUX_SRCU_H
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #include &lt;linux/mutex.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;linux/rcupdate.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;linux/workqueue.h&gt;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : struct srcu_struct_array {
+<span class="lineNum">      37 </span>            :         unsigned long c[2];
+<span class="lineNum">      38 </span>            :         unsigned long seq[2];
+<span class="lineNum">      39 </span>            : };
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : struct rcu_batch {
+<span class="lineNum">      42 </span>            :         struct rcu_head *head, **tail;
+<span class="lineNum">      43 </span>            : };
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : #define RCU_BATCH_INIT(name) { NULL, &amp;(name.head) }
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : struct srcu_struct {
+<span class="lineNum">      48 </span>            :         unsigned completed;
+<span class="lineNum">      49 </span>            :         struct srcu_struct_array __percpu *per_cpu_ref;
+<span class="lineNum">      50 </span>            :         spinlock_t queue_lock; /* protect -&gt;batch_queue, -&gt;running */
+<span class="lineNum">      51 </span>            :         bool running;
+<span class="lineNum">      52 </span>            :         /* callbacks just queued */
+<span class="lineNum">      53 </span>            :         struct rcu_batch batch_queue;
+<span class="lineNum">      54 </span>            :         /* callbacks try to do the first check_zero */
+<span class="lineNum">      55 </span>            :         struct rcu_batch batch_check0;
+<span class="lineNum">      56 </span>            :         /* callbacks done with the first check_zero and the flip */
+<span class="lineNum">      57 </span>            :         struct rcu_batch batch_check1;
+<span class="lineNum">      58 </span>            :         struct rcu_batch batch_done;
+<span class="lineNum">      59 </span>            :         struct delayed_work work;
+<span class="lineNum">      60 </span>            : #ifdef CONFIG_DEBUG_LOCK_ALLOC
+<span class="lineNum">      61 </span>            :         struct lockdep_map dep_map;
+<span class="lineNum">      62 </span>            : #endif /* #ifdef CONFIG_DEBUG_LOCK_ALLOC */
+<span class="lineNum">      63 </span>            : };
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : #ifdef CONFIG_DEBUG_LOCK_ALLOC
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : int __init_srcu_struct(struct srcu_struct *sp, const char *name,
+<span class="lineNum">      68 </span>            :                        struct lock_class_key *key);
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : #define init_srcu_struct(sp) \
+<span class="lineNum">      71 </span>            : ({ \
+<span class="lineNum">      72 </span>            :         static struct lock_class_key __srcu_key; \
+<span class="lineNum">      73 </span>            :         \
+<span class="lineNum">      74 </span>            :         __init_srcu_struct((sp), #sp, &amp;__srcu_key); \
+<span class="lineNum">      75 </span>            : })
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : #define __SRCU_DEP_MAP_INIT(srcu_name)  .dep_map = { .name = #srcu_name },
+<span class="lineNum">      78 </span>            : #else /* #ifdef CONFIG_DEBUG_LOCK_ALLOC */
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            : int init_srcu_struct(struct srcu_struct *sp);
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : #define __SRCU_DEP_MAP_INIT(srcu_name)
+<span class="lineNum">      83 </span>            : #endif /* #else #ifdef CONFIG_DEBUG_LOCK_ALLOC */
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : void process_srcu(struct work_struct *work);
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : #define __SRCU_STRUCT_INIT(name)                                        \
+<span class="lineNum">      88 </span>            :         {                                                               \
+<span class="lineNum">      89 </span>            :                 .completed = -300,                                      \
+<span class="lineNum">      90 </span>            :                 .per_cpu_ref = &amp;name##_srcu_array,                  \
+<span class="lineNum">      91 </span>            :                 .queue_lock = __SPIN_LOCK_UNLOCKED(name.queue_lock),    \
+<span class="lineNum">      92 </span>            :                 .running = false,                                       \
+<span class="lineNum">      93 </span>            :                 .batch_queue = RCU_BATCH_INIT(name.batch_queue),        \
+<span class="lineNum">      94 </span>            :                 .batch_check0 = RCU_BATCH_INIT(name.batch_check0),      \
+<span class="lineNum">      95 </span>            :                 .batch_check1 = RCU_BATCH_INIT(name.batch_check1),      \
+<span class="lineNum">      96 </span>            :                 .batch_done = RCU_BATCH_INIT(name.batch_done),          \
+<span class="lineNum">      97 </span>            :                 .work = __DELAYED_WORK_INITIALIZER(name.work, process_srcu, 0),\
+<span class="lineNum">      98 </span>            :                 __SRCU_DEP_MAP_INIT(name)                               \
+<span class="lineNum">      99 </span>            :         }
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            : /*
+<span class="lineNum">     102 </span>            :  * define and init a srcu struct at build time.
+<span class="lineNum">     103 </span>            :  * dont't call init_srcu_struct() nor cleanup_srcu_struct() on it.
+<span class="lineNum">     104 </span>            :  */
+<span class="lineNum">     105 </span>            : #define DEFINE_SRCU(name)                                               \
+<span class="lineNum">     106 </span>            :         static DEFINE_PER_CPU(struct srcu_struct_array, name##_srcu_array);\
+<span class="lineNum">     107 </span>            :         struct srcu_struct name = __SRCU_STRUCT_INIT(name);
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            : #define DEFINE_STATIC_SRCU(name)                                        \
+<span class="lineNum">     110 </span>            :         static DEFINE_PER_CPU(struct srcu_struct_array, name##_srcu_array);\
+<span class="lineNum">     111 </span>            :         static struct srcu_struct name = __SRCU_STRUCT_INIT(name);
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            : /**
+<span class="lineNum">     114 </span>            :  * call_srcu() - Queue a callback for invocation after an SRCU grace period
+<span class="lineNum">     115 </span>            :  * @sp: srcu_struct in queue the callback
+<span class="lineNum">     116 </span>            :  * @head: structure to be used for queueing the SRCU callback.
+<span class="lineNum">     117 </span>            :  * @func: function to be invoked after the SRCU grace period
+<span class="lineNum">     118 </span>            :  *
+<span class="lineNum">     119 </span>            :  * The callback function will be invoked some time after a full SRCU
+<span class="lineNum">     120 </span>            :  * grace period elapses, in other words after all pre-existing SRCU
+<span class="lineNum">     121 </span>            :  * read-side critical sections have completed.  However, the callback
+<span class="lineNum">     122 </span>            :  * function might well execute concurrently with other SRCU read-side
+<span class="lineNum">     123 </span>            :  * critical sections that started after call_srcu() was invoked.  SRCU
+<span class="lineNum">     124 </span>            :  * read-side critical sections are delimited by srcu_read_lock() and
+<span class="lineNum">     125 </span>            :  * srcu_read_unlock(), and may be nested.
+<span class="lineNum">     126 </span>            :  *
+<span class="lineNum">     127 </span>            :  * The callback will be invoked from process context, but must nevertheless
+<span class="lineNum">     128 </span>            :  * be fast and must not block.
+<span class="lineNum">     129 </span>            :  */
+<span class="lineNum">     130 </span>            : void call_srcu(struct srcu_struct *sp, struct rcu_head *head,
+<span class="lineNum">     131 </span>            :                 void (*func)(struct rcu_head *head));
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            : void cleanup_srcu_struct(struct srcu_struct *sp);
+<span class="lineNum">     134 </span>            : int __srcu_read_lock(struct srcu_struct *sp) __acquires(sp);
+<span class="lineNum">     135 </span>            : void __srcu_read_unlock(struct srcu_struct *sp, int idx) __releases(sp);
+<span class="lineNum">     136 </span>            : void synchronize_srcu(struct srcu_struct *sp);
+<span class="lineNum">     137 </span>            : void synchronize_srcu_expedited(struct srcu_struct *sp);
+<span class="lineNum">     138 </span>            : long srcu_batches_completed(struct srcu_struct *sp);
+<span class="lineNum">     139 </span>            : void srcu_barrier(struct srcu_struct *sp);
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            : #ifdef CONFIG_DEBUG_LOCK_ALLOC
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            : /**
+<span class="lineNum">     144 </span>            :  * srcu_read_lock_held - might we be in SRCU read-side critical section?
+<span class="lineNum">     145 </span>            :  *
+<span class="lineNum">     146 </span>            :  * If CONFIG_DEBUG_LOCK_ALLOC is selected, returns nonzero iff in an SRCU
+<span class="lineNum">     147 </span>            :  * read-side critical section.  In absence of CONFIG_DEBUG_LOCK_ALLOC,
+<span class="lineNum">     148 </span>            :  * this assumes we are in an SRCU read-side critical section unless it can
+<span class="lineNum">     149 </span>            :  * prove otherwise.
+<span class="lineNum">     150 </span>            :  *
+<span class="lineNum">     151 </span>            :  * Checks debug_lockdep_rcu_enabled() to prevent false positives during boot
+<span class="lineNum">     152 </span>            :  * and while lockdep is disabled.
+<span class="lineNum">     153 </span>            :  *
+<span class="lineNum">     154 </span>            :  * Note that SRCU is based on its own statemachine and it doesn't
+<span class="lineNum">     155 </span>            :  * relies on normal RCU, it can be called from the CPU which
+<span class="lineNum">     156 </span>            :  * is in the idle loop from an RCU point of view or offline.
+<span class="lineNum">     157 </span>            :  */
+<span class="lineNum">     158 </span>            : static inline int srcu_read_lock_held(struct srcu_struct *sp)
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span>            :         if (!debug_lockdep_rcu_enabled())
+<span class="lineNum">     161 </span>            :                 return 1;
+<span class="lineNum">     162 </span>            :         return lock_is_held(&amp;sp-&gt;dep_map);
+<span class="lineNum">     163 </span>            : }
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            : #else /* #ifdef CONFIG_DEBUG_LOCK_ALLOC */
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            : static inline int srcu_read_lock_held(struct srcu_struct *sp)
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span>            :         return 1;
+<span class="lineNum">     170 </span>            : }
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            : #endif /* #else #ifdef CONFIG_DEBUG_LOCK_ALLOC */
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            : /**
+<span class="lineNum">     175 </span>            :  * srcu_dereference_check - fetch SRCU-protected pointer for later dereferencing
+<span class="lineNum">     176 </span>            :  * @p: the pointer to fetch and protect for later dereferencing
+<span class="lineNum">     177 </span>            :  * @sp: pointer to the srcu_struct, which is used to check that we
+<span class="lineNum">     178 </span>            :  *      really are in an SRCU read-side critical section.
+<span class="lineNum">     179 </span>            :  * @c: condition to check for update-side use
+<span class="lineNum">     180 </span>            :  *
+<span class="lineNum">     181 </span>            :  * If PROVE_RCU is enabled, invoking this outside of an RCU read-side
+<span class="lineNum">     182 </span>            :  * critical section will result in an RCU-lockdep splat, unless @c evaluates
+<span class="lineNum">     183 </span>            :  * to 1.  The @c argument will normally be a logical expression containing
+<span class="lineNum">     184 </span>            :  * lockdep_is_held() calls.
+<span class="lineNum">     185 </span>            :  */
+<span class="lineNum">     186 </span>            : #define srcu_dereference_check(p, sp, c) \
+<span class="lineNum">     187 </span>            :         __rcu_dereference_check((p), srcu_read_lock_held(sp) || (c), __rcu)
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            : /**
+<span class="lineNum">     190 </span>            :  * srcu_dereference - fetch SRCU-protected pointer for later dereferencing
+<span class="lineNum">     191 </span>            :  * @p: the pointer to fetch and protect for later dereferencing
+<span class="lineNum">     192 </span>            :  * @sp: pointer to the srcu_struct, which is used to check that we
+<span class="lineNum">     193 </span>            :  *      really are in an SRCU read-side critical section.
+<span class="lineNum">     194 </span>            :  *
+<span class="lineNum">     195 </span>            :  * Makes rcu_dereference_check() do the dirty work.  If PROVE_RCU
+<span class="lineNum">     196 </span>            :  * is enabled, invoking this outside of an RCU read-side critical
+<span class="lineNum">     197 </span>            :  * section will result in an RCU-lockdep splat.
+<span class="lineNum">     198 </span>            :  */
+<span class="lineNum">     199 </span>            : #define srcu_dereference(p, sp) srcu_dereference_check((p), (sp), 0)
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            : /**
+<span class="lineNum">     202 </span>            :  * srcu_read_lock - register a new reader for an SRCU-protected structure.
+<span class="lineNum">     203 </span>            :  * @sp: srcu_struct in which to register the new reader.
+<span class="lineNum">     204 </span>            :  *
+<span class="lineNum">     205 </span>            :  * Enter an SRCU read-side critical section.  Note that SRCU read-side
+<span class="lineNum">     206 </span>            :  * critical sections may be nested.  However, it is illegal to
+<span class="lineNum">     207 </span>            :  * call anything that waits on an SRCU grace period for the same
+<span class="lineNum">     208 </span>            :  * srcu_struct, whether directly or indirectly.  Please note that
+<span class="lineNum">     209 </span>            :  * one way to indirectly wait on an SRCU grace period is to acquire
+<span class="lineNum">     210 </span>            :  * a mutex that is held elsewhere while calling synchronize_srcu() or
+<span class="lineNum">     211 </span>            :  * synchronize_srcu_expedited().
+<span class="lineNum">     212 </span>            :  *
+<span class="lineNum">     213 </span>            :  * Note that srcu_read_lock() and the matching srcu_read_unlock() must
+<span class="lineNum">     214 </span>            :  * occur in the same context, for example, it is illegal to invoke
+<span class="lineNum">     215 </span>            :  * srcu_read_unlock() in an irq handler if the matching srcu_read_lock()
+<span class="lineNum">     216 </span>            :  * was invoked in process context.
+<span class="lineNum">     217 </span>            :  */
+<span class="lineNum">     218 </span>            : static inline int srcu_read_lock(struct srcu_struct *sp) __acquires(sp)
+<span class="lineNum">     219 </span>            : {
+<span class="lineNum">     220 </span><span class="lineCov">    1189060 :         int retval = __srcu_read_lock(sp);</span>
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            :         rcu_lock_acquire(&amp;(sp)-&gt;dep_map);
+<span class="lineNum">     223 </span>            :         return retval;
+<span class="lineNum">     224 </span>            : }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            : /**
+<span class="lineNum">     227 </span>            :  * srcu_read_unlock - unregister a old reader from an SRCU-protected structure.
+<span class="lineNum">     228 </span>            :  * @sp: srcu_struct in which to unregister the old reader.
+<span class="lineNum">     229 </span>            :  * @idx: return value from corresponding srcu_read_lock().
+<span class="lineNum">     230 </span>            :  *
+<span class="lineNum">     231 </span>            :  * Exit an SRCU read-side critical section.
+<span class="lineNum">     232 </span>            :  */
+<span class="lineNum">     233 </span>            : static inline void srcu_read_unlock(struct srcu_struct *sp, int idx)
+<span class="lineNum">     234 </span>            :         __releases(sp)
+<span class="lineNum">     235 </span>            : {
+<span class="lineNum">     236 </span>            :         rcu_lock_release(&amp;(sp)-&gt;dep_map);
+<span class="lineNum">     237 </span><span class="lineCov">    1189060 :         __srcu_read_unlock(sp, idx);</span>
+<span class="lineNum">     238 </span>            : }
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            : /**
+<span class="lineNum">     241 </span>            :  * smp_mb__after_srcu_read_unlock - ensure full ordering after srcu_read_unlock
+<span class="lineNum">     242 </span>            :  *
+<span class="lineNum">     243 </span>            :  * Converts the preceding srcu_read_unlock into a two-way memory barrier.
+<span class="lineNum">     244 </span>            :  *
+<span class="lineNum">     245 </span>            :  * Call this after srcu_read_unlock, to guarantee that all memory operations
+<span class="lineNum">     246 </span>            :  * that occur after smp_mb__after_srcu_read_unlock will appear to happen after
+<span class="lineNum">     247 </span>            :  * the preceding srcu_read_unlock.
+<span class="lineNum">     248 </span>            :  */
+<span class="lineNum">     249 </span>            : static inline void smp_mb__after_srcu_read_unlock(void)
+<span class="lineNum">     250 </span>            : {
+<span class="lineNum">     251 </span>            :         /* __srcu_read_unlock has smp_mb() internally so nothing to do here. */
+<span class="lineNum">     252 </span>            : }
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

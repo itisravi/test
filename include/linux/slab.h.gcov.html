@@ -1,0 +1,739 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/slab.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - slab.h<span style="font-size: 80%;"> (source / <a href="slab.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">25</td>
+            <td class="headerCovTableEntry">42</td>
+            <td class="headerCovTableEntryLo">59.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Written by Mark Hemment, 1996 (markhe@nextd.demon.co.uk).
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * (C) SGI 2006, Christoph Lameter
+<span class="lineNum">       5 </span>            :  *      Cleaned up and restructured to ease the addition of alternative
+<span class="lineNum">       6 </span>            :  *      implementations of SLAB allocators.
+<span class="lineNum">       7 </span>            :  * (C) Linux Foundation 2008-2013
+<span class="lineNum">       8 </span>            :  *      Unified interface for all slab allocators
+<span class="lineNum">       9 </span>            :  */
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #ifndef _LINUX_SLAB_H
+<span class="lineNum">      12 </span>            : #define _LINUX_SLAB_H
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : #include &lt;linux/gfp.h&gt;
+<span class="lineNum">      15 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">      16 </span>            : #include &lt;linux/workqueue.h&gt;
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : /*
+<span class="lineNum">      20 </span>            :  * Flags to pass to kmem_cache_create().
+<span class="lineNum">      21 </span>            :  * The ones marked DEBUG are only valid if CONFIG_SLAB_DEBUG is set.
+<span class="lineNum">      22 </span>            :  */
+<span class="lineNum">      23 </span>            : #define SLAB_DEBUG_FREE         0x00000100UL    /* DEBUG: Perform (expensive) checks on free */
+<span class="lineNum">      24 </span>            : #define SLAB_RED_ZONE           0x00000400UL    /* DEBUG: Red zone objs in a cache */
+<span class="lineNum">      25 </span>            : #define SLAB_POISON             0x00000800UL    /* DEBUG: Poison objects */
+<span class="lineNum">      26 </span>            : #define SLAB_HWCACHE_ALIGN      0x00002000UL    /* Align objs on cache lines */
+<span class="lineNum">      27 </span>            : #define SLAB_CACHE_DMA          0x00004000UL    /* Use GFP_DMA memory */
+<span class="lineNum">      28 </span>            : #define SLAB_STORE_USER         0x00010000UL    /* DEBUG: Store the last owner for bug hunting */
+<span class="lineNum">      29 </span>            : #define SLAB_PANIC              0x00040000UL    /* Panic if kmem_cache_create() fails */
+<span class="lineNum">      30 </span>            : /*
+<span class="lineNum">      31 </span>            :  * SLAB_DESTROY_BY_RCU - **WARNING** READ THIS!
+<span class="lineNum">      32 </span>            :  *
+<span class="lineNum">      33 </span>            :  * This delays freeing the SLAB page by a grace period, it does _NOT_
+<span class="lineNum">      34 </span>            :  * delay object freeing. This means that if you do kmem_cache_free()
+<span class="lineNum">      35 </span>            :  * that memory location is free to be reused at any time. Thus it may
+<span class="lineNum">      36 </span>            :  * be possible to see another object there in the same RCU grace period.
+<span class="lineNum">      37 </span>            :  *
+<span class="lineNum">      38 </span>            :  * This feature only ensures the memory location backing the object
+<span class="lineNum">      39 </span>            :  * stays valid, the trick to using this is relying on an independent
+<span class="lineNum">      40 </span>            :  * object validation pass. Something like:
+<span class="lineNum">      41 </span>            :  *
+<span class="lineNum">      42 </span>            :  *  rcu_read_lock()
+<span class="lineNum">      43 </span>            :  * again:
+<span class="lineNum">      44 </span>            :  *  obj = lockless_lookup(key);
+<span class="lineNum">      45 </span>            :  *  if (obj) {
+<span class="lineNum">      46 </span>            :  *    if (!try_get_ref(obj)) // might fail for free objects
+<span class="lineNum">      47 </span>            :  *      goto again;
+<span class="lineNum">      48 </span>            :  *
+<span class="lineNum">      49 </span>            :  *    if (obj-&gt;key != key) { // not the object we expected
+<span class="lineNum">      50 </span>            :  *      put_ref(obj);
+<span class="lineNum">      51 </span>            :  *      goto again;
+<span class="lineNum">      52 </span>            :  *    }
+<span class="lineNum">      53 </span>            :  *  }
+<span class="lineNum">      54 </span>            :  *  rcu_read_unlock();
+<span class="lineNum">      55 </span>            :  *
+<span class="lineNum">      56 </span>            :  * This is useful if we need to approach a kernel structure obliquely,
+<span class="lineNum">      57 </span>            :  * from its address obtained without the usual locking. We can lock
+<span class="lineNum">      58 </span>            :  * the structure to stabilize it and check it's still at the given address,
+<span class="lineNum">      59 </span>            :  * only if we can be sure that the memory has not been meanwhile reused
+<span class="lineNum">      60 </span>            :  * for some other kind of object (which our subsystem's lock might corrupt).
+<span class="lineNum">      61 </span>            :  *
+<span class="lineNum">      62 </span>            :  * rcu_read_lock before reading the address, then rcu_read_unlock after
+<span class="lineNum">      63 </span>            :  * taking the spinlock within the structure expected at that address.
+<span class="lineNum">      64 </span>            :  */
+<span class="lineNum">      65 </span>            : #define SLAB_DESTROY_BY_RCU     0x00080000UL    /* Defer freeing slabs to RCU */
+<span class="lineNum">      66 </span>            : #define SLAB_MEM_SPREAD         0x00100000UL    /* Spread some memory over cpuset */
+<span class="lineNum">      67 </span>            : #define SLAB_TRACE              0x00200000UL    /* Trace allocations and frees */
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : /* Flag to prevent checks on free */
+<span class="lineNum">      70 </span>            : #ifdef CONFIG_DEBUG_OBJECTS
+<span class="lineNum">      71 </span>            : # define SLAB_DEBUG_OBJECTS     0x00400000UL
+<span class="lineNum">      72 </span>            : #else
+<span class="lineNum">      73 </span>            : # define SLAB_DEBUG_OBJECTS     0x00000000UL
+<span class="lineNum">      74 </span>            : #endif
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : #define SLAB_NOLEAKTRACE        0x00800000UL    /* Avoid kmemleak tracing */
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : /* Don't track use of uninitialized memory */
+<span class="lineNum">      79 </span>            : #ifdef CONFIG_KMEMCHECK
+<span class="lineNum">      80 </span>            : # define SLAB_NOTRACK           0x01000000UL
+<span class="lineNum">      81 </span>            : #else
+<span class="lineNum">      82 </span>            : # define SLAB_NOTRACK           0x00000000UL
+<span class="lineNum">      83 </span>            : #endif
+<span class="lineNum">      84 </span>            : #ifdef CONFIG_FAILSLAB
+<span class="lineNum">      85 </span>            : # define SLAB_FAILSLAB          0x02000000UL    /* Fault injection mark */
+<span class="lineNum">      86 </span>            : #else
+<span class="lineNum">      87 </span>            : # define SLAB_FAILSLAB          0x00000000UL
+<span class="lineNum">      88 </span>            : #endif
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            : /* The following flags affect the page allocator grouping pages by mobility */
+<span class="lineNum">      91 </span>            : #define SLAB_RECLAIM_ACCOUNT    0x00020000UL            /* Objects are reclaimable */
+<span class="lineNum">      92 </span>            : #define SLAB_TEMPORARY          SLAB_RECLAIM_ACCOUNT    /* Objects are short-lived */
+<span class="lineNum">      93 </span>            : /*
+<span class="lineNum">      94 </span>            :  * ZERO_SIZE_PTR will be returned for zero sized kmalloc requests.
+<span class="lineNum">      95 </span>            :  *
+<span class="lineNum">      96 </span>            :  * Dereferencing ZERO_SIZE_PTR will lead to a distinct access fault.
+<span class="lineNum">      97 </span>            :  *
+<span class="lineNum">      98 </span>            :  * ZERO_SIZE_PTR can be passed to kfree though in the same way that NULL can.
+<span class="lineNum">      99 </span>            :  * Both make kfree a no-op.
+<span class="lineNum">     100 </span>            :  */
+<span class="lineNum">     101 </span>            : #define ZERO_SIZE_PTR ((void *)16)
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            : #define ZERO_OR_NULL_PTR(x) ((unsigned long)(x) &lt;= \
+<span class="lineNum">     104 </span>            :                                 (unsigned long)ZERO_SIZE_PTR)
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            : #include &lt;linux/kmemleak.h&gt;
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : struct mem_cgroup;
+<span class="lineNum">     109 </span>            : /*
+<span class="lineNum">     110 </span>            :  * struct kmem_cache related prototypes
+<span class="lineNum">     111 </span>            :  */
+<span class="lineNum">     112 </span>            : void __init kmem_cache_init(void);
+<span class="lineNum">     113 </span>            : int slab_is_available(void);
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : struct kmem_cache *kmem_cache_create(const char *, size_t, size_t,
+<span class="lineNum">     116 </span>            :                         unsigned long,
+<span class="lineNum">     117 </span>            :                         void (*)(void *));
+<span class="lineNum">     118 </span>            : #ifdef CONFIG_MEMCG_KMEM
+<span class="lineNum">     119 </span>            : struct kmem_cache *memcg_create_kmem_cache(struct mem_cgroup *,
+<span class="lineNum">     120 </span>            :                                            struct kmem_cache *,
+<span class="lineNum">     121 </span>            :                                            const char *);
+<span class="lineNum">     122 </span>            : #endif
+<span class="lineNum">     123 </span>            : void kmem_cache_destroy(struct kmem_cache *);
+<span class="lineNum">     124 </span>            : int kmem_cache_shrink(struct kmem_cache *);
+<span class="lineNum">     125 </span>            : void kmem_cache_free(struct kmem_cache *, void *);
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            : /*
+<span class="lineNum">     128 </span>            :  * Please use this macro to create slab caches. Simply specify the
+<span class="lineNum">     129 </span>            :  * name of the structure and maybe some flags that are listed above.
+<span class="lineNum">     130 </span>            :  *
+<span class="lineNum">     131 </span>            :  * The alignment of the struct determines object alignment. If you
+<span class="lineNum">     132 </span>            :  * f.e. add ____cacheline_aligned_in_smp to the struct declaration
+<span class="lineNum">     133 </span>            :  * then the objects will be properly aligned in SMP configurations.
+<span class="lineNum">     134 </span>            :  */
+<span class="lineNum">     135 </span>            : #define KMEM_CACHE(__struct, __flags) kmem_cache_create(#__struct,\
+<span class="lineNum">     136 </span>            :                 sizeof(struct __struct), __alignof__(struct __struct),\
+<span class="lineNum">     137 </span>            :                 (__flags), NULL)
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : /*
+<span class="lineNum">     140 </span>            :  * Common kmalloc functions provided by all allocators
+<span class="lineNum">     141 </span>            :  */
+<span class="lineNum">     142 </span>            : void * __must_check __krealloc(const void *, size_t, gfp_t);
+<span class="lineNum">     143 </span>            : void * __must_check krealloc(const void *, size_t, gfp_t);
+<span class="lineNum">     144 </span>            : void kfree(const void *);
+<span class="lineNum">     145 </span>            : void kzfree(const void *);
+<span class="lineNum">     146 </span>            : size_t ksize(const void *);
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            : /*
+<span class="lineNum">     149 </span>            :  * Some archs want to perform DMA into kmalloc caches and need a guaranteed
+<span class="lineNum">     150 </span>            :  * alignment larger than the alignment of a 64-bit integer.
+<span class="lineNum">     151 </span>            :  * Setting ARCH_KMALLOC_MINALIGN in arch headers allows that.
+<span class="lineNum">     152 </span>            :  */
+<span class="lineNum">     153 </span>            : #if defined(ARCH_DMA_MINALIGN) &amp;&amp; ARCH_DMA_MINALIGN &gt; 8
+<span class="lineNum">     154 </span>            : #define ARCH_KMALLOC_MINALIGN ARCH_DMA_MINALIGN
+<span class="lineNum">     155 </span>            : #define KMALLOC_MIN_SIZE ARCH_DMA_MINALIGN
+<span class="lineNum">     156 </span>            : #define KMALLOC_SHIFT_LOW ilog2(ARCH_DMA_MINALIGN)
+<span class="lineNum">     157 </span>            : #else
+<span class="lineNum">     158 </span>            : #define ARCH_KMALLOC_MINALIGN __alignof__(unsigned long long)
+<span class="lineNum">     159 </span>            : #endif
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            : #ifdef CONFIG_SLOB
+<span class="lineNum">     162 </span>            : /*
+<span class="lineNum">     163 </span>            :  * Common fields provided in kmem_cache by all slab allocators
+<span class="lineNum">     164 </span>            :  * This struct is either used directly by the allocator (SLOB)
+<span class="lineNum">     165 </span>            :  * or the allocator must include definitions for all fields
+<span class="lineNum">     166 </span>            :  * provided in kmem_cache_common in their definition of kmem_cache.
+<span class="lineNum">     167 </span>            :  *
+<span class="lineNum">     168 </span>            :  * Once we can do anonymous structs (C11 standard) we could put a
+<span class="lineNum">     169 </span>            :  * anonymous struct definition in these allocators so that the
+<span class="lineNum">     170 </span>            :  * separate allocations in the kmem_cache structure of SLAB and
+<span class="lineNum">     171 </span>            :  * SLUB is no longer needed.
+<span class="lineNum">     172 </span>            :  */
+<span class="lineNum">     173 </span>            : struct kmem_cache {
+<span class="lineNum">     174 </span>            :         unsigned int object_size;/* The original size of the object */
+<span class="lineNum">     175 </span>            :         unsigned int size;      /* The aligned/padded/added on size  */
+<span class="lineNum">     176 </span>            :         unsigned int align;     /* Alignment as calculated */
+<span class="lineNum">     177 </span>            :         unsigned long flags;    /* Active flags on the slab */
+<span class="lineNum">     178 </span>            :         const char *name;       /* Slab name for sysfs */
+<span class="lineNum">     179 </span>            :         int refcount;           /* Use counter */
+<span class="lineNum">     180 </span>            :         void (*ctor)(void *);   /* Called on object slot creation */
+<span class="lineNum">     181 </span>            :         struct list_head list;  /* List of all slab caches on the system */
+<span class="lineNum">     182 </span>            : };
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            : #endif /* CONFIG_SLOB */
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : /*
+<span class="lineNum">     187 </span>            :  * Kmalloc array related definitions
+<span class="lineNum">     188 </span>            :  */
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : #ifdef CONFIG_SLAB
+<span class="lineNum">     191 </span>            : /*
+<span class="lineNum">     192 </span>            :  * The largest kmalloc size supported by the SLAB allocators is
+<span class="lineNum">     193 </span>            :  * 32 megabyte (2^25) or the maximum allocatable page order if that is
+<span class="lineNum">     194 </span>            :  * less than 32 MB.
+<span class="lineNum">     195 </span>            :  *
+<span class="lineNum">     196 </span>            :  * WARNING: Its not easy to increase this value since the allocators have
+<span class="lineNum">     197 </span>            :  * to do various tricks to work around compiler limitations in order to
+<span class="lineNum">     198 </span>            :  * ensure proper constant folding.
+<span class="lineNum">     199 </span>            :  */
+<span class="lineNum">     200 </span>            : #define KMALLOC_SHIFT_HIGH      ((MAX_ORDER + PAGE_SHIFT - 1) &lt;= 25 ? \
+<span class="lineNum">     201 </span>            :                                 (MAX_ORDER + PAGE_SHIFT - 1) : 25)
+<span class="lineNum">     202 </span>            : #define KMALLOC_SHIFT_MAX       KMALLOC_SHIFT_HIGH
+<span class="lineNum">     203 </span>            : #ifndef KMALLOC_SHIFT_LOW
+<span class="lineNum">     204 </span>            : #define KMALLOC_SHIFT_LOW       5
+<span class="lineNum">     205 </span>            : #endif
+<span class="lineNum">     206 </span>            : #endif
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span>            : #ifdef CONFIG_SLUB
+<span class="lineNum">     209 </span>            : /*
+<span class="lineNum">     210 </span>            :  * SLUB directly allocates requests fitting in to an order-1 page
+<span class="lineNum">     211 </span>            :  * (PAGE_SIZE*2).  Larger requests are passed to the page allocator.
+<span class="lineNum">     212 </span>            :  */
+<span class="lineNum">     213 </span>            : #define KMALLOC_SHIFT_HIGH      (PAGE_SHIFT + 1)
+<span class="lineNum">     214 </span>            : #define KMALLOC_SHIFT_MAX       (MAX_ORDER + PAGE_SHIFT)
+<span class="lineNum">     215 </span>            : #ifndef KMALLOC_SHIFT_LOW
+<span class="lineNum">     216 </span>            : #define KMALLOC_SHIFT_LOW       3
+<span class="lineNum">     217 </span>            : #endif
+<span class="lineNum">     218 </span>            : #endif
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span>            : #ifdef CONFIG_SLOB
+<span class="lineNum">     221 </span>            : /*
+<span class="lineNum">     222 </span>            :  * SLOB passes all requests larger than one page to the page allocator.
+<span class="lineNum">     223 </span>            :  * No kmalloc array is necessary since objects of different sizes can
+<span class="lineNum">     224 </span>            :  * be allocated from the same page.
+<span class="lineNum">     225 </span>            :  */
+<span class="lineNum">     226 </span>            : #define KMALLOC_SHIFT_HIGH      PAGE_SHIFT
+<span class="lineNum">     227 </span>            : #define KMALLOC_SHIFT_MAX       30
+<span class="lineNum">     228 </span>            : #ifndef KMALLOC_SHIFT_LOW
+<span class="lineNum">     229 </span>            : #define KMALLOC_SHIFT_LOW       3
+<span class="lineNum">     230 </span>            : #endif
+<span class="lineNum">     231 </span>            : #endif
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            : /* Maximum allocatable size */
+<span class="lineNum">     234 </span>            : #define KMALLOC_MAX_SIZE        (1UL &lt;&lt; KMALLOC_SHIFT_MAX)
+<span class="lineNum">     235 </span>            : /* Maximum size for which we actually use a slab cache */
+<span class="lineNum">     236 </span>            : #define KMALLOC_MAX_CACHE_SIZE  (1UL &lt;&lt; KMALLOC_SHIFT_HIGH)
+<span class="lineNum">     237 </span>            : /* Maximum order allocatable via the slab allocagtor */
+<span class="lineNum">     238 </span>            : #define KMALLOC_MAX_ORDER       (KMALLOC_SHIFT_MAX - PAGE_SHIFT)
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            : /*
+<span class="lineNum">     241 </span>            :  * Kmalloc subsystem.
+<span class="lineNum">     242 </span>            :  */
+<span class="lineNum">     243 </span>            : #ifndef KMALLOC_MIN_SIZE
+<span class="lineNum">     244 </span>            : #define KMALLOC_MIN_SIZE (1 &lt;&lt; KMALLOC_SHIFT_LOW)
+<span class="lineNum">     245 </span>            : #endif
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            : /*
+<span class="lineNum">     248 </span>            :  * This restriction comes from byte sized index implementation.
+<span class="lineNum">     249 </span>            :  * Page size is normally 2^12 bytes and, in this case, if we want to use
+<span class="lineNum">     250 </span>            :  * byte sized index which can represent 2^8 entries, the size of the object
+<span class="lineNum">     251 </span>            :  * should be equal or greater to 2^12 / 2^8 = 2^4 = 16.
+<span class="lineNum">     252 </span>            :  * If minimum size of kmalloc is less than 16, we use it as minimum object
+<span class="lineNum">     253 </span>            :  * size and give up to use byte sized index.
+<span class="lineNum">     254 </span>            :  */
+<span class="lineNum">     255 </span>            : #define SLAB_OBJ_MIN_SIZE      (KMALLOC_MIN_SIZE &lt; 16 ? \
+<span class="lineNum">     256 </span>            :                                (KMALLOC_MIN_SIZE) : 16)
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            : #ifndef CONFIG_SLOB
+<span class="lineNum">     259 </span>            : extern struct kmem_cache *kmalloc_caches[KMALLOC_SHIFT_HIGH + 1];
+<span class="lineNum">     260 </span>            : #ifdef CONFIG_ZONE_DMA
+<span class="lineNum">     261 </span>            : extern struct kmem_cache *kmalloc_dma_caches[KMALLOC_SHIFT_HIGH + 1];
+<span class="lineNum">     262 </span>            : #endif
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            : /*
+<span class="lineNum">     265 </span>            :  * Figure out which kmalloc slab an allocation of a certain size
+<span class="lineNum">     266 </span>            :  * belongs to.
+<span class="lineNum">     267 </span>            :  * 0 = zero alloc
+<span class="lineNum">     268 </span>            :  * 1 =  65 .. 96 bytes
+<span class="lineNum">     269 </span>            :  * 2 = 120 .. 192 bytes
+<span class="lineNum">     270 </span>            :  * n = 2^(n-1) .. 2^n -1
+<span class="lineNum">     271 </span>            :  */
+<a name="272"><span class="lineNum">     272 </span>            : static __always_inline int kmalloc_index(size_t size)</a>
+<span class="lineNum">     273 </span>            : {
+<span class="lineNum">     274 </span><span class="lineCov">    8404805 :         if (!size)</span>
+<span class="lineNum">     275 </span>            :                 return 0;
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span><span class="lineCov">    8404810 :         if (size &lt;= KMALLOC_MIN_SIZE)</span>
+<span class="lineNum">     278 </span>            :                 return KMALLOC_SHIFT_LOW;
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineCov">    8405049 :         if (KMALLOC_MIN_SIZE &lt;= 32 &amp;&amp; size &gt; 64 &amp;&amp; size &lt;= 96)</span>
+<span class="lineNum">     281 </span>            :                 return 1;
+<span class="lineNum">     282 </span><span class="lineCov">    8403196 :         if (KMALLOC_MIN_SIZE &lt;= 64 &amp;&amp; size &gt; 128 &amp;&amp; size &lt;= 192)</span>
+<span class="lineNum">     283 </span>            :                 return 2;
+<span class="lineNum">     284 </span><span class="lineCov">    4257102 :         if (size &lt;=          8) return 3;</span>
+<span class="lineNum">     285 </span><span class="lineCov">    4257162 :         if (size &lt;=         16) return 4;</span>
+<span class="lineNum">     286 </span><span class="lineCov">    4253389 :         if (size &lt;=         32) return 5;</span>
+<span class="lineNum">     287 </span><span class="lineCov">    4251260 :         if (size &lt;=         64) return 6;</span>
+<span class="lineNum">     288 </span><span class="lineCov">    4243701 :         if (size &lt;=        128) return 7;</span>
+<span class="lineNum">     289 </span><span class="lineCov">      53007 :         if (size &lt;=        256) return 8;</span>
+<span class="lineNum">     290 </span><span class="lineCov">      52901 :         if (size &lt;=        512) return 9;</span>
+<span class="lineNum">     291 </span><span class="lineCov">       3528 :         if (size &lt;=       1024) return 10;</span>
+<span class="lineNum">     292 </span><span class="lineCov">       3349 :         if (size &lt;=   2 * 1024) return 11;</span>
+<span class="lineNum">     293 </span><span class="lineCov">         48 :         if (size &lt;=   4 * 1024) return 12;</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :         if (size &lt;=   8 * 1024) return 13;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :         if (size &lt;=  16 * 1024) return 14;</span>
+<span class="lineNum">     296 </span><span class="lineNoCov">          0 :         if (size &lt;=  32 * 1024) return 15;</span>
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         if (size &lt;=  64 * 1024) return 16;</span>
+<span class="lineNum">     298 </span><span class="lineNoCov">          0 :         if (size &lt;= 128 * 1024) return 17;</span>
+<span class="lineNum">     299 </span><span class="lineNoCov">          0 :         if (size &lt;= 256 * 1024) return 18;</span>
+<span class="lineNum">     300 </span><span class="lineNoCov">          0 :         if (size &lt;= 512 * 1024) return 19;</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :         if (size &lt;= 1024 * 1024) return 20;</span>
+<span class="lineNum">     302 </span><span class="lineNoCov">          0 :         if (size &lt;=  2 * 1024 * 1024) return 21;</span>
+<span class="lineNum">     303 </span><span class="lineNoCov">          0 :         if (size &lt;=  4 * 1024 * 1024) return 22;</span>
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         if (size &lt;=  8 * 1024 * 1024) return 23;</span>
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         if (size &lt;=  16 * 1024 * 1024) return 24;</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :         if (size &lt;=  32 * 1024 * 1024) return 25;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         if (size &lt;=  64 * 1024 * 1024) return 26;</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :         BUG();</span>
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            :         /* Will never be reached. Needed because the compiler may complain */
+<span class="lineNum">     311 </span>            :         return -1;
+<span class="lineNum">     312 </span>            : }
+<span class="lineNum">     313 </span>            : #endif /* !CONFIG_SLOB */
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            : void *__kmalloc(size_t size, gfp_t flags);
+<span class="lineNum">     316 </span>            : void *kmem_cache_alloc(struct kmem_cache *, gfp_t flags);
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            : #ifdef CONFIG_NUMA
+<span class="lineNum">     319 </span>            : void *__kmalloc_node(size_t size, gfp_t flags, int node);
+<span class="lineNum">     320 </span>            : void *kmem_cache_alloc_node(struct kmem_cache *, gfp_t flags, int node);
+<span class="lineNum">     321 </span>            : #else
+<span class="lineNum">     322 </span>            : static __always_inline void *__kmalloc_node(size_t size, gfp_t flags, int node)
+<span class="lineNum">     323 </span>            : {
+<span class="lineNum">     324 </span>            :         return __kmalloc(size, flags);
+<span class="lineNum">     325 </span>            : }
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span>            : static __always_inline void *kmem_cache_alloc_node(struct kmem_cache *s, gfp_t flags, int node)
+<span class="lineNum">     328 </span>            : {
+<span class="lineNum">     329 </span>            :         return kmem_cache_alloc(s, flags);
+<span class="lineNum">     330 </span>            : }
+<span class="lineNum">     331 </span>            : #endif
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            : #ifdef CONFIG_TRACING
+<span class="lineNum">     334 </span>            : extern void *kmem_cache_alloc_trace(struct kmem_cache *, gfp_t, size_t);
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            : #ifdef CONFIG_NUMA
+<span class="lineNum">     337 </span>            : extern void *kmem_cache_alloc_node_trace(struct kmem_cache *s,
+<span class="lineNum">     338 </span>            :                                            gfp_t gfpflags,
+<span class="lineNum">     339 </span>            :                                            int node, size_t size);
+<span class="lineNum">     340 </span>            : #else
+<span class="lineNum">     341 </span>            : static __always_inline void *
+<span class="lineNum">     342 </span>            : kmem_cache_alloc_node_trace(struct kmem_cache *s,
+<span class="lineNum">     343 </span>            :                               gfp_t gfpflags,
+<span class="lineNum">     344 </span>            :                               int node, size_t size)
+<span class="lineNum">     345 </span>            : {
+<span class="lineNum">     346 </span>            :         return kmem_cache_alloc_trace(s, gfpflags, size);
+<span class="lineNum">     347 </span>            : }
+<span class="lineNum">     348 </span>            : #endif /* CONFIG_NUMA */
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            : #else /* CONFIG_TRACING */
+<span class="lineNum">     351 </span>            : static __always_inline void *kmem_cache_alloc_trace(struct kmem_cache *s,
+<span class="lineNum">     352 </span>            :                 gfp_t flags, size_t size)
+<span class="lineNum">     353 </span>            : {
+<span class="lineNum">     354 </span>            :         return kmem_cache_alloc(s, flags);
+<span class="lineNum">     355 </span>            : }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            : static __always_inline void *
+<span class="lineNum">     358 </span>            : kmem_cache_alloc_node_trace(struct kmem_cache *s,
+<span class="lineNum">     359 </span>            :                               gfp_t gfpflags,
+<span class="lineNum">     360 </span>            :                               int node, size_t size)
+<span class="lineNum">     361 </span>            : {
+<span class="lineNum">     362 </span>            :         return kmem_cache_alloc_node(s, gfpflags, node);
+<span class="lineNum">     363 </span>            : }
+<span class="lineNum">     364 </span>            : #endif /* CONFIG_TRACING */
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            : #ifdef CONFIG_SLAB
+<span class="lineNum">     367 </span>            : #include &lt;linux/slab_def.h&gt;
+<span class="lineNum">     368 </span>            : #endif
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span>            : #ifdef CONFIG_SLUB
+<span class="lineNum">     371 </span>            : #include &lt;linux/slub_def.h&gt;
+<span class="lineNum">     372 </span>            : #endif
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span>            : extern void *kmalloc_order(size_t size, gfp_t flags, unsigned int order);
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            : #ifdef CONFIG_TRACING
+<span class="lineNum">     377 </span>            : extern void *kmalloc_order_trace(size_t size, gfp_t flags, unsigned int order);
+<span class="lineNum">     378 </span>            : #else
+<span class="lineNum">     379 </span>            : static __always_inline void *
+<span class="lineNum">     380 </span>            : kmalloc_order_trace(size_t size, gfp_t flags, unsigned int order)
+<span class="lineNum">     381 </span>            : {
+<span class="lineNum">     382 </span>            :         return kmalloc_order(size, flags, order);
+<span class="lineNum">     383 </span>            : }
+<span class="lineNum">     384 </span>            : #endif
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            : static __always_inline void *kmalloc_large(size_t size, gfp_t flags)
+<span class="lineNum">     387 </span>            : {
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         unsigned int order = get_order(size);</span>
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :         return kmalloc_order_trace(size, flags, order);</span>
+<span class="lineNum">     390 </span>            : }
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span>            : /**
+<span class="lineNum">     393 </span>            :  * kmalloc - allocate memory
+<span class="lineNum">     394 </span>            :  * @size: how many bytes of memory are required.
+<span class="lineNum">     395 </span>            :  * @flags: the type of memory to allocate.
+<span class="lineNum">     396 </span>            :  *
+<span class="lineNum">     397 </span>            :  * kmalloc is the normal method of allocating memory
+<span class="lineNum">     398 </span>            :  * for objects smaller than page size in the kernel.
+<span class="lineNum">     399 </span>            :  *
+<span class="lineNum">     400 </span>            :  * The @flags argument may be one of:
+<span class="lineNum">     401 </span>            :  *
+<span class="lineNum">     402 </span>            :  * %GFP_USER - Allocate memory on behalf of user.  May sleep.
+<span class="lineNum">     403 </span>            :  *
+<span class="lineNum">     404 </span>            :  * %GFP_KERNEL - Allocate normal kernel ram.  May sleep.
+<span class="lineNum">     405 </span>            :  *
+<span class="lineNum">     406 </span>            :  * %GFP_ATOMIC - Allocation will not sleep.  May use emergency pools.
+<span class="lineNum">     407 </span>            :  *   For example, use this inside interrupt handlers.
+<span class="lineNum">     408 </span>            :  *
+<span class="lineNum">     409 </span>            :  * %GFP_HIGHUSER - Allocate pages from high memory.
+<span class="lineNum">     410 </span>            :  *
+<span class="lineNum">     411 </span>            :  * %GFP_NOIO - Do not do any I/O at all while trying to get memory.
+<span class="lineNum">     412 </span>            :  *
+<span class="lineNum">     413 </span>            :  * %GFP_NOFS - Do not make any fs calls while trying to get memory.
+<span class="lineNum">     414 </span>            :  *
+<span class="lineNum">     415 </span>            :  * %GFP_NOWAIT - Allocation will not sleep.
+<span class="lineNum">     416 </span>            :  *
+<span class="lineNum">     417 </span>            :  * %__GFP_THISNODE - Allocate node-local memory only.
+<span class="lineNum">     418 </span>            :  *
+<span class="lineNum">     419 </span>            :  * %GFP_DMA - Allocation suitable for DMA.
+<span class="lineNum">     420 </span>            :  *   Should only be used for kmalloc() caches. Otherwise, use a
+<span class="lineNum">     421 </span>            :  *   slab created with SLAB_DMA.
+<span class="lineNum">     422 </span>            :  *
+<span class="lineNum">     423 </span>            :  * Also it is possible to set different flags by OR'ing
+<span class="lineNum">     424 </span>            :  * in one or more of the following additional @flags:
+<span class="lineNum">     425 </span>            :  *
+<span class="lineNum">     426 </span>            :  * %__GFP_COLD - Request cache-cold pages instead of
+<span class="lineNum">     427 </span>            :  *   trying to return cache-warm pages.
+<span class="lineNum">     428 </span>            :  *
+<span class="lineNum">     429 </span>            :  * %__GFP_HIGH - This allocation has high priority and may use emergency pools.
+<span class="lineNum">     430 </span>            :  *
+<span class="lineNum">     431 </span>            :  * %__GFP_NOFAIL - Indicate that this allocation is in no way allowed to fail
+<span class="lineNum">     432 </span>            :  *   (think twice before using).
+<span class="lineNum">     433 </span>            :  *
+<span class="lineNum">     434 </span>            :  * %__GFP_NORETRY - If memory is not immediately available,
+<span class="lineNum">     435 </span>            :  *   then give up at once.
+<span class="lineNum">     436 </span>            :  *
+<span class="lineNum">     437 </span>            :  * %__GFP_NOWARN - If allocation fails, don't issue any warnings.
+<span class="lineNum">     438 </span>            :  *
+<span class="lineNum">     439 </span>            :  * %__GFP_REPEAT - If allocation fails initially, try once more before failing.
+<span class="lineNum">     440 </span>            :  *
+<span class="lineNum">     441 </span>            :  * There are other flags available as well, but these are not intended
+<span class="lineNum">     442 </span>            :  * for general use, and so are not documented here. For a full list of
+<span class="lineNum">     443 </span>            :  * potential flags, always refer to linux/gfp.h.
+<span class="lineNum">     444 </span>            :  */
+<span class="lineNum">     445 </span>            : static __always_inline void *kmalloc(size_t size, gfp_t flags)
+<span class="lineNum">     446 </span>            : {
+<span class="lineNum">     447 </span><span class="lineCov">    9255710 :         if (__builtin_constant_p(size)) {</span>
+<span class="lineNum">     448 </span><span class="lineCov">    8405628 :                 if (size &gt; KMALLOC_MAX_CACHE_SIZE)</span>
+<span class="lineNum">     449 </span>            :                         return kmalloc_large(size, flags);
+<span class="lineNum">     450 </span>            : #ifndef CONFIG_SLOB
+<span class="lineNum">     451 </span><span class="lineCov">   11016726 :                 if (!(flags &amp; GFP_DMA)) {</span>
+<span class="lineNum">     452 </span>            :                         int index = kmalloc_index(size);
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span><span class="lineCov">    8404805 :                         if (!index)</span>
+<span class="lineNum">     455 </span>            :                                 return ZERO_SIZE_PTR;
+<span class="lineNum">     456 </span>            : 
+<span class="lineNum">     457 </span><span class="lineCov">   11233096 :                         return kmem_cache_alloc_trace(kmalloc_caches[index],</span>
+<span class="lineNum">     458 </span>            :                                         flags, size);
+<span class="lineNum">     459 </span>            :                 }
+<span class="lineNum">     460 </span>            : #endif
+<span class="lineNum">     461 </span>            :         }
+<span class="lineNum">     462 </span><span class="lineCov">     850911 :         return __kmalloc(size, flags);</span>
+<span class="lineNum">     463 </span>            : }
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            : /*
+<span class="lineNum">     466 </span>            :  * Determine size used for the nth kmalloc cache.
+<span class="lineNum">     467 </span>            :  * return size or 0 if a kmalloc cache for that
+<span class="lineNum">     468 </span>            :  * size does not exist
+<span class="lineNum">     469 </span>            :  */
+<span class="lineNum">     470 </span>            : static __always_inline int kmalloc_size(int n)
+<span class="lineNum">     471 </span>            : {
+<span class="lineNum">     472 </span>            : #ifndef CONFIG_SLOB
+<span class="lineNum">     473 </span>            :         if (n &gt; 2)
+<span class="lineNum">     474 </span>            :                 return 1 &lt;&lt; n;
+<span class="lineNum">     475 </span>            : 
+<span class="lineNum">     476 </span>            :         if (n == 1 &amp;&amp; KMALLOC_MIN_SIZE &lt;= 32)
+<span class="lineNum">     477 </span>            :                 return 96;
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            :         if (n == 2 &amp;&amp; KMALLOC_MIN_SIZE &lt;= 64)
+<span class="lineNum">     480 </span>            :                 return 192;
+<span class="lineNum">     481 </span>            : #endif
+<span class="lineNum">     482 </span>            :         return 0;
+<span class="lineNum">     483 </span>            : }
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span>            : static __always_inline void *kmalloc_node(size_t size, gfp_t flags, int node)
+<span class="lineNum">     486 </span>            : {
+<span class="lineNum">     487 </span>            : #ifndef CONFIG_SLOB
+<span class="lineNum">     488 </span>            :         if (__builtin_constant_p(size) &amp;&amp;
+<span class="lineNum">     489 </span>            :                 size &lt;= KMALLOC_MAX_CACHE_SIZE &amp;&amp; !(flags &amp; GFP_DMA)) {
+<span class="lineNum">     490 </span>            :                 int i = kmalloc_index(size);
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span>            :                 if (!i)
+<span class="lineNum">     493 </span>            :                         return ZERO_SIZE_PTR;
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span>            :                 return kmem_cache_alloc_node_trace(kmalloc_caches[i],
+<span class="lineNum">     496 </span>            :                                                 flags, node, size);
+<span class="lineNum">     497 </span>            :         }
+<span class="lineNum">     498 </span>            : #endif
+<span class="lineNum">     499 </span>            :         return __kmalloc_node(size, flags, node);
+<span class="lineNum">     500 </span>            : }
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            : /*
+<span class="lineNum">     503 </span>            :  * Setting ARCH_SLAB_MINALIGN in arch headers allows a different alignment.
+<span class="lineNum">     504 </span>            :  * Intended for arches that get misalignment faults even for 64 bit integer
+<span class="lineNum">     505 </span>            :  * aligned buffers.
+<span class="lineNum">     506 </span>            :  */
+<span class="lineNum">     507 </span>            : #ifndef ARCH_SLAB_MINALIGN
+<span class="lineNum">     508 </span>            : #define ARCH_SLAB_MINALIGN __alignof__(unsigned long long)
+<span class="lineNum">     509 </span>            : #endif
+<span class="lineNum">     510 </span>            : /*
+<span class="lineNum">     511 </span>            :  * This is the main placeholder for memcg-related information in kmem caches.
+<span class="lineNum">     512 </span>            :  * struct kmem_cache will hold a pointer to it, so the memory cost while
+<span class="lineNum">     513 </span>            :  * disabled is 1 pointer. The runtime cost while enabled, gets bigger than it
+<span class="lineNum">     514 </span>            :  * would otherwise be if that would be bundled in kmem_cache: we'll need an
+<span class="lineNum">     515 </span>            :  * extra pointer chase. But the trade off clearly lays in favor of not
+<span class="lineNum">     516 </span>            :  * penalizing non-users.
+<span class="lineNum">     517 </span>            :  *
+<span class="lineNum">     518 </span>            :  * Both the root cache and the child caches will have it. For the root cache,
+<span class="lineNum">     519 </span>            :  * this will hold a dynamically allocated array large enough to hold
+<span class="lineNum">     520 </span>            :  * information about the currently limited memcgs in the system. To allow the
+<span class="lineNum">     521 </span>            :  * array to be accessed without taking any locks, on relocation we free the old
+<span class="lineNum">     522 </span>            :  * version only after a grace period.
+<span class="lineNum">     523 </span>            :  *
+<span class="lineNum">     524 </span>            :  * Child caches will hold extra metadata needed for its operation. Fields are:
+<span class="lineNum">     525 </span>            :  *
+<span class="lineNum">     526 </span>            :  * @memcg: pointer to the memcg this cache belongs to
+<span class="lineNum">     527 </span>            :  * @list: list_head for the list of all caches in this memcg
+<span class="lineNum">     528 </span>            :  * @root_cache: pointer to the global, root cache, this cache was derived from
+<span class="lineNum">     529 </span>            :  * @nr_pages: number of pages that belongs to this cache.
+<span class="lineNum">     530 </span>            :  */
+<span class="lineNum">     531 </span>            : struct memcg_cache_params {
+<span class="lineNum">     532 </span>            :         bool is_root_cache;
+<span class="lineNum">     533 </span>            :         union {
+<span class="lineNum">     534 </span>            :                 struct {
+<span class="lineNum">     535 </span>            :                         struct rcu_head rcu_head;
+<span class="lineNum">     536 </span>            :                         struct kmem_cache *memcg_caches[0];
+<span class="lineNum">     537 </span>            :                 };
+<span class="lineNum">     538 </span>            :                 struct {
+<span class="lineNum">     539 </span>            :                         struct mem_cgroup *memcg;
+<span class="lineNum">     540 </span>            :                         struct list_head list;
+<span class="lineNum">     541 </span>            :                         struct kmem_cache *root_cache;
+<span class="lineNum">     542 </span>            :                         atomic_t nr_pages;
+<span class="lineNum">     543 </span>            :                 };
+<span class="lineNum">     544 </span>            :         };
+<span class="lineNum">     545 </span>            : };
+<span class="lineNum">     546 </span>            : 
+<span class="lineNum">     547 </span>            : int memcg_update_all_caches(int num_memcgs);
+<span class="lineNum">     548 </span>            : 
+<span class="lineNum">     549 </span>            : struct seq_file;
+<span class="lineNum">     550 </span>            : int cache_show(struct kmem_cache *s, struct seq_file *m);
+<span class="lineNum">     551 </span>            : void print_slabinfo_header(struct seq_file *m);
+<span class="lineNum">     552 </span>            : 
+<span class="lineNum">     553 </span>            : /**
+<span class="lineNum">     554 </span>            :  * kmalloc_array - allocate memory for an array.
+<span class="lineNum">     555 </span>            :  * @n: number of elements.
+<span class="lineNum">     556 </span>            :  * @size: element size.
+<span class="lineNum">     557 </span>            :  * @flags: the type of memory to allocate (see kmalloc).
+<span class="lineNum">     558 </span>            :  */
+<span class="lineNum">     559 </span>            : static inline void *kmalloc_array(size_t n, size_t size, gfp_t flags)
+<span class="lineNum">     560 </span>            : {
+<span class="lineNum">     561 </span><span class="lineCov">       5012 :         if (size != 0 &amp;&amp; n &gt; SIZE_MAX / size)</span>
+<span class="lineNum">     562 </span>            :                 return NULL;
+<span class="lineNum">     563 </span><span class="lineCov">       5075 :         return __kmalloc(n * size, flags);</span>
+<span class="lineNum">     564 </span>            : }
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span>            : /**
+<span class="lineNum">     567 </span>            :  * kcalloc - allocate memory for an array. The memory is set to zero.
+<span class="lineNum">     568 </span>            :  * @n: number of elements.
+<span class="lineNum">     569 </span>            :  * @size: element size.
+<span class="lineNum">     570 </span>            :  * @flags: the type of memory to allocate (see kmalloc).
+<span class="lineNum">     571 </span>            :  */
+<span class="lineNum">     572 </span>            : static inline void *kcalloc(size_t n, size_t size, gfp_t flags)
+<span class="lineNum">     573 </span>            : {
+<span class="lineNum">     574 </span>            :         return kmalloc_array(n, size, flags | __GFP_ZERO);
+<span class="lineNum">     575 </span>            : }
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span>            : /*
+<span class="lineNum">     578 </span>            :  * kmalloc_track_caller is a special version of kmalloc that records the
+<span class="lineNum">     579 </span>            :  * calling function of the routine calling it for slab leak tracking instead
+<span class="lineNum">     580 </span>            :  * of just the calling function (confusing, eh?).
+<span class="lineNum">     581 </span>            :  * It's useful when the call to kmalloc comes from a widely-used standard
+<span class="lineNum">     582 </span>            :  * allocator where we care about the real place the memory allocation
+<span class="lineNum">     583 </span>            :  * request comes from.
+<span class="lineNum">     584 </span>            :  */
+<span class="lineNum">     585 </span>            : #if defined(CONFIG_DEBUG_SLAB) || defined(CONFIG_SLUB) || \
+<span class="lineNum">     586 </span>            :         (defined(CONFIG_SLAB) &amp;&amp; defined(CONFIG_TRACING)) || \
+<span class="lineNum">     587 </span>            :         (defined(CONFIG_SLOB) &amp;&amp; defined(CONFIG_TRACING))
+<span class="lineNum">     588 </span>            : extern void *__kmalloc_track_caller(size_t, gfp_t, unsigned long);
+<span class="lineNum">     589 </span>            : #define kmalloc_track_caller(size, flags) \
+<span class="lineNum">     590 </span>            :         __kmalloc_track_caller(size, flags, _RET_IP_)
+<span class="lineNum">     591 </span>            : #else
+<span class="lineNum">     592 </span>            : #define kmalloc_track_caller(size, flags) \
+<span class="lineNum">     593 </span>            :         __kmalloc(size, flags)
+<span class="lineNum">     594 </span>            : #endif /* DEBUG_SLAB */
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span>            : #ifdef CONFIG_NUMA
+<span class="lineNum">     597 </span>            : /*
+<span class="lineNum">     598 </span>            :  * kmalloc_node_track_caller is a special version of kmalloc_node that
+<span class="lineNum">     599 </span>            :  * records the calling function of the routine calling it for slab leak
+<span class="lineNum">     600 </span>            :  * tracking instead of just the calling function (confusing, eh?).
+<span class="lineNum">     601 </span>            :  * It's useful when the call to kmalloc_node comes from a widely-used
+<span class="lineNum">     602 </span>            :  * standard allocator where we care about the real place the memory
+<span class="lineNum">     603 </span>            :  * allocation request comes from.
+<span class="lineNum">     604 </span>            :  */
+<span class="lineNum">     605 </span>            : #if defined(CONFIG_DEBUG_SLAB) || defined(CONFIG_SLUB) || \
+<span class="lineNum">     606 </span>            :         (defined(CONFIG_SLAB) &amp;&amp; defined(CONFIG_TRACING)) || \
+<span class="lineNum">     607 </span>            :         (defined(CONFIG_SLOB) &amp;&amp; defined(CONFIG_TRACING))
+<span class="lineNum">     608 </span>            : extern void *__kmalloc_node_track_caller(size_t, gfp_t, int, unsigned long);
+<span class="lineNum">     609 </span>            : #define kmalloc_node_track_caller(size, flags, node) \
+<span class="lineNum">     610 </span>            :         __kmalloc_node_track_caller(size, flags, node, \
+<span class="lineNum">     611 </span>            :                         _RET_IP_)
+<span class="lineNum">     612 </span>            : #else
+<span class="lineNum">     613 </span>            : #define kmalloc_node_track_caller(size, flags, node) \
+<span class="lineNum">     614 </span>            :         __kmalloc_node(size, flags, node)
+<span class="lineNum">     615 </span>            : #endif
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span>            : #else /* CONFIG_NUMA */
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span>            : #define kmalloc_node_track_caller(size, flags, node) \
+<span class="lineNum">     620 </span>            :         kmalloc_track_caller(size, flags)
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span>            : #endif /* CONFIG_NUMA */
+<span class="lineNum">     623 </span>            : 
+<span class="lineNum">     624 </span>            : /*
+<span class="lineNum">     625 </span>            :  * Shortcuts
+<span class="lineNum">     626 </span>            :  */
+<span class="lineNum">     627 </span>            : static inline void *kmem_cache_zalloc(struct kmem_cache *k, gfp_t flags)
+<span class="lineNum">     628 </span>            : {
+<span class="lineNum">     629 </span><span class="lineCov">    2378212 :         return kmem_cache_alloc(k, flags | __GFP_ZERO);</span>
+<span class="lineNum">     630 </span>            : }
+<span class="lineNum">     631 </span>            : 
+<span class="lineNum">     632 </span>            : /**
+<span class="lineNum">     633 </span>            :  * kzalloc - allocate memory. The memory is set to zero.
+<span class="lineNum">     634 </span>            :  * @size: how many bytes of memory are required.
+<span class="lineNum">     635 </span>            :  * @flags: the type of memory to allocate (see kmalloc).
+<span class="lineNum">     636 </span>            :  */
+<span class="lineNum">     637 </span><span class="lineCov">    9073375 : static inline void *kzalloc(size_t size, gfp_t flags)</span>
+<span class="lineNum">     638 </span>            : {
+<span class="lineNum">     639 </span><span class="lineCov">   18156662 :         return kmalloc(size, flags | __GFP_ZERO);</span>
+<span class="lineNum">     640 </span>            : }
+<span class="lineNum">     641 </span>            : 
+<span class="lineNum">     642 </span>            : /**
+<span class="lineNum">     643 </span>            :  * kzalloc_node - allocate zeroed memory from a particular memory node.
+<span class="lineNum">     644 </span>            :  * @size: how many bytes of memory are required.
+<span class="lineNum">     645 </span>            :  * @flags: the type of memory to allocate (see kmalloc).
+<span class="lineNum">     646 </span>            :  * @node: memory node from which to allocate
+<span class="lineNum">     647 </span>            :  */
+<span class="lineNum">     648 </span>            : static inline void *kzalloc_node(size_t size, gfp_t flags, int node)
+<span class="lineNum">     649 </span>            : {
+<span class="lineNum">     650 </span>            :         return kmalloc_node(size, flags | __GFP_ZERO, node);
+<span class="lineNum">     651 </span>            : }
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span>            : /*
+<span class="lineNum">     654 </span>            :  * Determine the size of a slab object
+<span class="lineNum">     655 </span>            :  */
+<span class="lineNum">     656 </span>            : static inline unsigned int kmem_cache_size(struct kmem_cache *s)
+<span class="lineNum">     657 </span>            : {
+<span class="lineNum">     658 </span>            :         return s-&gt;object_size;
+<span class="lineNum">     659 </span>            : }
+<span class="lineNum">     660 </span>            : 
+<span class="lineNum">     661 </span>            : void __init kmem_cache_init_late(void);
+<span class="lineNum">     662 </span>            : 
+<span class="lineNum">     663 </span>            : #endif  /* _LINUX_SLAB_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

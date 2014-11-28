@@ -1,0 +1,475 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/zlib.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - zlib.c<span style="font-size: 80%;"> (source / <a href="zlib.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">70</td>
+            <td class="headerCovTableEntry">142</td>
+            <td class="headerCovTableEntryLo">49.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryLo">40.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2008 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * Based on jffs2 zlib code:
+<span class="lineNum">      19 </span>            :  * Copyright © 2001-2007 Red Hat, Inc.
+<span class="lineNum">      20 </span>            :  * Created by David Woodhouse &lt;dwmw2@infradead.org&gt;
+<span class="lineNum">      21 </span>            :  */
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;linux/kernel.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;linux/slab.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;linux/zlib.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;linux/zutil.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;linux/vmalloc.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;linux/init.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;linux/err.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;linux/sched.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;linux/pagemap.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;linux/bio.h&gt;
+<span class="lineNum">      33 </span>            : #include &quot;compression.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : struct workspace {
+<span class="lineNum">      36 </span>            :         z_stream inf_strm;
+<span class="lineNum">      37 </span>            :         z_stream def_strm;
+<span class="lineNum">      38 </span>            :         char *buf;
+<span class="lineNum">      39 </span>            :         struct list_head list;
+<a name="40"><span class="lineNum">      40 </span>            : };</a>
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span><span class="lineNoCov">          0 : static void zlib_free_workspace(struct list_head *ws)</span>
+<span class="lineNum">      43 </span>            : {
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :         struct workspace *workspace = list_entry(ws, struct workspace, list);</span>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineNoCov">          0 :         vfree(workspace-&gt;def_strm.workspace);</span>
+<span class="lineNum">      47 </span><span class="lineNoCov">          0 :         vfree(workspace-&gt;inf_strm.workspace);</span>
+<span class="lineNum">      48 </span><span class="lineNoCov">          0 :         kfree(workspace-&gt;buf);</span>
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :         kfree(workspace);</span>
+<a name="50"><span class="lineNum">      50 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineNoCov">          0 : static struct list_head *zlib_alloc_workspace(void)</span>
+<span class="lineNum">      53 </span>            : {
+<span class="lineNum">      54 </span>            :         struct workspace *workspace;
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :         workspace = kzalloc(sizeof(*workspace), GFP_NOFS);</span>
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 :         if (!workspace)</span>
+<span class="lineNum">      58 </span>            :                 return ERR_PTR(-ENOMEM);
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :         workspace-&gt;def_strm.workspace = vmalloc(zlib_deflate_workspacesize(</span>
+<span class="lineNum">      61 </span>            :                                                 MAX_WBITS, MAX_MEM_LEVEL));
+<span class="lineNum">      62 </span><span class="lineNoCov">          0 :         workspace-&gt;inf_strm.workspace = vmalloc(zlib_inflate_workspacesize());</span>
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :         workspace-&gt;buf = kmalloc(PAGE_CACHE_SIZE, GFP_NOFS);</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :         if (!workspace-&gt;def_strm.workspace ||</span>
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :             !workspace-&gt;inf_strm.workspace || !workspace-&gt;buf)</span>
+<span class="lineNum">      66 </span>            :                 goto fail;
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :         INIT_LIST_HEAD(&amp;workspace-&gt;list);</span>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :         return &amp;workspace-&gt;list;</span>
+<span class="lineNum">      71 </span>            : fail:
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :         zlib_free_workspace(&amp;workspace-&gt;list);</span>
+<span class="lineNum">      73 </span><span class="lineNoCov">          0 :         return ERR_PTR(-ENOMEM);</span>
+<a name="74"><span class="lineNum">      74 </span>            : }</a>
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span><span class="lineCov">         30 : static int zlib_compress_pages(struct list_head *ws,</span>
+<span class="lineNum">      77 </span>            :                                struct address_space *mapping,
+<span class="lineNum">      78 </span>            :                                u64 start, unsigned long len,
+<span class="lineNum">      79 </span>            :                                struct page **pages,
+<span class="lineNum">      80 </span>            :                                unsigned long nr_dest_pages,
+<span class="lineNum">      81 </span>            :                                unsigned long *out_pages,
+<span class="lineNum">      82 </span>            :                                unsigned long *total_in,
+<span class="lineNum">      83 </span>            :                                unsigned long *total_out,
+<span class="lineNum">      84 </span>            :                                unsigned long max_out)
+<span class="lineNum">      85 </span>            : {
+<span class="lineNum">      86 </span>            :         struct workspace *workspace = list_entry(ws, struct workspace, list);
+<span class="lineNum">      87 </span>            :         int ret;
+<span class="lineNum">      88 </span>            :         char *data_in;
+<span class="lineNum">      89 </span>            :         char *cpage_out;
+<span class="lineNum">      90 </span>            :         int nr_pages = 0;
+<span class="lineNum">      91 </span>            :         struct page *in_page = NULL;
+<span class="lineNum">      92 </span>            :         struct page *out_page = NULL;
+<span class="lineNum">      93 </span>            :         unsigned long bytes_left;
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineCov">         30 :         *out_pages = 0;</span>
+<span class="lineNum">      96 </span><span class="lineCov">         30 :         *total_out = 0;</span>
+<span class="lineNum">      97 </span><span class="lineCov">         30 :         *total_in = 0;</span>
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span><span class="lineCov">         30 :         if (Z_OK != zlib_deflateInit(&amp;workspace-&gt;def_strm, 3)) {</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :                 printk(KERN_WARNING &quot;BTRFS: deflateInit failed\n&quot;);</span>
+<span class="lineNum">     101 </span>            :                 ret = -EIO;
+<span class="lineNum">     102 </span><span class="lineNoCov">          0 :                 goto out;</span>
+<span class="lineNum">     103 </span>            :         }
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span><span class="lineCov">         30 :         workspace-&gt;def_strm.total_in = 0;</span>
+<span class="lineNum">     106 </span><span class="lineCov">         30 :         workspace-&gt;def_strm.total_out = 0;</span>
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineCov">         30 :         in_page = find_get_page(mapping, start &gt;&gt; PAGE_CACHE_SHIFT);</span>
+<span class="lineNum">     109 </span>            :         data_in = kmap(in_page);
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :         out_page = alloc_page(GFP_NOFS | __GFP_HIGHMEM);
+<span class="lineNum">     112 </span><span class="lineCov">         30 :         if (out_page == NULL) {</span>
+<span class="lineNum">     113 </span>            :                 ret = -ENOMEM;
+<span class="lineNum">     114 </span>            :                 goto out;
+<span class="lineNum">     115 </span>            :         }
+<span class="lineNum">     116 </span>            :         cpage_out = kmap(out_page);
+<span class="lineNum">     117 </span><span class="lineCov">         30 :         pages[0] = out_page;</span>
+<span class="lineNum">     118 </span>            :         nr_pages = 1;
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span><span class="lineCov">         30 :         workspace-&gt;def_strm.next_in = data_in;</span>
+<span class="lineNum">     121 </span><span class="lineCov">         30 :         workspace-&gt;def_strm.next_out = cpage_out;</span>
+<span class="lineNum">     122 </span><span class="lineCov">         30 :         workspace-&gt;def_strm.avail_out = PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     123 </span><span class="lineCov">         30 :         workspace-&gt;def_strm.avail_in = min(len, PAGE_CACHE_SIZE);</span>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineCov">        966 :         while (workspace-&gt;def_strm.total_in &lt; len) {</span>
+<span class="lineNum">     126 </span><span class="lineCov">        936 :                 ret = zlib_deflate(&amp;workspace-&gt;def_strm, Z_SYNC_FLUSH);</span>
+<span class="lineNum">     127 </span><span class="lineCov">        938 :                 if (ret != Z_OK) {</span>
+<span class="lineNum">     128 </span><span class="lineNoCov">          0 :                         printk(KERN_DEBUG &quot;BTRFS: deflate in loop returned %d\n&quot;,</span>
+<span class="lineNum">     129 </span>            :                                ret);
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :                         zlib_deflateEnd(&amp;workspace-&gt;def_strm);</span>
+<span class="lineNum">     131 </span>            :                         ret = -EIO;
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :                         goto out;</span>
+<span class="lineNum">     133 </span>            :                 }
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :                 /* we're making it bigger, give up */
+<span class="lineNum">     136 </span><span class="lineCov">       1816 :                 if (workspace-&gt;def_strm.total_in &gt; 8192 &amp;&amp;</span>
+<span class="lineNum">     137 </span>            :                     workspace-&gt;def_strm.total_in &lt;
+<span class="lineNum">     138 </span><span class="lineCov">        878 :                     workspace-&gt;def_strm.total_out) {</span>
+<span class="lineNum">     139 </span>            :                         ret = -E2BIG;
+<span class="lineNum">     140 </span>            :                         goto out;
+<span class="lineNum">     141 </span>            :                 }
+<span class="lineNum">     142 </span>            :                 /* we need another page for writing out.  Test this
+<span class="lineNum">     143 </span>            :                  * before the total_in so we will pull in a new page for
+<span class="lineNum">     144 </span>            :                  * the stream end if required
+<span class="lineNum">     145 </span>            :                  */
+<span class="lineNum">     146 </span><span class="lineCov">        938 :                 if (workspace-&gt;def_strm.avail_out == 0) {</span>
+<span class="lineNum">     147 </span>            :                         kunmap(out_page);
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :                         if (nr_pages == nr_dest_pages) {</span>
+<span class="lineNum">     149 </span>            :                                 out_page = NULL;
+<span class="lineNum">     150 </span>            :                                 ret = -E2BIG;
+<span class="lineNum">     151 </span>            :                                 goto out;
+<span class="lineNum">     152 </span>            :                         }
+<span class="lineNum">     153 </span>            :                         out_page = alloc_page(GFP_NOFS | __GFP_HIGHMEM);
+<span class="lineNum">     154 </span><span class="lineNoCov">          0 :                         if (out_page == NULL) {</span>
+<span class="lineNum">     155 </span>            :                                 ret = -ENOMEM;
+<span class="lineNum">     156 </span>            :                                 goto out;
+<span class="lineNum">     157 </span>            :                         }
+<span class="lineNum">     158 </span>            :                         cpage_out = kmap(out_page);
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                         pages[nr_pages] = out_page;</span>
+<span class="lineNum">     160 </span><span class="lineNoCov">          0 :                         nr_pages++;</span>
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :                         workspace-&gt;def_strm.avail_out = PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :                         workspace-&gt;def_strm.next_out = cpage_out;</span>
+<span class="lineNum">     163 </span>            :                 }
+<span class="lineNum">     164 </span>            :                 /* we're all done */
+<span class="lineNum">     165 </span><span class="lineCov">        938 :                 if (workspace-&gt;def_strm.total_in &gt;= len)</span>
+<span class="lineNum">     166 </span>            :                         break;
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            :                 /* we've read in a full page, get a new one */
+<span class="lineNum">     169 </span><span class="lineCov">        908 :                 if (workspace-&gt;def_strm.avail_in == 0) {</span>
+<span class="lineNum">     170 </span><span class="lineCov">        908 :                         if (workspace-&gt;def_strm.total_out &gt; max_out)</span>
+<span class="lineNum">     171 </span>            :                                 break;
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineCov">        908 :                         bytes_left = len - workspace-&gt;def_strm.total_in;</span>
+<span class="lineNum">     174 </span>            :                         kunmap(in_page);
+<span class="lineNum">     175 </span><span class="lineCov">        908 :                         page_cache_release(in_page);</span>
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineCov">        908 :                         start += PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     178 </span>            :                         in_page = find_get_page(mapping,
+<span class="lineNum">     179 </span><span class="lineCov">        908 :                                                 start &gt;&gt; PAGE_CACHE_SHIFT);</span>
+<span class="lineNum">     180 </span>            :                         data_in = kmap(in_page);
+<span class="lineNum">     181 </span><span class="lineCov">        906 :                         workspace-&gt;def_strm.avail_in = min(bytes_left,</span>
+<span class="lineNum">     182 </span>            :                                                            PAGE_CACHE_SIZE);
+<span class="lineNum">     183 </span><span class="lineCov">        906 :                         workspace-&gt;def_strm.next_in = data_in;</span>
+<span class="lineNum">     184 </span>            :                 }
+<span class="lineNum">     185 </span>            :         }
+<span class="lineNum">     186 </span><span class="lineCov">         30 :         workspace-&gt;def_strm.avail_in = 0;</span>
+<span class="lineNum">     187 </span><span class="lineCov">         30 :         ret = zlib_deflate(&amp;workspace-&gt;def_strm, Z_FINISH);</span>
+<span class="lineNum">     188 </span><span class="lineCov">         30 :         zlib_deflateEnd(&amp;workspace-&gt;def_strm);</span>
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span><span class="lineCov">         30 :         if (ret != Z_STREAM_END) {</span>
+<span class="lineNum">     191 </span>            :                 ret = -EIO;
+<span class="lineNum">     192 </span>            :                 goto out;
+<span class="lineNum">     193 </span>            :         }
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineCov">         30 :         if (workspace-&gt;def_strm.total_out &gt;= workspace-&gt;def_strm.total_in) {</span>
+<span class="lineNum">     196 </span>            :                 ret = -E2BIG;
+<span class="lineNum">     197 </span>            :                 goto out;
+<span class="lineNum">     198 </span>            :         }
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            :         ret = 0;
+<span class="lineNum">     201 </span><span class="lineCov">         30 :         *total_out = workspace-&gt;def_strm.total_out;</span>
+<span class="lineNum">     202 </span><span class="lineCov">         30 :         *total_in = workspace-&gt;def_strm.total_in;</span>
+<span class="lineNum">     203 </span>            : out:
+<span class="lineNum">     204 </span><span class="lineCov">         30 :         *out_pages = nr_pages;</span>
+<span class="lineNum">     205 </span>            :         if (out_page)
+<span class="lineNum">     206 </span>            :                 kunmap(out_page);
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineCov">         30 :         if (in_page) {</span>
+<span class="lineNum">     209 </span>            :                 kunmap(in_page);
+<span class="lineNum">     210 </span><span class="lineCov">         30 :                 page_cache_release(in_page);</span>
+<span class="lineNum">     211 </span>            :         }
+<span class="lineNum">     212 </span><span class="lineCov">         30 :         return ret;</span>
+<a name="213"><span class="lineNum">     213 </span>            : }</a>
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span><span class="lineCov">          4 : static int zlib_decompress_biovec(struct list_head *ws, struct page **pages_in,</span>
+<span class="lineNum">     216 </span>            :                                   u64 disk_start,
+<span class="lineNum">     217 </span>            :                                   struct bio_vec *bvec,
+<span class="lineNum">     218 </span>            :                                   int vcnt,
+<span class="lineNum">     219 </span>            :                                   size_t srclen)
+<span class="lineNum">     220 </span>            : {
+<span class="lineNum">     221 </span>            :         struct workspace *workspace = list_entry(ws, struct workspace, list);
+<span class="lineNum">     222 </span>            :         int ret = 0, ret2;
+<span class="lineNum">     223 </span>            :         int wbits = MAX_WBITS;
+<span class="lineNum">     224 </span>            :         char *data_in;
+<span class="lineNum">     225 </span>            :         size_t total_out = 0;
+<span class="lineNum">     226 </span>            :         unsigned long page_in_index = 0;
+<span class="lineNum">     227 </span><span class="lineCov">          4 :         unsigned long page_out_index = 0;</span>
+<span class="lineNum">     228 </span><span class="lineCov">          4 :         unsigned long total_pages_in = (srclen + PAGE_CACHE_SIZE - 1) /</span>
+<span class="lineNum">     229 </span>            :                                         PAGE_CACHE_SIZE;
+<span class="lineNum">     230 </span>            :         unsigned long buf_start;
+<span class="lineNum">     231 </span>            :         unsigned long pg_offset;
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineCov">          4 :         data_in = kmap(pages_in[page_in_index]);</span>
+<span class="lineNum">     234 </span><span class="lineCov">          4 :         workspace-&gt;inf_strm.next_in = data_in;</span>
+<span class="lineNum">     235 </span><span class="lineCov">          4 :         workspace-&gt;inf_strm.avail_in = min_t(size_t, srclen, PAGE_CACHE_SIZE);</span>
+<span class="lineNum">     236 </span><span class="lineCov">          4 :         workspace-&gt;inf_strm.total_in = 0;</span>
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span><span class="lineCov">          4 :         workspace-&gt;inf_strm.total_out = 0;</span>
+<span class="lineNum">     239 </span><span class="lineCov">          4 :         workspace-&gt;inf_strm.next_out = workspace-&gt;buf;</span>
+<span class="lineNum">     240 </span><span class="lineCov">          4 :         workspace-&gt;inf_strm.avail_out = PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     241 </span><span class="lineCov">          4 :         pg_offset = 0;</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            :         /* If it's deflate, and it's got no preset dictionary, then
+<span class="lineNum">     244 </span>            :            we can tell zlib to skip the adler32 check. */
+<span class="lineNum">     245 </span><span class="lineCov">          8 :         if (srclen &gt; 2 &amp;&amp; !(data_in[1] &amp; PRESET_DICT) &amp;&amp;</span>
+<span class="lineNum">     246 </span><span class="lineCov">          8 :             ((data_in[0] &amp; 0x0f) == Z_DEFLATED) &amp;&amp;</span>
+<span class="lineNum">     247 </span><span class="lineCov">          4 :             !(((data_in[0]&lt;&lt;8) + data_in[1]) % 31)) {</span>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineCov">          4 :                 wbits = -((data_in[0] &gt;&gt; 4) + 8);</span>
+<span class="lineNum">     250 </span><span class="lineCov">          4 :                 workspace-&gt;inf_strm.next_in += 2;</span>
+<span class="lineNum">     251 </span><span class="lineCov">          4 :                 workspace-&gt;inf_strm.avail_in -= 2;</span>
+<span class="lineNum">     252 </span>            :         }
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span><span class="lineCov">          4 :         if (Z_OK != zlib_inflateInit2(&amp;workspace-&gt;inf_strm, wbits)) {</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :                 printk(KERN_WARNING &quot;BTRFS: inflateInit failed\n&quot;);</span>
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                 return -EIO;</span>
+<span class="lineNum">     257 </span>            :         }
+<span class="lineNum">     258 </span><span class="lineCov">        120 :         while (workspace-&gt;inf_strm.total_in &lt; srclen) {</span>
+<span class="lineNum">     259 </span><span class="lineCov">        120 :                 ret = zlib_inflate(&amp;workspace-&gt;inf_strm, Z_NO_FLUSH);</span>
+<span class="lineNum">     260 </span><span class="lineCov">        120 :                 if (ret != Z_OK &amp;&amp; ret != Z_STREAM_END)</span>
+<span class="lineNum">     261 </span>            :                         break;
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span>            :                 buf_start = total_out;
+<span class="lineNum">     264 </span><span class="lineCov">        120 :                 total_out = workspace-&gt;inf_strm.total_out;</span>
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span>            :                 /* we didn't make progress in this inflate call, we're done */
+<span class="lineNum">     267 </span><span class="lineCov">        120 :                 if (buf_start == total_out)</span>
+<span class="lineNum">     268 </span>            :                         break;
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineCov">        120 :                 ret2 = btrfs_decompress_buf2page(workspace-&gt;buf, buf_start,</span>
+<span class="lineNum">     271 </span>            :                                                  total_out, disk_start,
+<span class="lineNum">     272 </span>            :                                                  bvec, vcnt,
+<span class="lineNum">     273 </span>            :                                                  &amp;page_out_index, &amp;pg_offset);
+<span class="lineNum">     274 </span><span class="lineCov">        120 :                 if (ret2 == 0) {</span>
+<span class="lineNum">     275 </span>            :                         ret = 0;
+<span class="lineNum">     276 </span>            :                         goto done;
+<span class="lineNum">     277 </span>            :                 }
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineCov">        116 :                 workspace-&gt;inf_strm.next_out = workspace-&gt;buf;</span>
+<span class="lineNum">     280 </span><span class="lineCov">        116 :                 workspace-&gt;inf_strm.avail_out = PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineCov">        116 :                 if (workspace-&gt;inf_strm.avail_in == 0) {</span>
+<span class="lineNum">     283 </span>            :                         unsigned long tmp;
+<span class="lineNum">     284 </span>            :                         kunmap(pages_in[page_in_index]);
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 :                         page_in_index++;</span>
+<span class="lineNum">     286 </span><span class="lineNoCov">          0 :                         if (page_in_index &gt;= total_pages_in) {</span>
+<span class="lineNum">     287 </span>            :                                 data_in = NULL;
+<span class="lineNum">     288 </span>            :                                 break;
+<span class="lineNum">     289 </span>            :                         }
+<span class="lineNum">     290 </span><span class="lineNoCov">          0 :                         data_in = kmap(pages_in[page_in_index]);</span>
+<span class="lineNum">     291 </span><span class="lineNoCov">          0 :                         workspace-&gt;inf_strm.next_in = data_in;</span>
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :                         tmp = srclen - workspace-&gt;inf_strm.total_in;</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :                         workspace-&gt;inf_strm.avail_in = min(tmp,</span>
+<span class="lineNum">     294 </span>            :                                                            PAGE_CACHE_SIZE);
+<span class="lineNum">     295 </span>            :                 }
+<span class="lineNum">     296 </span>            :         }
+<span class="lineNum">     297 </span><span class="lineNoCov">          0 :         if (ret != Z_STREAM_END)</span>
+<span class="lineNum">     298 </span>            :                 ret = -EIO;
+<span class="lineNum">     299 </span>            :         else
+<span class="lineNum">     300 </span>            :                 ret = 0;
+<span class="lineNum">     301 </span>            : done:
+<span class="lineNum">     302 </span><span class="lineCov">          4 :         zlib_inflateEnd(&amp;workspace-&gt;inf_strm);</span>
+<span class="lineNum">     303 </span>            :         if (data_in)
+<span class="lineNum">     304 </span>            :                 kunmap(pages_in[page_in_index]);
+<span class="lineNum">     305 </span><span class="lineCov">          4 :         return ret;</span>
+<a name="306"><span class="lineNum">     306 </span>            : }</a>
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 : static int zlib_decompress(struct list_head *ws, unsigned char *data_in,</span>
+<span class="lineNum">     309 </span>            :                            struct page *dest_page,
+<span class="lineNum">     310 </span>            :                            unsigned long start_byte,
+<span class="lineNum">     311 </span>            :                            size_t srclen, size_t destlen)
+<span class="lineNum">     312 </span>            : {
+<span class="lineNum">     313 </span>            :         struct workspace *workspace = list_entry(ws, struct workspace, list);
+<span class="lineNum">     314 </span>            :         int ret = 0;
+<span class="lineNum">     315 </span>            :         int wbits = MAX_WBITS;
+<span class="lineNum">     316 </span>            :         unsigned long bytes_left = destlen;
+<span class="lineNum">     317 </span>            :         unsigned long total_out = 0;
+<span class="lineNum">     318 </span>            :         char *kaddr;
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 :         workspace-&gt;inf_strm.next_in = data_in;</span>
+<span class="lineNum">     321 </span><span class="lineNoCov">          0 :         workspace-&gt;inf_strm.avail_in = srclen;</span>
+<span class="lineNum">     322 </span><span class="lineNoCov">          0 :         workspace-&gt;inf_strm.total_in = 0;</span>
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :         workspace-&gt;inf_strm.next_out = workspace-&gt;buf;</span>
+<span class="lineNum">     325 </span><span class="lineNoCov">          0 :         workspace-&gt;inf_strm.avail_out = PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 :         workspace-&gt;inf_strm.total_out = 0;</span>
+<span class="lineNum">     327 </span>            :         /* If it's deflate, and it's got no preset dictionary, then
+<span class="lineNum">     328 </span>            :            we can tell zlib to skip the adler32 check. */
+<span class="lineNum">     329 </span><span class="lineNoCov">          0 :         if (srclen &gt; 2 &amp;&amp; !(data_in[1] &amp; PRESET_DICT) &amp;&amp;</span>
+<span class="lineNum">     330 </span><span class="lineNoCov">          0 :             ((data_in[0] &amp; 0x0f) == Z_DEFLATED) &amp;&amp;</span>
+<span class="lineNum">     331 </span><span class="lineNoCov">          0 :             !(((data_in[0]&lt;&lt;8) + data_in[1]) % 31)) {</span>
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span><span class="lineNoCov">          0 :                 wbits = -((data_in[0] &gt;&gt; 4) + 8);</span>
+<span class="lineNum">     334 </span><span class="lineNoCov">          0 :                 workspace-&gt;inf_strm.next_in += 2;</span>
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 :                 workspace-&gt;inf_strm.avail_in -= 2;</span>
+<span class="lineNum">     336 </span>            :         }
+<span class="lineNum">     337 </span>            : 
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :         if (Z_OK != zlib_inflateInit2(&amp;workspace-&gt;inf_strm, wbits)) {</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :                 printk(KERN_WARNING &quot;BTRFS: inflateInit failed\n&quot;);</span>
+<span class="lineNum">     340 </span><span class="lineNoCov">          0 :                 return -EIO;</span>
+<span class="lineNum">     341 </span>            :         }
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineNoCov">          0 :         while (bytes_left &gt; 0) {</span>
+<span class="lineNum">     344 </span>            :                 unsigned long buf_start;
+<span class="lineNum">     345 </span>            :                 unsigned long buf_offset;
+<span class="lineNum">     346 </span>            :                 unsigned long bytes;
+<span class="lineNum">     347 </span>            :                 unsigned long pg_offset = 0;
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :                 ret = zlib_inflate(&amp;workspace-&gt;inf_strm, Z_NO_FLUSH);</span>
+<span class="lineNum">     350 </span><span class="lineNoCov">          0 :                 if (ret != Z_OK &amp;&amp; ret != Z_STREAM_END)</span>
+<span class="lineNum">     351 </span>            :                         break;
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            :                 buf_start = total_out;
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :                 total_out = workspace-&gt;inf_strm.total_out;</span>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineNoCov">          0 :                 if (total_out == buf_start) {</span>
+<span class="lineNum">     357 </span>            :                         ret = -EIO;
+<span class="lineNum">     358 </span>            :                         break;
+<span class="lineNum">     359 </span>            :                 }
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                 if (total_out &lt;= start_byte)</span>
+<span class="lineNum">     362 </span>            :                         goto next;
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :                 if (total_out &gt; start_byte &amp;&amp; buf_start &lt; start_byte)</span>
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :                         buf_offset = start_byte - buf_start;</span>
+<span class="lineNum">     366 </span>            :                 else
+<span class="lineNum">     367 </span>            :                         buf_offset = 0;
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :                 bytes = min(PAGE_CACHE_SIZE - pg_offset,</span>
+<span class="lineNum">     370 </span>            :                             PAGE_CACHE_SIZE - buf_offset);
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :                 bytes = min(bytes, bytes_left);</span>
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span>            :                 kaddr = kmap_atomic(dest_page);
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :                 memcpy(kaddr + pg_offset, workspace-&gt;buf + buf_offset, bytes);</span>
+<span class="lineNum">     375 </span>            :                 kunmap_atomic(kaddr);
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span>            :                 pg_offset += bytes;
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :                 bytes_left -= bytes;</span>
+<span class="lineNum">     379 </span>            : next:
+<span class="lineNum">     380 </span><span class="lineNoCov">          0 :                 workspace-&gt;inf_strm.next_out = workspace-&gt;buf;</span>
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :                 workspace-&gt;inf_strm.avail_out = PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     382 </span>            :         }
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span><span class="lineNoCov">          0 :         if (ret != Z_STREAM_END &amp;&amp; bytes_left != 0)</span>
+<span class="lineNum">     385 </span>            :                 ret = -EIO;
+<span class="lineNum">     386 </span>            :         else
+<span class="lineNum">     387 </span>            :                 ret = 0;
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineNoCov">          0 :         zlib_inflateEnd(&amp;workspace-&gt;inf_strm);</span>
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     391 </span>            : }
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            : struct btrfs_compress_op btrfs_zlib_compress = {
+<span class="lineNum">     394 </span>            :         .alloc_workspace        = zlib_alloc_workspace,
+<span class="lineNum">     395 </span>            :         .free_workspace         = zlib_free_workspace,
+<span class="lineNum">     396 </span>            :         .compress_pages         = zlib_compress_pages,
+<span class="lineNum">     397 </span>            :         .decompress_biovec      = zlib_decompress_biovec,
+<span class="lineNum">     398 </span>            :         .decompress             = zlib_decompress,
+<span class="lineNum">     399 </span>            : };
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

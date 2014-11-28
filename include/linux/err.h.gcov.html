@@ -1,0 +1,145 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/err.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - err.h<span style="font-size: 80%;"> (source / <a href="err.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_ERR_H</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_ERR_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;linux/compiler.h&gt;
+<span class="lineNum">       5 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : #include &lt;asm/errno.h&gt;
+<span class="lineNum">       8 </span>            : 
+<span class="lineNum">       9 </span>            : /*
+<span class="lineNum">      10 </span>            :  * Kernel pointers have redundant information, so we can use a
+<span class="lineNum">      11 </span>            :  * scheme where we can return either an error code or a normal
+<span class="lineNum">      12 </span>            :  * pointer with the same return value.
+<span class="lineNum">      13 </span>            :  *
+<span class="lineNum">      14 </span>            :  * This should be a per-architecture thing, to allow different
+<span class="lineNum">      15 </span>            :  * error and pointer decisions.
+<span class="lineNum">      16 </span>            :  */
+<span class="lineNum">      17 </span>            : #define MAX_ERRNO       4095
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #ifndef __ASSEMBLY__
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #define IS_ERR_VALUE(x) unlikely((x) &gt;= (unsigned long)-MAX_ERRNO)
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : static inline void * __must_check ERR_PTR(long error)
+<span class="lineNum">      24 </span>            : {
+<span class="lineNum">      25 </span><span class="lineCov">      95645 :         return (void *) error;</span>
+<span class="lineNum">      26 </span>            : }
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : static inline long __must_check PTR_ERR(__force const void *ptr)
+<span class="lineNum">      29 </span>            : {
+<span class="lineNum">      30 </span><span class="lineCov">     124307 :         return (long) ptr;</span>
+<span class="lineNum">      31 </span>            : }
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : static inline bool __must_check IS_ERR(__force const void *ptr)
+<span class="lineNum">      34 </span>            : {
+<span class="lineNum">      35 </span><span class="lineCov">    2156774 :         return IS_ERR_VALUE((unsigned long)ptr);</span>
+<span class="lineNum">      36 </span>            : }
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : static inline bool __must_check IS_ERR_OR_NULL(__force const void *ptr)
+<span class="lineNum">      39 </span>            : {
+<span class="lineNum">      40 </span><span class="lineCov">    2071871 :         return !ptr || IS_ERR_VALUE((unsigned long)ptr);</span>
+<span class="lineNum">      41 </span>            : }
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : /**
+<span class="lineNum">      44 </span>            :  * ERR_CAST - Explicitly cast an error-valued pointer to another pointer type
+<span class="lineNum">      45 </span>            :  * @ptr: The pointer to cast.
+<span class="lineNum">      46 </span>            :  *
+<span class="lineNum">      47 </span>            :  * Explicitly cast an error-valued pointer to another pointer type in such a
+<span class="lineNum">      48 </span>            :  * way as to make it clear that's what's going on.
+<span class="lineNum">      49 </span>            :  */
+<span class="lineNum">      50 </span>            : static inline void * __must_check ERR_CAST(__force const void *ptr)
+<span class="lineNum">      51 </span>            : {
+<span class="lineNum">      52 </span>            :         /* cast away the const */
+<span class="lineNum">      53 </span>            :         return (void *) ptr;
+<span class="lineNum">      54 </span>            : }
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : static inline int __must_check PTR_ERR_OR_ZERO(__force const void *ptr)
+<span class="lineNum">      57 </span>            : {
+<span class="lineNum">      58 </span><span class="lineCov">        145 :         if (IS_ERR(ptr))</span>
+<span class="lineNum">      59 </span><span class="lineCov">         72 :                 return PTR_ERR(ptr);</span>
+<span class="lineNum">      60 </span>            :         else
+<span class="lineNum">      61 </span>            :                 return 0;
+<span class="lineNum">      62 </span>            : }
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : /* Deprecated */
+<span class="lineNum">      65 </span>            : #define PTR_RET(p) PTR_ERR_OR_ZERO(p)
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : #endif
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : #endif /* _LINUX_ERR_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

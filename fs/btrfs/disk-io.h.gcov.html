@@ -1,0 +1,233 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/disk-io.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - disk-io.h<span style="font-size: 80%;"> (source / <a href="disk-io.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2007 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #ifndef __DISKIO__
+<span class="lineNum">      20 </span>            : #define __DISKIO__
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #define BTRFS_SUPER_INFO_OFFSET (64 * 1024)
+<span class="lineNum">      23 </span>            : #define BTRFS_SUPER_INFO_SIZE 4096
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #define BTRFS_SUPER_MIRROR_MAX   3
+<span class="lineNum">      26 </span>            : #define BTRFS_SUPER_MIRROR_SHIFT 12
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : enum {
+<span class="lineNum">      29 </span>            :         BTRFS_WQ_ENDIO_DATA = 0,
+<span class="lineNum">      30 </span>            :         BTRFS_WQ_ENDIO_METADATA = 1,
+<span class="lineNum">      31 </span>            :         BTRFS_WQ_ENDIO_FREE_SPACE = 2,
+<span class="lineNum">      32 </span>            :         BTRFS_WQ_ENDIO_RAID56 = 3,
+<span class="lineNum">      33 </span>            : };
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : static inline u64 btrfs_sb_offset(int mirror)
+<span class="lineNum">      36 </span>            : {
+<span class="lineNum">      37 </span>            :         u64 start = 16 * 1024;
+<span class="lineNum">      38 </span><span class="lineCov">      20230 :         if (mirror)</span>
+<span class="lineNum">      39 </span><span class="lineCov">      11194 :                 return start &lt;&lt; (BTRFS_SUPER_MIRROR_SHIFT * mirror);</span>
+<span class="lineNum">      40 </span>            :         return BTRFS_SUPER_INFO_OFFSET;
+<span class="lineNum">      41 </span>            : }
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : struct btrfs_device;
+<span class="lineNum">      44 </span>            : struct btrfs_fs_devices;
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : struct extent_buffer *read_tree_block(struct btrfs_root *root, u64 bytenr,
+<span class="lineNum">      47 </span>            :                                       u32 blocksize, u64 parent_transid);
+<span class="lineNum">      48 </span>            : int readahead_tree_block(struct btrfs_root *root, u64 bytenr, u32 blocksize,
+<span class="lineNum">      49 </span>            :                          u64 parent_transid);
+<span class="lineNum">      50 </span>            : int reada_tree_block_flagged(struct btrfs_root *root, u64 bytenr, u32 blocksize,
+<span class="lineNum">      51 </span>            :                          int mirror_num, struct extent_buffer **eb);
+<span class="lineNum">      52 </span>            : struct extent_buffer *btrfs_find_create_tree_block(struct btrfs_root *root,
+<span class="lineNum">      53 </span>            :                                                    u64 bytenr, u32 blocksize);
+<span class="lineNum">      54 </span>            : void clean_tree_block(struct btrfs_trans_handle *trans,
+<span class="lineNum">      55 </span>            :                       struct btrfs_root *root, struct extent_buffer *buf);
+<span class="lineNum">      56 </span>            : int open_ctree(struct super_block *sb,
+<span class="lineNum">      57 </span>            :                struct btrfs_fs_devices *fs_devices,
+<span class="lineNum">      58 </span>            :                char *options);
+<span class="lineNum">      59 </span>            : int close_ctree(struct btrfs_root *root);
+<span class="lineNum">      60 </span>            : int write_ctree_super(struct btrfs_trans_handle *trans,
+<span class="lineNum">      61 </span>            :                       struct btrfs_root *root, int max_mirrors);
+<span class="lineNum">      62 </span>            : struct buffer_head *btrfs_read_dev_super(struct block_device *bdev);
+<span class="lineNum">      63 </span>            : int btrfs_commit_super(struct btrfs_root *root);
+<span class="lineNum">      64 </span>            : struct extent_buffer *btrfs_find_tree_block(struct btrfs_root *root,
+<span class="lineNum">      65 </span>            :                                             u64 bytenr, u32 blocksize);
+<span class="lineNum">      66 </span>            : struct btrfs_root *btrfs_read_fs_root(struct btrfs_root *tree_root,
+<span class="lineNum">      67 </span>            :                                       struct btrfs_key *location);
+<span class="lineNum">      68 </span>            : int btrfs_init_fs_root(struct btrfs_root *root);
+<span class="lineNum">      69 </span>            : int btrfs_insert_fs_root(struct btrfs_fs_info *fs_info,
+<span class="lineNum">      70 </span>            :                          struct btrfs_root *root);
+<span class="lineNum">      71 </span>            : void btrfs_free_fs_roots(struct btrfs_fs_info *fs_info);
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : struct btrfs_root *btrfs_get_fs_root(struct btrfs_fs_info *fs_info,
+<span class="lineNum">      74 </span>            :                                      struct btrfs_key *key,
+<span class="lineNum">      75 </span>            :                                      bool check_ref);
+<span class="lineNum">      76 </span>            : static inline struct btrfs_root *
+<span class="lineNum">      77 </span>            : btrfs_read_fs_root_no_name(struct btrfs_fs_info *fs_info,
+<span class="lineNum">      78 </span>            :                            struct btrfs_key *location)
+<span class="lineNum">      79 </span>            : {
+<span class="lineNum">      80 </span><span class="lineCov">    1189492 :         return btrfs_get_fs_root(fs_info, location, true);</span>
+<span class="lineNum">      81 </span>            : }
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : int btrfs_cleanup_fs_roots(struct btrfs_fs_info *fs_info);
+<span class="lineNum">      84 </span>            : void btrfs_btree_balance_dirty(struct btrfs_root *root);
+<span class="lineNum">      85 </span>            : void btrfs_btree_balance_dirty_nodelay(struct btrfs_root *root);
+<span class="lineNum">      86 </span>            : void btrfs_drop_and_free_fs_root(struct btrfs_fs_info *fs_info,
+<span class="lineNum">      87 </span>            :                                  struct btrfs_root *root);
+<span class="lineNum">      88 </span>            : void btrfs_free_fs_root(struct btrfs_root *root);
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            : #ifdef CONFIG_BTRFS_FS_RUN_SANITY_TESTS
+<span class="lineNum">      91 </span>            : struct btrfs_root *btrfs_alloc_dummy_root(void);
+<span class="lineNum">      92 </span>            : #endif
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : /*
+<span class="lineNum">      95 </span>            :  * This function is used to grab the root, and avoid it is freed when we
+<span class="lineNum">      96 </span>            :  * access it. But it doesn't ensure that the tree is not dropped.
+<span class="lineNum">      97 </span>            :  *
+<span class="lineNum">      98 </span>            :  * If you want to ensure the whole tree is safe, you should use
+<a name="99"><span class="lineNum">      99 </span>            :  *      fs_info-&gt;subvol_srcu</a>
+<span class="lineNum">     100 </span>            :  */
+<span class="lineNum">     101 </span><span class="lineCov">         58 : static inline struct btrfs_root *btrfs_grab_fs_root(struct btrfs_root *root)</span>
+<span class="lineNum">     102 </span>            : {
+<span class="lineNum">     103 </span><span class="lineCov">         58 :         if (atomic_inc_not_zero(&amp;root-&gt;refs))</span>
+<span class="lineNum">     104 </span><span class="lineCov">         58 :                 return root;</span>
+<span class="lineNum">     105 </span>            :         return NULL;
+<a name="106"><span class="lineNum">     106 </span>            : }</a>
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineCov">       1185 : static inline void btrfs_put_fs_root(struct btrfs_root *root)</span>
+<span class="lineNum">     109 </span>            : {
+<span class="lineNum">     110 </span><span class="lineCov">       2370 :         if (atomic_dec_and_test(&amp;root-&gt;refs))</span>
+<span class="lineNum">     111 </span><span class="lineCov">       1127 :                 kfree(root);</span>
+<span class="lineNum">     112 </span><span class="lineCov">       1185 : }</span>
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            : void btrfs_mark_buffer_dirty(struct extent_buffer *buf);
+<span class="lineNum">     115 </span>            : int btrfs_buffer_uptodate(struct extent_buffer *buf, u64 parent_transid,
+<span class="lineNum">     116 </span>            :                           int atomic);
+<span class="lineNum">     117 </span>            : int btrfs_set_buffer_uptodate(struct extent_buffer *buf);
+<span class="lineNum">     118 </span>            : int btrfs_read_buffer(struct extent_buffer *buf, u64 parent_transid);
+<span class="lineNum">     119 </span>            : u32 btrfs_csum_data(char *data, u32 seed, size_t len);
+<span class="lineNum">     120 </span>            : void btrfs_csum_final(u32 crc, char *result);
+<span class="lineNum">     121 </span>            : int btrfs_bio_wq_end_io(struct btrfs_fs_info *info, struct bio *bio,
+<span class="lineNum">     122 </span>            :                         int metadata);
+<span class="lineNum">     123 </span>            : int btrfs_wq_submit_bio(struct btrfs_fs_info *fs_info, struct inode *inode,
+<span class="lineNum">     124 </span>            :                         int rw, struct bio *bio, int mirror_num,
+<span class="lineNum">     125 </span>            :                         unsigned long bio_flags, u64 bio_offset,
+<span class="lineNum">     126 </span>            :                         extent_submit_bio_hook_t *submit_bio_start,
+<span class="lineNum">     127 </span>            :                         extent_submit_bio_hook_t *submit_bio_done);
+<span class="lineNum">     128 </span>            : unsigned long btrfs_async_submit_limit(struct btrfs_fs_info *info);
+<span class="lineNum">     129 </span>            : int btrfs_write_tree_block(struct extent_buffer *buf);
+<span class="lineNum">     130 </span>            : int btrfs_wait_tree_block_writeback(struct extent_buffer *buf);
+<span class="lineNum">     131 </span>            : int btrfs_init_log_root_tree(struct btrfs_trans_handle *trans,
+<span class="lineNum">     132 </span>            :                              struct btrfs_fs_info *fs_info);
+<span class="lineNum">     133 </span>            : int btrfs_add_log_tree(struct btrfs_trans_handle *trans,
+<span class="lineNum">     134 </span>            :                        struct btrfs_root *root);
+<span class="lineNum">     135 </span>            : void btrfs_cleanup_one_transaction(struct btrfs_transaction *trans,
+<span class="lineNum">     136 </span>            :                                   struct btrfs_root *root);
+<span class="lineNum">     137 </span>            : struct btrfs_root *btrfs_create_tree(struct btrfs_trans_handle *trans,
+<span class="lineNum">     138 </span>            :                                      struct btrfs_fs_info *fs_info,
+<span class="lineNum">     139 </span>            :                                      u64 objectid);
+<span class="lineNum">     140 </span>            : int btree_lock_page_hook(struct page *page, void *data,
+<span class="lineNum">     141 </span>            :                                 void (*flush_fn)(void *));
+<span class="lineNum">     142 </span>            : int btrfs_calc_num_tolerated_disk_barrier_failures(
+<span class="lineNum">     143 </span>            :         struct btrfs_fs_info *fs_info);
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : #ifdef CONFIG_DEBUG_LOCK_ALLOC
+<span class="lineNum">     146 </span>            : void btrfs_init_lockdep(void);
+<span class="lineNum">     147 </span>            : void btrfs_set_buffer_lockdep_class(u64 objectid,
+<span class="lineNum">     148 </span>            :                                     struct extent_buffer *eb, int level);
+<span class="lineNum">     149 </span>            : #else
+<span class="lineNum">     150 </span>            : static inline void btrfs_init_lockdep(void)
+<span class="lineNum">     151 </span>            : { }
+<span class="lineNum">     152 </span>            : static inline void btrfs_set_buffer_lockdep_class(u64 objectid,
+<span class="lineNum">     153 </span>            :                                         struct extent_buffer *eb, int level)
+<span class="lineNum">     154 </span>            : {
+<span class="lineNum">     155 </span>            : }
+<span class="lineNum">     156 </span>            : #endif
+<span class="lineNum">     157 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

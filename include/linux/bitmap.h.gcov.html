@@ -1,0 +1,385 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/bitmap.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - bitmap.h<span style="font-size: 80%;"> (source / <a href="bitmap.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryMed">75.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef __LINUX_BITMAP_H</a>
+<span class="lineNum">       2 </span>            : #define __LINUX_BITMAP_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #ifndef __ASSEMBLY__
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">       7 </span>            : #include &lt;linux/bitops.h&gt;
+<span class="lineNum">       8 </span>            : #include &lt;linux/string.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;linux/kernel.h&gt;
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : /*
+<span class="lineNum">      12 </span>            :  * bitmaps provide bit arrays that consume one or more unsigned
+<span class="lineNum">      13 </span>            :  * longs.  The bitmap interface and available operations are listed
+<span class="lineNum">      14 </span>            :  * here, in bitmap.h
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * Function implementations generic to all architectures are in
+<span class="lineNum">      17 </span>            :  * lib/bitmap.c.  Functions implementations that are architecture
+<span class="lineNum">      18 </span>            :  * specific are in various include/asm-&lt;arch&gt;/bitops.h headers
+<span class="lineNum">      19 </span>            :  * and other arch/&lt;arch&gt; specific files.
+<span class="lineNum">      20 </span>            :  *
+<span class="lineNum">      21 </span>            :  * See lib/bitmap.c for more details.
+<span class="lineNum">      22 </span>            :  */
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : /*
+<span class="lineNum">      25 </span>            :  * The available bitmap operations and their rough meaning in the
+<span class="lineNum">      26 </span>            :  * case that the bitmap is a single unsigned long are thus:
+<span class="lineNum">      27 </span>            :  *
+<span class="lineNum">      28 </span>            :  * Note that nbits should be always a compile time evaluable constant.
+<span class="lineNum">      29 </span>            :  * Otherwise many inlines will generate horrible code.
+<span class="lineNum">      30 </span>            :  *
+<span class="lineNum">      31 </span>            :  * bitmap_zero(dst, nbits)                      *dst = 0UL
+<span class="lineNum">      32 </span>            :  * bitmap_fill(dst, nbits)                      *dst = ~0UL
+<span class="lineNum">      33 </span>            :  * bitmap_copy(dst, src, nbits)                 *dst = *src
+<span class="lineNum">      34 </span>            :  * bitmap_and(dst, src1, src2, nbits)           *dst = *src1 &amp; *src2
+<span class="lineNum">      35 </span>            :  * bitmap_or(dst, src1, src2, nbits)            *dst = *src1 | *src2
+<span class="lineNum">      36 </span>            :  * bitmap_xor(dst, src1, src2, nbits)           *dst = *src1 ^ *src2
+<span class="lineNum">      37 </span>            :  * bitmap_andnot(dst, src1, src2, nbits)        *dst = *src1 &amp; ~(*src2)
+<span class="lineNum">      38 </span>            :  * bitmap_complement(dst, src, nbits)           *dst = ~(*src)
+<span class="lineNum">      39 </span>            :  * bitmap_equal(src1, src2, nbits)              Are *src1 and *src2 equal?
+<span class="lineNum">      40 </span>            :  * bitmap_intersects(src1, src2, nbits)         Do *src1 and *src2 overlap?
+<span class="lineNum">      41 </span>            :  * bitmap_subset(src1, src2, nbits)             Is *src1 a subset of *src2?
+<span class="lineNum">      42 </span>            :  * bitmap_empty(src, nbits)                     Are all bits zero in *src?
+<span class="lineNum">      43 </span>            :  * bitmap_full(src, nbits)                      Are all bits set in *src?
+<span class="lineNum">      44 </span>            :  * bitmap_weight(src, nbits)                    Hamming Weight: number set bits
+<span class="lineNum">      45 </span>            :  * bitmap_set(dst, pos, nbits)                  Set specified bit area
+<span class="lineNum">      46 </span>            :  * bitmap_clear(dst, pos, nbits)                Clear specified bit area
+<span class="lineNum">      47 </span>            :  * bitmap_find_next_zero_area(buf, len, pos, n, mask)   Find bit free area
+<span class="lineNum">      48 </span>            :  * bitmap_shift_right(dst, src, n, nbits)       *dst = *src &gt;&gt; n
+<span class="lineNum">      49 </span>            :  * bitmap_shift_left(dst, src, n, nbits)        *dst = *src &lt;&lt; n
+<span class="lineNum">      50 </span>            :  * bitmap_remap(dst, src, old, new, nbits)      *dst = map(old, new)(src)
+<span class="lineNum">      51 </span>            :  * bitmap_bitremap(oldbit, old, new, nbits)     newbit = map(old, new)(oldbit)
+<span class="lineNum">      52 </span>            :  * bitmap_onto(dst, orig, relmap, nbits)        *dst = orig relative to relmap
+<span class="lineNum">      53 </span>            :  * bitmap_fold(dst, orig, sz, nbits)            dst bits = orig bits mod sz
+<span class="lineNum">      54 </span>            :  * bitmap_scnprintf(buf, len, src, nbits)       Print bitmap src to buf
+<span class="lineNum">      55 </span>            :  * bitmap_parse(buf, buflen, dst, nbits)        Parse bitmap dst from kernel buf
+<span class="lineNum">      56 </span>            :  * bitmap_parse_user(ubuf, ulen, dst, nbits)    Parse bitmap dst from user buf
+<span class="lineNum">      57 </span>            :  * bitmap_scnlistprintf(buf, len, src, nbits)   Print bitmap src as list to buf
+<span class="lineNum">      58 </span>            :  * bitmap_parselist(buf, dst, nbits)            Parse bitmap dst from kernel buf
+<span class="lineNum">      59 </span>            :  * bitmap_parselist_user(buf, dst, nbits)       Parse bitmap dst from user buf
+<span class="lineNum">      60 </span>            :  * bitmap_find_free_region(bitmap, bits, order) Find and allocate bit region
+<span class="lineNum">      61 </span>            :  * bitmap_release_region(bitmap, pos, order)    Free specified bit region
+<span class="lineNum">      62 </span>            :  * bitmap_allocate_region(bitmap, pos, order)   Allocate specified bit region
+<span class="lineNum">      63 </span>            :  */
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : /*
+<span class="lineNum">      66 </span>            :  * Also the following operations in asm/bitops.h apply to bitmaps.
+<span class="lineNum">      67 </span>            :  *
+<span class="lineNum">      68 </span>            :  * set_bit(bit, addr)                   *addr |= bit
+<span class="lineNum">      69 </span>            :  * clear_bit(bit, addr)                 *addr &amp;= ~bit
+<span class="lineNum">      70 </span>            :  * change_bit(bit, addr)                *addr ^= bit
+<span class="lineNum">      71 </span>            :  * test_bit(bit, addr)                  Is bit set in *addr?
+<span class="lineNum">      72 </span>            :  * test_and_set_bit(bit, addr)          Set bit and return old value
+<span class="lineNum">      73 </span>            :  * test_and_clear_bit(bit, addr)        Clear bit and return old value
+<span class="lineNum">      74 </span>            :  * test_and_change_bit(bit, addr)       Change bit and return old value
+<span class="lineNum">      75 </span>            :  * find_first_zero_bit(addr, nbits)     Position first zero bit in *addr
+<span class="lineNum">      76 </span>            :  * find_first_bit(addr, nbits)          Position first set bit in *addr
+<span class="lineNum">      77 </span>            :  * find_next_zero_bit(addr, nbits, bit) Position next zero bit in *addr &gt;= bit
+<span class="lineNum">      78 </span>            :  * find_next_bit(addr, nbits, bit)      Position next set bit in *addr &gt;= bit
+<span class="lineNum">      79 </span>            :  */
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : /*
+<span class="lineNum">      82 </span>            :  * The DECLARE_BITMAP(name,bits) macro, in linux/types.h, can be used
+<span class="lineNum">      83 </span>            :  * to declare an array named 'name' of just enough unsigned longs to
+<span class="lineNum">      84 </span>            :  * contain all bit positions from 0 to 'bits' - 1.
+<span class="lineNum">      85 </span>            :  */
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : /*
+<span class="lineNum">      88 </span>            :  * lib/bitmap.c provides these functions:
+<span class="lineNum">      89 </span>            :  */
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            : extern int __bitmap_empty(const unsigned long *bitmap, unsigned int nbits);
+<span class="lineNum">      92 </span>            : extern int __bitmap_full(const unsigned long *bitmap, unsigned int nbits);
+<span class="lineNum">      93 </span>            : extern int __bitmap_equal(const unsigned long *bitmap1,
+<span class="lineNum">      94 </span>            :                           const unsigned long *bitmap2, unsigned int nbits);
+<span class="lineNum">      95 </span>            : extern void __bitmap_complement(unsigned long *dst, const unsigned long *src,
+<span class="lineNum">      96 </span>            :                         unsigned int nbits);
+<span class="lineNum">      97 </span>            : extern void __bitmap_shift_right(unsigned long *dst,
+<span class="lineNum">      98 </span>            :                         const unsigned long *src, int shift, int bits);
+<span class="lineNum">      99 </span>            : extern void __bitmap_shift_left(unsigned long *dst,
+<span class="lineNum">     100 </span>            :                         const unsigned long *src, int shift, int bits);
+<span class="lineNum">     101 </span>            : extern int __bitmap_and(unsigned long *dst, const unsigned long *bitmap1,
+<span class="lineNum">     102 </span>            :                         const unsigned long *bitmap2, unsigned int nbits);
+<span class="lineNum">     103 </span>            : extern void __bitmap_or(unsigned long *dst, const unsigned long *bitmap1,
+<span class="lineNum">     104 </span>            :                         const unsigned long *bitmap2, unsigned int nbits);
+<span class="lineNum">     105 </span>            : extern void __bitmap_xor(unsigned long *dst, const unsigned long *bitmap1,
+<span class="lineNum">     106 </span>            :                         const unsigned long *bitmap2, unsigned int nbits);
+<span class="lineNum">     107 </span>            : extern int __bitmap_andnot(unsigned long *dst, const unsigned long *bitmap1,
+<span class="lineNum">     108 </span>            :                         const unsigned long *bitmap2, unsigned int nbits);
+<span class="lineNum">     109 </span>            : extern int __bitmap_intersects(const unsigned long *bitmap1,
+<span class="lineNum">     110 </span>            :                         const unsigned long *bitmap2, unsigned int nbits);
+<span class="lineNum">     111 </span>            : extern int __bitmap_subset(const unsigned long *bitmap1,
+<span class="lineNum">     112 </span>            :                         const unsigned long *bitmap2, unsigned int nbits);
+<span class="lineNum">     113 </span>            : extern int __bitmap_weight(const unsigned long *bitmap, unsigned int nbits);
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : extern void bitmap_set(unsigned long *map, unsigned int start, int len);
+<span class="lineNum">     116 </span>            : extern void bitmap_clear(unsigned long *map, unsigned int start, int len);
+<span class="lineNum">     117 </span>            : extern unsigned long bitmap_find_next_zero_area(unsigned long *map,
+<span class="lineNum">     118 </span>            :                                          unsigned long size,
+<span class="lineNum">     119 </span>            :                                          unsigned long start,
+<span class="lineNum">     120 </span>            :                                          unsigned int nr,
+<span class="lineNum">     121 </span>            :                                          unsigned long align_mask);
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : extern int bitmap_scnprintf(char *buf, unsigned int len,
+<span class="lineNum">     124 </span>            :                         const unsigned long *src, int nbits);
+<span class="lineNum">     125 </span>            : extern int __bitmap_parse(const char *buf, unsigned int buflen, int is_user,
+<span class="lineNum">     126 </span>            :                         unsigned long *dst, int nbits);
+<span class="lineNum">     127 </span>            : extern int bitmap_parse_user(const char __user *ubuf, unsigned int ulen,
+<span class="lineNum">     128 </span>            :                         unsigned long *dst, int nbits);
+<span class="lineNum">     129 </span>            : extern int bitmap_scnlistprintf(char *buf, unsigned int len,
+<span class="lineNum">     130 </span>            :                         const unsigned long *src, int nbits);
+<span class="lineNum">     131 </span>            : extern int bitmap_parselist(const char *buf, unsigned long *maskp,
+<span class="lineNum">     132 </span>            :                         int nmaskbits);
+<span class="lineNum">     133 </span>            : extern int bitmap_parselist_user(const char __user *ubuf, unsigned int ulen,
+<span class="lineNum">     134 </span>            :                         unsigned long *dst, int nbits);
+<span class="lineNum">     135 </span>            : extern void bitmap_remap(unsigned long *dst, const unsigned long *src,
+<span class="lineNum">     136 </span>            :                 const unsigned long *old, const unsigned long *new, int bits);
+<span class="lineNum">     137 </span>            : extern int bitmap_bitremap(int oldbit,
+<span class="lineNum">     138 </span>            :                 const unsigned long *old, const unsigned long *new, int bits);
+<span class="lineNum">     139 </span>            : extern void bitmap_onto(unsigned long *dst, const unsigned long *orig,
+<span class="lineNum">     140 </span>            :                 const unsigned long *relmap, int bits);
+<span class="lineNum">     141 </span>            : extern void bitmap_fold(unsigned long *dst, const unsigned long *orig,
+<span class="lineNum">     142 </span>            :                 int sz, int bits);
+<span class="lineNum">     143 </span>            : extern int bitmap_find_free_region(unsigned long *bitmap, unsigned int bits, int order);
+<span class="lineNum">     144 </span>            : extern void bitmap_release_region(unsigned long *bitmap, unsigned int pos, int order);
+<span class="lineNum">     145 </span>            : extern int bitmap_allocate_region(unsigned long *bitmap, unsigned int pos, int order);
+<span class="lineNum">     146 </span>            : extern void bitmap_copy_le(void *dst, const unsigned long *src, int nbits);
+<span class="lineNum">     147 </span>            : extern int bitmap_ord_to_pos(const unsigned long *bitmap, int n, int bits);
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            : #define BITMAP_FIRST_WORD_MASK(start) (~0UL &lt;&lt; ((start) % BITS_PER_LONG))
+<span class="lineNum">     150 </span>            : #define BITMAP_LAST_WORD_MASK(nbits)                                    \
+<span class="lineNum">     151 </span>            : (                                                                       \
+<span class="lineNum">     152 </span>            :         ((nbits) % BITS_PER_LONG) ?                                     \
+<span class="lineNum">     153 </span>            :                 (1UL&lt;&lt;((nbits) % BITS_PER_LONG))-1 : ~0UL         \
+<span class="lineNum">     154 </span>            : )
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : #define small_const_nbits(nbits) \
+<span class="lineNum">     157 </span>            :         (__builtin_constant_p(nbits) &amp;&amp; (nbits) &lt;= BITS_PER_LONG)
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            : static inline void bitmap_zero(unsigned long *dst, int nbits)
+<span class="lineNum">     160 </span>            : {
+<span class="lineNum">     161 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     162 </span>            :                 *dst = 0UL;
+<span class="lineNum">     163 </span>            :         else {
+<span class="lineNum">     164 </span>            :                 int len = BITS_TO_LONGS(nbits) * sizeof(unsigned long);
+<span class="lineNum">     165 </span>            :                 memset(dst, 0, len);
+<span class="lineNum">     166 </span>            :         }
+<span class="lineNum">     167 </span>            : }
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            : static inline void bitmap_fill(unsigned long *dst, int nbits)
+<span class="lineNum">     170 </span>            : {
+<span class="lineNum">     171 </span>            :         size_t nlongs = BITS_TO_LONGS(nbits);
+<span class="lineNum">     172 </span>            :         if (!small_const_nbits(nbits)) {
+<span class="lineNum">     173 </span>            :                 int len = (nlongs - 1) * sizeof(unsigned long);
+<span class="lineNum">     174 </span>            :                 memset(dst, 0xff,  len);
+<span class="lineNum">     175 </span>            :         }
+<span class="lineNum">     176 </span>            :         dst[nlongs - 1] = BITMAP_LAST_WORD_MASK(nbits);
+<span class="lineNum">     177 </span>            : }
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            : static inline void bitmap_copy(unsigned long *dst, const unsigned long *src,
+<span class="lineNum">     180 </span>            :                         int nbits)
+<span class="lineNum">     181 </span>            : {
+<span class="lineNum">     182 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     183 </span>            :                 *dst = *src;
+<span class="lineNum">     184 </span>            :         else {
+<span class="lineNum">     185 </span>            :                 int len = BITS_TO_LONGS(nbits) * sizeof(unsigned long);
+<span class="lineNum">     186 </span>            :                 memcpy(dst, src, len);
+<span class="lineNum">     187 </span>            :         }
+<span class="lineNum">     188 </span>            : }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : static inline int bitmap_and(unsigned long *dst, const unsigned long *src1,
+<span class="lineNum">     191 </span>            :                         const unsigned long *src2, unsigned int nbits)
+<span class="lineNum">     192 </span>            : {
+<span class="lineNum">     193 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     194 </span>            :                 return (*dst = *src1 &amp; *src2 &amp; BITMAP_LAST_WORD_MASK(nbits)) != 0;
+<span class="lineNum">     195 </span>            :         return __bitmap_and(dst, src1, src2, nbits);
+<span class="lineNum">     196 </span>            : }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : static inline void bitmap_or(unsigned long *dst, const unsigned long *src1,
+<span class="lineNum">     199 </span>            :                         const unsigned long *src2, unsigned int nbits)
+<span class="lineNum">     200 </span>            : {
+<span class="lineNum">     201 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     202 </span>            :                 *dst = *src1 | *src2;
+<span class="lineNum">     203 </span>            :         else
+<span class="lineNum">     204 </span>            :                 __bitmap_or(dst, src1, src2, nbits);
+<span class="lineNum">     205 </span>            : }
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            : static inline void bitmap_xor(unsigned long *dst, const unsigned long *src1,
+<span class="lineNum">     208 </span>            :                         const unsigned long *src2, unsigned int nbits)
+<span class="lineNum">     209 </span>            : {
+<span class="lineNum">     210 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     211 </span>            :                 *dst = *src1 ^ *src2;
+<span class="lineNum">     212 </span>            :         else
+<span class="lineNum">     213 </span>            :                 __bitmap_xor(dst, src1, src2, nbits);
+<span class="lineNum">     214 </span>            : }
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            : static inline int bitmap_andnot(unsigned long *dst, const unsigned long *src1,
+<span class="lineNum">     217 </span>            :                         const unsigned long *src2, unsigned int nbits)
+<span class="lineNum">     218 </span>            : {
+<span class="lineNum">     219 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     220 </span>            :                 return (*dst = *src1 &amp; ~(*src2) &amp; BITMAP_LAST_WORD_MASK(nbits)) != 0;
+<span class="lineNum">     221 </span>            :         return __bitmap_andnot(dst, src1, src2, nbits);
+<span class="lineNum">     222 </span>            : }
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            : static inline void bitmap_complement(unsigned long *dst, const unsigned long *src,
+<span class="lineNum">     225 </span>            :                         unsigned int nbits)
+<span class="lineNum">     226 </span>            : {
+<span class="lineNum">     227 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     228 </span>            :                 *dst = ~(*src);
+<span class="lineNum">     229 </span>            :         else
+<span class="lineNum">     230 </span>            :                 __bitmap_complement(dst, src, nbits);
+<span class="lineNum">     231 </span>            : }
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            : static inline int bitmap_equal(const unsigned long *src1,
+<span class="lineNum">     234 </span>            :                         const unsigned long *src2, unsigned int nbits)
+<span class="lineNum">     235 </span>            : {
+<span class="lineNum">     236 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     237 </span>            :                 return ! ((*src1 ^ *src2) &amp; BITMAP_LAST_WORD_MASK(nbits));
+<span class="lineNum">     238 </span>            :         else
+<span class="lineNum">     239 </span>            :                 return __bitmap_equal(src1, src2, nbits);
+<span class="lineNum">     240 </span>            : }
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            : static inline int bitmap_intersects(const unsigned long *src1,
+<span class="lineNum">     243 </span>            :                         const unsigned long *src2, unsigned int nbits)
+<span class="lineNum">     244 </span>            : {
+<span class="lineNum">     245 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     246 </span>            :                 return ((*src1 &amp; *src2) &amp; BITMAP_LAST_WORD_MASK(nbits)) != 0;
+<span class="lineNum">     247 </span>            :         else
+<span class="lineNum">     248 </span>            :                 return __bitmap_intersects(src1, src2, nbits);
+<span class="lineNum">     249 </span>            : }
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            : static inline int bitmap_subset(const unsigned long *src1,
+<span class="lineNum">     252 </span>            :                         const unsigned long *src2, unsigned int nbits)
+<span class="lineNum">     253 </span>            : {
+<span class="lineNum">     254 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     255 </span>            :                 return ! ((*src1 &amp; ~(*src2)) &amp; BITMAP_LAST_WORD_MASK(nbits));
+<span class="lineNum">     256 </span>            :         else
+<span class="lineNum">     257 </span>            :                 return __bitmap_subset(src1, src2, nbits);
+<span class="lineNum">     258 </span>            : }
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            : static inline int bitmap_empty(const unsigned long *src, unsigned nbits)
+<span class="lineNum">     261 </span>            : {
+<span class="lineNum">     262 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     263 </span>            :                 return ! (*src &amp; BITMAP_LAST_WORD_MASK(nbits));
+<span class="lineNum">     264 </span>            :         else
+<span class="lineNum">     265 </span>            :                 return __bitmap_empty(src, nbits);
+<span class="lineNum">     266 </span>            : }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            : static inline int bitmap_full(const unsigned long *src, unsigned int nbits)
+<span class="lineNum">     269 </span>            : {
+<span class="lineNum">     270 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     271 </span>            :                 return ! (~(*src) &amp; BITMAP_LAST_WORD_MASK(nbits));
+<span class="lineNum">     272 </span>            :         else
+<span class="lineNum">     273 </span>            :                 return __bitmap_full(src, nbits);
+<a name="274"><span class="lineNum">     274 </span>            : }</a>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">       2947 : static inline int bitmap_weight(const unsigned long *src, unsigned int nbits)</span>
+<span class="lineNum">     277 </span>            : {
+<span class="lineNum">     278 </span><span class="lineCov">       2947 :         if (small_const_nbits(nbits))</span>
+<span class="lineNum">     279 </span><span class="lineCov">       2947 :                 return hweight_long(*src &amp; BITMAP_LAST_WORD_MASK(nbits));</span>
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         return __bitmap_weight(src, nbits);</span>
+<span class="lineNum">     281 </span>            : }
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            : static inline void bitmap_shift_right(unsigned long *dst,
+<span class="lineNum">     284 </span>            :                         const unsigned long *src, int n, int nbits)
+<span class="lineNum">     285 </span>            : {
+<span class="lineNum">     286 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     287 </span>            :                 *dst = (*src &amp; BITMAP_LAST_WORD_MASK(nbits)) &gt;&gt; n;
+<span class="lineNum">     288 </span>            :         else
+<span class="lineNum">     289 </span>            :                 __bitmap_shift_right(dst, src, n, nbits);
+<span class="lineNum">     290 </span>            : }
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span>            : static inline void bitmap_shift_left(unsigned long *dst,
+<span class="lineNum">     293 </span>            :                         const unsigned long *src, int n, int nbits)
+<span class="lineNum">     294 </span>            : {
+<span class="lineNum">     295 </span>            :         if (small_const_nbits(nbits))
+<span class="lineNum">     296 </span>            :                 *dst = (*src &lt;&lt; n) &amp; BITMAP_LAST_WORD_MASK(nbits);
+<span class="lineNum">     297 </span>            :         else
+<span class="lineNum">     298 </span>            :                 __bitmap_shift_left(dst, src, n, nbits);
+<span class="lineNum">     299 </span>            : }
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            : static inline int bitmap_parse(const char *buf, unsigned int buflen,
+<span class="lineNum">     302 </span>            :                         unsigned long *maskp, int nmaskbits)
+<span class="lineNum">     303 </span>            : {
+<span class="lineNum">     304 </span>            :         return __bitmap_parse(buf, buflen, 0, maskp, nmaskbits);
+<span class="lineNum">     305 </span>            : }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            : #endif /* __ASSEMBLY__ */
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span>            : #endif /* __LINUX_BITMAP_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

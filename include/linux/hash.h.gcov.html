@@ -1,0 +1,197 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/hash.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - hash.h<span style="font-size: 80%;"> (source / <a href="hash.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_HASH_H</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_HASH_H
+<span class="lineNum">       3 </span>            : /* Fast hashing routine for ints,  longs and pointers.
+<span class="lineNum">       4 </span>            :    (C) 2002 Nadia Yvette Chambers, IBM */
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : /*
+<span class="lineNum">       7 </span>            :  * Knuth recommends primes in approximately golden ratio to the maximum
+<span class="lineNum">       8 </span>            :  * integer representable by a machine word for multiplicative hashing.
+<span class="lineNum">       9 </span>            :  * Chuck Lever verified the effectiveness of this technique:
+<span class="lineNum">      10 </span>            :  * http://www.citi.umich.edu/techreports/reports/citi-tr-00-1.pdf
+<span class="lineNum">      11 </span>            :  *
+<span class="lineNum">      12 </span>            :  * These primes are chosen to be bit-sparse, that is operations on
+<span class="lineNum">      13 </span>            :  * them can use shifts and additions instead of multiplications for
+<span class="lineNum">      14 </span>            :  * machines where multiplications are slow.
+<span class="lineNum">      15 </span>            :  */
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : #include &lt;asm/types.h&gt;
+<span class="lineNum">      18 </span>            : #include &lt;asm/hash.h&gt;
+<span class="lineNum">      19 </span>            : #include &lt;linux/compiler.h&gt;
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : /* 2^31 + 2^29 - 2^25 + 2^22 - 2^19 - 2^16 + 1 */
+<span class="lineNum">      22 </span>            : #define GOLDEN_RATIO_PRIME_32 0x9e370001UL
+<span class="lineNum">      23 </span>            : /*  2^63 + 2^61 - 2^57 + 2^54 - 2^51 - 2^18 + 1 */
+<span class="lineNum">      24 </span>            : #define GOLDEN_RATIO_PRIME_64 0x9e37fffffffc0001UL
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #if BITS_PER_LONG == 32
+<span class="lineNum">      27 </span>            : #define GOLDEN_RATIO_PRIME GOLDEN_RATIO_PRIME_32
+<span class="lineNum">      28 </span>            : #define hash_long(val, bits) hash_32(val, bits)
+<span class="lineNum">      29 </span>            : #elif BITS_PER_LONG == 64
+<span class="lineNum">      30 </span>            : #define hash_long(val, bits) hash_64(val, bits)
+<span class="lineNum">      31 </span>            : #define GOLDEN_RATIO_PRIME GOLDEN_RATIO_PRIME_64
+<span class="lineNum">      32 </span>            : #else
+<span class="lineNum">      33 </span>            : #error Wordsize not 32 or 64
+<span class="lineNum">      34 </span>            : #endif
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : static __always_inline u64 hash_64(u64 val, unsigned int bits)
+<span class="lineNum">      37 </span>            : {
+<span class="lineNum">      38 </span>            :         u64 hash = val;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : #if defined(CONFIG_ARCH_HAS_FAST_MULTIPLIER) &amp;&amp; BITS_PER_LONG == 64
+<span class="lineNum">      41 </span><span class="lineCov">        298 :         hash = hash * GOLDEN_RATIO_PRIME_64;</span>
+<span class="lineNum">      42 </span>            : #else
+<span class="lineNum">      43 </span>            :         /*  Sigh, gcc can't optimise this alone like it does for 32 bits. */
+<span class="lineNum">      44 </span>            :         u64 n = hash;
+<span class="lineNum">      45 </span>            :         n &lt;&lt;= 18;
+<span class="lineNum">      46 </span>            :         hash -= n;
+<span class="lineNum">      47 </span>            :         n &lt;&lt;= 33;
+<span class="lineNum">      48 </span>            :         hash -= n;
+<span class="lineNum">      49 </span>            :         n &lt;&lt;= 3;
+<span class="lineNum">      50 </span>            :         hash += n;
+<span class="lineNum">      51 </span>            :         n &lt;&lt;= 3;
+<span class="lineNum">      52 </span>            :         hash -= n;
+<span class="lineNum">      53 </span>            :         n &lt;&lt;= 4;
+<span class="lineNum">      54 </span>            :         hash += n;
+<span class="lineNum">      55 </span>            :         n &lt;&lt;= 2;
+<span class="lineNum">      56 </span>            :         hash += n;
+<span class="lineNum">      57 </span>            : #endif
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            :         /* High bits are more random, so use them. */
+<span class="lineNum">      60 </span><span class="lineCov">        298 :         return hash &gt;&gt; (64 - bits);</span>
+<span class="lineNum">      61 </span>            : }
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : static inline u32 hash_32(u32 val, unsigned int bits)
+<span class="lineNum">      64 </span>            : {
+<span class="lineNum">      65 </span>            :         /* On some cpus multiply is faster, on others gcc will do shifts */
+<span class="lineNum">      66 </span>            :         u32 hash = val * GOLDEN_RATIO_PRIME_32;
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            :         /* High bits are more random, so use them. */
+<span class="lineNum">      69 </span>            :         return hash &gt;&gt; (32 - bits);
+<span class="lineNum">      70 </span>            : }
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : static inline unsigned long hash_ptr(const void *ptr, unsigned int bits)
+<span class="lineNum">      73 </span>            : {
+<span class="lineNum">      74 </span>            :         return hash_long((unsigned long)ptr, bits);
+<span class="lineNum">      75 </span>            : }
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : static inline u32 hash32_ptr(const void *ptr)
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span>            :         unsigned long val = (unsigned long)ptr;
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : #if BITS_PER_LONG == 64
+<span class="lineNum">      82 </span>            :         val ^= (val &gt;&gt; 32);
+<span class="lineNum">      83 </span>            : #endif
+<span class="lineNum">      84 </span>            :         return (u32)val;
+<span class="lineNum">      85 </span>            : }
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : struct fast_hash_ops {
+<span class="lineNum">      88 </span>            :         u32 (*hash)(const void *data, u32 len, u32 seed);
+<span class="lineNum">      89 </span>            :         u32 (*hash2)(const u32 *data, u32 len, u32 seed);
+<span class="lineNum">      90 </span>            : };
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : /**
+<span class="lineNum">      93 </span>            :  *      arch_fast_hash - Caclulates a hash over a given buffer that can have
+<span class="lineNum">      94 </span>            :  *                       arbitrary size. This function will eventually use an
+<span class="lineNum">      95 </span>            :  *                       architecture-optimized hashing implementation if
+<span class="lineNum">      96 </span>            :  *                       available, and trades off distribution for speed.
+<span class="lineNum">      97 </span>            :  *
+<span class="lineNum">      98 </span>            :  *      @data: buffer to hash
+<span class="lineNum">      99 </span>            :  *      @len: length of buffer in bytes
+<span class="lineNum">     100 </span>            :  *      @seed: start seed
+<span class="lineNum">     101 </span>            :  *
+<span class="lineNum">     102 </span>            :  *      Returns 32bit hash.
+<span class="lineNum">     103 </span>            :  */
+<span class="lineNum">     104 </span>            : extern u32 arch_fast_hash(const void *data, u32 len, u32 seed);
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            : /**
+<span class="lineNum">     107 </span>            :  *      arch_fast_hash2 - Caclulates a hash over a given buffer that has a
+<span class="lineNum">     108 </span>            :  *                        size that is of a multiple of 32bit words. This
+<span class="lineNum">     109 </span>            :  *                        function will eventually use an architecture-
+<span class="lineNum">     110 </span>            :  *                        optimized hashing implementation if available,
+<span class="lineNum">     111 </span>            :  *                        and trades off distribution for speed.
+<span class="lineNum">     112 </span>            :  *
+<span class="lineNum">     113 </span>            :  *      @data: buffer to hash (must be 32bit padded)
+<span class="lineNum">     114 </span>            :  *      @len: number of 32bit words
+<span class="lineNum">     115 </span>            :  *      @seed: start seed
+<span class="lineNum">     116 </span>            :  *
+<span class="lineNum">     117 </span>            :  *      Returns 32bit hash.
+<span class="lineNum">     118 </span>            :  */
+<span class="lineNum">     119 </span>            : extern u32 arch_fast_hash2(const u32 *data, u32 len, u32 seed);
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            : #endif /* _LINUX_HASH_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

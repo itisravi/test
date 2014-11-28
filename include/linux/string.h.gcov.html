@@ -1,0 +1,236 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/string.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - string.h<span style="font-size: 80%;"> (source / <a href="string.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_STRING_H_</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_STRING_H_
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : 
+<span class="lineNum">       5 </span>            : #include &lt;linux/compiler.h&gt;       /* for inline */
+<span class="lineNum">       6 </span>            : #include &lt;linux/types.h&gt;  /* for size_t */
+<span class="lineNum">       7 </span>            : #include &lt;linux/stddef.h&gt; /* for NULL */
+<span class="lineNum">       8 </span>            : #include &lt;stdarg.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;uapi/linux/string.h&gt;
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : extern char *strndup_user(const char __user *, long);
+<span class="lineNum">      12 </span>            : extern void *memdup_user(const void __user *, size_t);
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : /*
+<span class="lineNum">      15 </span>            :  * Include machine specific inline routines
+<span class="lineNum">      16 </span>            :  */
+<span class="lineNum">      17 </span>            : #include &lt;asm/string.h&gt;
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #ifndef __HAVE_ARCH_STRCPY
+<span class="lineNum">      20 </span>            : extern char * strcpy(char *,const char *);
+<span class="lineNum">      21 </span>            : #endif
+<span class="lineNum">      22 </span>            : #ifndef __HAVE_ARCH_STRNCPY
+<span class="lineNum">      23 </span>            : extern char * strncpy(char *,const char *, __kernel_size_t);
+<span class="lineNum">      24 </span>            : #endif
+<span class="lineNum">      25 </span>            : #ifndef __HAVE_ARCH_STRLCPY
+<span class="lineNum">      26 </span>            : size_t strlcpy(char *, const char *, size_t);
+<span class="lineNum">      27 </span>            : #endif
+<span class="lineNum">      28 </span>            : #ifndef __HAVE_ARCH_STRCAT
+<span class="lineNum">      29 </span>            : extern char * strcat(char *, const char *);
+<span class="lineNum">      30 </span>            : #endif
+<span class="lineNum">      31 </span>            : #ifndef __HAVE_ARCH_STRNCAT
+<span class="lineNum">      32 </span>            : extern char * strncat(char *, const char *, __kernel_size_t);
+<span class="lineNum">      33 </span>            : #endif
+<span class="lineNum">      34 </span>            : #ifndef __HAVE_ARCH_STRLCAT
+<span class="lineNum">      35 </span>            : extern size_t strlcat(char *, const char *, __kernel_size_t);
+<span class="lineNum">      36 </span>            : #endif
+<span class="lineNum">      37 </span>            : #ifndef __HAVE_ARCH_STRCMP
+<span class="lineNum">      38 </span>            : extern int strcmp(const char *,const char *);
+<span class="lineNum">      39 </span>            : #endif
+<span class="lineNum">      40 </span>            : #ifndef __HAVE_ARCH_STRNCMP
+<span class="lineNum">      41 </span>            : extern int strncmp(const char *,const char *,__kernel_size_t);
+<span class="lineNum">      42 </span>            : #endif
+<span class="lineNum">      43 </span>            : #ifndef __HAVE_ARCH_STRNICMP
+<span class="lineNum">      44 </span>            : extern int strnicmp(const char *, const char *, __kernel_size_t);
+<span class="lineNum">      45 </span>            : #endif
+<span class="lineNum">      46 </span>            : #ifndef __HAVE_ARCH_STRCASECMP
+<span class="lineNum">      47 </span>            : extern int strcasecmp(const char *s1, const char *s2);
+<span class="lineNum">      48 </span>            : #endif
+<span class="lineNum">      49 </span>            : #ifndef __HAVE_ARCH_STRNCASECMP
+<span class="lineNum">      50 </span>            : extern int strncasecmp(const char *s1, const char *s2, size_t n);
+<span class="lineNum">      51 </span>            : #endif
+<span class="lineNum">      52 </span>            : #ifndef __HAVE_ARCH_STRCHR
+<span class="lineNum">      53 </span>            : extern char * strchr(const char *,int);
+<span class="lineNum">      54 </span>            : #endif
+<span class="lineNum">      55 </span>            : #ifndef __HAVE_ARCH_STRCHRNUL
+<span class="lineNum">      56 </span>            : extern char * strchrnul(const char *,int);
+<span class="lineNum">      57 </span>            : #endif
+<span class="lineNum">      58 </span>            : #ifndef __HAVE_ARCH_STRNCHR
+<span class="lineNum">      59 </span>            : extern char * strnchr(const char *, size_t, int);
+<span class="lineNum">      60 </span>            : #endif
+<span class="lineNum">      61 </span>            : #ifndef __HAVE_ARCH_STRRCHR
+<span class="lineNum">      62 </span>            : extern char * strrchr(const char *,int);
+<span class="lineNum">      63 </span>            : #endif
+<span class="lineNum">      64 </span>            : extern char * __must_check skip_spaces(const char *);
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : extern char *strim(char *);
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : static inline __must_check char *strstrip(char *str)
+<span class="lineNum">      69 </span>            : {
+<span class="lineNum">      70 </span>            :         return strim(str);
+<span class="lineNum">      71 </span>            : }
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : #ifndef __HAVE_ARCH_STRSTR
+<span class="lineNum">      74 </span>            : extern char * strstr(const char *, const char *);
+<span class="lineNum">      75 </span>            : #endif
+<span class="lineNum">      76 </span>            : #ifndef __HAVE_ARCH_STRNSTR
+<span class="lineNum">      77 </span>            : extern char * strnstr(const char *, const char *, size_t);
+<span class="lineNum">      78 </span>            : #endif
+<span class="lineNum">      79 </span>            : #ifndef __HAVE_ARCH_STRLEN
+<span class="lineNum">      80 </span>            : extern __kernel_size_t strlen(const char *);
+<span class="lineNum">      81 </span>            : #endif
+<span class="lineNum">      82 </span>            : #ifndef __HAVE_ARCH_STRNLEN
+<span class="lineNum">      83 </span>            : extern __kernel_size_t strnlen(const char *,__kernel_size_t);
+<span class="lineNum">      84 </span>            : #endif
+<span class="lineNum">      85 </span>            : #ifndef __HAVE_ARCH_STRPBRK
+<span class="lineNum">      86 </span>            : extern char * strpbrk(const char *,const char *);
+<span class="lineNum">      87 </span>            : #endif
+<span class="lineNum">      88 </span>            : #ifndef __HAVE_ARCH_STRSEP
+<span class="lineNum">      89 </span>            : extern char * strsep(char **,const char *);
+<span class="lineNum">      90 </span>            : #endif
+<span class="lineNum">      91 </span>            : #ifndef __HAVE_ARCH_STRSPN
+<span class="lineNum">      92 </span>            : extern __kernel_size_t strspn(const char *,const char *);
+<span class="lineNum">      93 </span>            : #endif
+<span class="lineNum">      94 </span>            : #ifndef __HAVE_ARCH_STRCSPN
+<span class="lineNum">      95 </span>            : extern __kernel_size_t strcspn(const char *,const char *);
+<span class="lineNum">      96 </span>            : #endif
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            : #ifndef __HAVE_ARCH_MEMSET
+<span class="lineNum">      99 </span>            : extern void * memset(void *,int,__kernel_size_t);
+<span class="lineNum">     100 </span>            : #endif
+<span class="lineNum">     101 </span>            : #ifndef __HAVE_ARCH_MEMCPY
+<span class="lineNum">     102 </span>            : extern void * memcpy(void *,const void *,__kernel_size_t);
+<span class="lineNum">     103 </span>            : #endif
+<span class="lineNum">     104 </span>            : #ifndef __HAVE_ARCH_MEMMOVE
+<span class="lineNum">     105 </span>            : extern void * memmove(void *,const void *,__kernel_size_t);
+<span class="lineNum">     106 </span>            : #endif
+<span class="lineNum">     107 </span>            : #ifndef __HAVE_ARCH_MEMSCAN
+<span class="lineNum">     108 </span>            : extern void * memscan(void *,int,__kernel_size_t);
+<span class="lineNum">     109 </span>            : #endif
+<span class="lineNum">     110 </span>            : #ifndef __HAVE_ARCH_MEMCMP
+<span class="lineNum">     111 </span>            : extern int memcmp(const void *,const void *,__kernel_size_t);
+<span class="lineNum">     112 </span>            : #endif
+<span class="lineNum">     113 </span>            : #ifndef __HAVE_ARCH_MEMCHR
+<span class="lineNum">     114 </span>            : extern void * memchr(const void *,int,__kernel_size_t);
+<span class="lineNum">     115 </span>            : #endif
+<span class="lineNum">     116 </span>            : void *memchr_inv(const void *s, int c, size_t n);
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : extern char *kstrdup(const char *s, gfp_t gfp);
+<span class="lineNum">     119 </span>            : extern char *kstrndup(const char *s, size_t len, gfp_t gfp);
+<span class="lineNum">     120 </span>            : extern void *kmemdup(const void *src, size_t len, gfp_t gfp);
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            : extern char **argv_split(gfp_t gfp, const char *str, int *argcp);
+<span class="lineNum">     123 </span>            : extern void argv_free(char **argv);
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            : extern bool sysfs_streq(const char *s1, const char *s2);
+<span class="lineNum">     126 </span>            : extern int strtobool(const char *s, bool *res);
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            : #ifdef CONFIG_BINARY_PRINTF
+<span class="lineNum">     129 </span>            : int vbin_printf(u32 *bin_buf, size_t size, const char *fmt, va_list args);
+<span class="lineNum">     130 </span>            : int bstr_printf(char *buf, size_t size, const char *fmt, const u32 *bin_buf);
+<span class="lineNum">     131 </span>            : int bprintf(u32 *bin_buf, size_t size, const char *fmt, ...) __printf(3, 4);
+<span class="lineNum">     132 </span>            : #endif
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            : extern ssize_t memory_read_from_buffer(void *to, size_t count, loff_t *ppos,
+<span class="lineNum">     135 </span>            :                         const void *from, size_t available);
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span>            : /**
+<span class="lineNum">     138 </span>            :  * strstarts - does @str start with @prefix?
+<span class="lineNum">     139 </span>            :  * @str: string to examine
+<span class="lineNum">     140 </span>            :  * @prefix: prefix to look for.
+<span class="lineNum">     141 </span>            :  */
+<span class="lineNum">     142 </span>            : static inline bool strstarts(const char *str, const char *prefix)
+<span class="lineNum">     143 </span>            : {
+<span class="lineNum">     144 </span>            :         return strncmp(str, prefix, strlen(prefix)) == 0;
+<span class="lineNum">     145 </span>            : }
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            : extern size_t memweight(const void *ptr, size_t bytes);
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            : /**
+<span class="lineNum">     150 </span>            :  * kbasename - return the last part of a pathname.
+<span class="lineNum">     151 </span>            :  *
+<span class="lineNum">     152 </span>            :  * @path: path to extract the filename from.
+<span class="lineNum">     153 </span>            :  */
+<span class="lineNum">     154 </span>            : static inline const char *kbasename(const char *path)
+<span class="lineNum">     155 </span>            : {
+<span class="lineNum">     156 </span><span class="lineCov">        378 :         const char *tail = strrchr(path, '/');</span>
+<span class="lineNum">     157 </span><span class="lineCov">        378 :         return tail ? tail + 1 : path;</span>
+<span class="lineNum">     158 </span>            : }
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            : #endif /* _LINUX_STRING_H_ */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

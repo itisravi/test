@@ -1,0 +1,1201 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/trace/events/btrfs.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../index.html">top level</a> - <a href="index.html">include/trace/events</a> - btrfs.h<span style="font-size: 80%;"> (source / <a href="btrfs.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">37</td>
+            <td class="headerCovTableEntry">38</td>
+            <td class="headerCovTableEntryHi">97.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">37</td>
+            <td class="headerCovTableEntry">38</td>
+            <td class="headerCovTableEntryHi">97.4 %</td>
+          </tr>
+          <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #undef TRACE_SYSTEM</a>
+<span class="lineNum">       2 </span>            : #define TRACE_SYSTEM btrfs
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #if !defined(_TRACE_BTRFS_H) || defined(TRACE_HEADER_MULTI_READ)
+<span class="lineNum">       5 </span>            : #define _TRACE_BTRFS_H
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : #include &lt;linux/writeback.h&gt;
+<span class="lineNum">       8 </span>            : #include &lt;linux/tracepoint.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;trace/events/gfpflags.h&gt;
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : struct btrfs_root;
+<span class="lineNum">      12 </span>            : struct btrfs_fs_info;
+<span class="lineNum">      13 </span>            : struct btrfs_inode;
+<span class="lineNum">      14 </span>            : struct extent_map;
+<span class="lineNum">      15 </span>            : struct btrfs_ordered_extent;
+<span class="lineNum">      16 </span>            : struct btrfs_delayed_ref_node;
+<span class="lineNum">      17 </span>            : struct btrfs_delayed_tree_ref;
+<span class="lineNum">      18 </span>            : struct btrfs_delayed_data_ref;
+<span class="lineNum">      19 </span>            : struct btrfs_delayed_ref_head;
+<span class="lineNum">      20 </span>            : struct btrfs_block_group_cache;
+<span class="lineNum">      21 </span>            : struct btrfs_free_cluster;
+<span class="lineNum">      22 </span>            : struct map_lookup;
+<span class="lineNum">      23 </span>            : struct extent_buffer;
+<span class="lineNum">      24 </span>            : struct btrfs_work;
+<span class="lineNum">      25 </span>            : struct __btrfs_workqueue;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #define show_ref_type(type)                                             \
+<span class="lineNum">      28 </span>            :         __print_symbolic(type,                                          \
+<span class="lineNum">      29 </span>            :                 { BTRFS_TREE_BLOCK_REF_KEY,     &quot;TREE_BLOCK_REF&quot; },   \
+<span class="lineNum">      30 </span>            :                 { BTRFS_EXTENT_DATA_REF_KEY,    &quot;EXTENT_DATA_REF&quot; },  \
+<span class="lineNum">      31 </span>            :                 { BTRFS_EXTENT_REF_V0_KEY,      &quot;EXTENT_REF_V0&quot; },    \
+<span class="lineNum">      32 </span>            :                 { BTRFS_SHARED_BLOCK_REF_KEY,   &quot;SHARED_BLOCK_REF&quot; }, \
+<span class="lineNum">      33 </span>            :                 { BTRFS_SHARED_DATA_REF_KEY,    &quot;SHARED_DATA_REF&quot; })
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #define __show_root_type(obj)                                           \
+<span class="lineNum">      36 </span>            :         __print_symbolic_u64(obj,                                       \
+<span class="lineNum">      37 </span>            :                 { BTRFS_ROOT_TREE_OBJECTID,     &quot;ROOT_TREE&quot;   },      \
+<span class="lineNum">      38 </span>            :                 { BTRFS_EXTENT_TREE_OBJECTID,   &quot;EXTENT_TREE&quot; },      \
+<span class="lineNum">      39 </span>            :                 { BTRFS_CHUNK_TREE_OBJECTID,    &quot;CHUNK_TREE&quot;  },      \
+<span class="lineNum">      40 </span>            :                 { BTRFS_DEV_TREE_OBJECTID,      &quot;DEV_TREE&quot;    },      \
+<span class="lineNum">      41 </span>            :                 { BTRFS_FS_TREE_OBJECTID,       &quot;FS_TREE&quot;     },      \
+<span class="lineNum">      42 </span>            :                 { BTRFS_ROOT_TREE_DIR_OBJECTID, &quot;ROOT_TREE_DIR&quot;       },      \
+<span class="lineNum">      43 </span>            :                 { BTRFS_CSUM_TREE_OBJECTID,     &quot;CSUM_TREE&quot;   },      \
+<span class="lineNum">      44 </span>            :                 { BTRFS_TREE_LOG_OBJECTID,      &quot;TREE_LOG&quot;    },      \
+<span class="lineNum">      45 </span>            :                 { BTRFS_QUOTA_TREE_OBJECTID,    &quot;QUOTA_TREE&quot;  },      \
+<span class="lineNum">      46 </span>            :                 { BTRFS_TREE_RELOC_OBJECTID,    &quot;TREE_RELOC&quot;  },      \
+<span class="lineNum">      47 </span>            :                 { BTRFS_UUID_TREE_OBJECTID,     &quot;UUID_RELOC&quot;  },      \
+<span class="lineNum">      48 </span>            :                 { BTRFS_DATA_RELOC_TREE_OBJECTID, &quot;DATA_RELOC_TREE&quot; })
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : #define show_root_type(obj)                                             \
+<span class="lineNum">      51 </span>            :         obj, ((obj &gt;= BTRFS_DATA_RELOC_TREE_OBJECTID) ||             \
+<span class="lineNum">      52 </span>            :               (obj &gt;= BTRFS_ROOT_TREE_OBJECTID &amp;&amp;                    \
+<span class="lineNum">      53 </span>            :                obj &lt;= BTRFS_QUOTA_TREE_OBJECTID)) ? __show_root_type(obj) : &quot;-&quot;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : #define BTRFS_GROUP_FLAGS       \
+<span class="lineNum">      56 </span>            :         { BTRFS_BLOCK_GROUP_DATA,       &quot;DATA&quot;},      \
+<span class="lineNum">      57 </span>            :         { BTRFS_BLOCK_GROUP_SYSTEM,     &quot;SYSTEM&quot;},    \
+<span class="lineNum">      58 </span>            :         { BTRFS_BLOCK_GROUP_METADATA,   &quot;METADATA&quot;},  \
+<span class="lineNum">      59 </span>            :         { BTRFS_BLOCK_GROUP_RAID0,      &quot;RAID0&quot;},     \
+<span class="lineNum">      60 </span>            :         { BTRFS_BLOCK_GROUP_RAID1,      &quot;RAID1&quot;},     \
+<span class="lineNum">      61 </span>            :         { BTRFS_BLOCK_GROUP_DUP,        &quot;DUP&quot;},       \
+<span class="lineNum">      62 </span>            :         { BTRFS_BLOCK_GROUP_RAID10,     &quot;RAID10&quot;},    \
+<span class="lineNum">      63 </span>            :         { BTRFS_BLOCK_GROUP_RAID5,      &quot;RAID5&quot;},     \
+<span class="lineNum">      64 </span>            :         { BTRFS_BLOCK_GROUP_RAID6,      &quot;RAID6&quot;}
+<span class="lineNum">      65 </span>            : 
+<a name="66"><span class="lineNum">      66 </span>            : #define BTRFS_UUID_SIZE 16</a>
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineCov">       6294 : TRACE_EVENT(btrfs_transaction_commit,</span>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            :         TP_PROTO(struct btrfs_root *root),
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :         TP_ARGS(root),
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">      75 </span>            :                 __field(        u64,  generation                )
+<span class="lineNum">      76 </span>            :                 __field(        u64,  root_objectid             )
+<span class="lineNum">      77 </span>            :         ),
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            :         TP_fast_assign(
+<span class="lineNum">      80 </span>            :                 __entry-&gt;generation  = root-&gt;fs_info-&gt;generation;
+<span class="lineNum">      81 </span>            :                 __entry-&gt;root_objectid       = root-&gt;root_key.objectid;
+<span class="lineNum">      82 </span>            :         ),
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            :         TP_printk(&quot;root = %llu(%s), gen = %llu&quot;,
+<span class="lineNum">      85 </span>            :                   show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">      86 </span>            :                   (unsigned long long)__entry-&gt;generation)
+<span class="lineNum">      87 </span>            : );
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span>            : DECLARE_EVENT_CLASS(btrfs__inode,
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            :         TP_PROTO(struct inode *inode),
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            :         TP_ARGS(inode),
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">      96 </span>            :                 __field(        ino_t,  ino                     )
+<span class="lineNum">      97 </span>            :                 __field(        blkcnt_t,  blocks               )
+<span class="lineNum">      98 </span>            :                 __field(        u64,  disk_i_size               )
+<span class="lineNum">      99 </span>            :                 __field(        u64,  generation                )
+<span class="lineNum">     100 </span>            :                 __field(        u64,  last_trans                )
+<span class="lineNum">     101 </span>            :                 __field(        u64,  logged_trans              )
+<span class="lineNum">     102 </span>            :                 __field(        u64,  root_objectid             )
+<span class="lineNum">     103 </span>            :         ),
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            :         TP_fast_assign(
+<span class="lineNum">     106 </span>            :                 __entry-&gt;ino = inode-&gt;i_ino;
+<span class="lineNum">     107 </span>            :                 __entry-&gt;blocks      = inode-&gt;i_blocks;
+<span class="lineNum">     108 </span>            :                 __entry-&gt;disk_i_size  = BTRFS_I(inode)-&gt;disk_i_size;
+<span class="lineNum">     109 </span>            :                 __entry-&gt;generation = BTRFS_I(inode)-&gt;generation;
+<span class="lineNum">     110 </span>            :                 __entry-&gt;last_trans = BTRFS_I(inode)-&gt;last_trans;
+<span class="lineNum">     111 </span>            :                 __entry-&gt;logged_trans = BTRFS_I(inode)-&gt;logged_trans;
+<span class="lineNum">     112 </span>            :                 __entry-&gt;root_objectid =
+<span class="lineNum">     113 </span>            :                                 BTRFS_I(inode)-&gt;root-&gt;root_key.objectid;
+<span class="lineNum">     114 </span>            :         ),
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            :         TP_printk(&quot;root = %llu(%s), gen = %llu, ino = %lu, blocks = %llu, &quot;
+<span class="lineNum">     117 </span>            :                   &quot;disk_i_size = %llu, last_trans = %llu, logged_trans = %llu&quot;,
+<span class="lineNum">     118 </span>            :                   show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">     119 </span>            :                   (unsigned long long)__entry-&gt;generation,
+<span class="lineNum">     120 </span>            :                   (unsigned long)__entry-&gt;ino,
+<span class="lineNum">     121 </span>            :                   (unsigned long long)__entry-&gt;blocks,
+<span class="lineNum">     122 </span>            :                   (unsigned long long)__entry-&gt;disk_i_size,
+<span class="lineNum">     123 </span>            :                   (unsigned long long)__entry-&gt;last_trans,
+<span class="lineNum">     124 </span>            :                   (unsigned long long)__entry-&gt;logged_trans)
+<a name="125"><span class="lineNum">     125 </span>            : );</a>
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span><span class="lineCov">      61416 : DEFINE_EVENT(btrfs__inode, btrfs_inode_new,</span>
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            :         TP_PROTO(struct inode *inode),
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            :         TP_ARGS(inode)
+<a name="132"><span class="lineNum">     132 </span>            : );</a>
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineCov">      61263 : DEFINE_EVENT(btrfs__inode, btrfs_inode_request,</span>
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :         TP_PROTO(struct inode *inode),
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :         TP_ARGS(inode)
+<a name="139"><span class="lineNum">     139 </span>            : );</a>
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span><span class="lineCov">      77112 : DEFINE_EVENT(btrfs__inode, btrfs_inode_evict,</span>
+<span class="lineNum">     142 </span>            : 
+<span class="lineNum">     143 </span>            :         TP_PROTO(struct inode *inode),
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            :         TP_ARGS(inode)
+<span class="lineNum">     146 </span>            : );
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            : #define __show_map_type(type)                                           \
+<span class="lineNum">     149 </span>            :         __print_symbolic_u64(type,                                      \
+<span class="lineNum">     150 </span>            :                 { EXTENT_MAP_LAST_BYTE, &quot;LAST_BYTE&quot;   },              \
+<span class="lineNum">     151 </span>            :                 { EXTENT_MAP_HOLE,      &quot;HOLE&quot;                },              \
+<span class="lineNum">     152 </span>            :                 { EXTENT_MAP_INLINE,    &quot;INLINE&quot;      },              \
+<span class="lineNum">     153 </span>            :                 { EXTENT_MAP_DELALLOC,  &quot;DELALLOC&quot;    })
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            : #define show_map_type(type)                     \
+<span class="lineNum">     156 </span>            :         type, (type &gt;= EXTENT_MAP_LAST_BYTE) ? &quot;-&quot; :  __show_map_type(type)
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            : #define show_map_flags(flag)                                            \
+<span class="lineNum">     159 </span>            :         __print_flags(flag, &quot;|&quot;,                                      \
+<span class="lineNum">     160 </span>            :                 { EXTENT_FLAG_PINNED,           &quot;PINNED&quot;      },      \
+<span class="lineNum">     161 </span>            :                 { EXTENT_FLAG_COMPRESSED,       &quot;COMPRESSED&quot;  },      \
+<span class="lineNum">     162 </span>            :                 { EXTENT_FLAG_VACANCY,          &quot;VACANCY&quot;     },      \
+<span class="lineNum">     163 </span>            :                 { EXTENT_FLAG_PREALLOC,         &quot;PREALLOC&quot;    },      \
+<span class="lineNum">     164 </span>            :                 { EXTENT_FLAG_LOGGING,          &quot;LOGGING&quot;     },      \
+<a name="165"><span class="lineNum">     165 </span>            :                 { EXTENT_FLAG_FILLING,          &quot;FILLING&quot;     })</a>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineCov">    4816284 : TRACE_EVENT_CONDITION(btrfs_get_extent,</span>
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            :         TP_PROTO(struct btrfs_root *root, struct extent_map *map),
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            :         TP_ARGS(root, map),
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            :         TP_CONDITION(map),
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     176 </span>            :                 __field(        u64,  root_objectid     )
+<span class="lineNum">     177 </span>            :                 __field(        u64,  start             )
+<span class="lineNum">     178 </span>            :                 __field(        u64,  len               )
+<span class="lineNum">     179 </span>            :                 __field(        u64,  orig_start        )
+<span class="lineNum">     180 </span>            :                 __field(        u64,  block_start       )
+<span class="lineNum">     181 </span>            :                 __field(        u64,  block_len         )
+<span class="lineNum">     182 </span>            :                 __field(        unsigned long,  flags   )
+<span class="lineNum">     183 </span>            :                 __field(        int,  refs              )
+<span class="lineNum">     184 </span>            :                 __field(        unsigned int,  compress_type    )
+<span class="lineNum">     185 </span>            :         ),
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            :         TP_fast_assign(
+<span class="lineNum">     188 </span>            :                 __entry-&gt;root_objectid       = root-&gt;root_key.objectid;
+<span class="lineNum">     189 </span>            :                 __entry-&gt;start               = map-&gt;start;
+<span class="lineNum">     190 </span>            :                 __entry-&gt;len         = map-&gt;len;
+<span class="lineNum">     191 </span>            :                 __entry-&gt;orig_start  = map-&gt;orig_start;
+<span class="lineNum">     192 </span>            :                 __entry-&gt;block_start = map-&gt;block_start;
+<span class="lineNum">     193 </span>            :                 __entry-&gt;block_len   = map-&gt;block_len;
+<span class="lineNum">     194 </span>            :                 __entry-&gt;flags               = map-&gt;flags;
+<span class="lineNum">     195 </span>            :                 __entry-&gt;refs                = atomic_read(&amp;map-&gt;refs);
+<span class="lineNum">     196 </span>            :                 __entry-&gt;compress_type       = map-&gt;compress_type;
+<span class="lineNum">     197 </span>            :         ),
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span>            :         TP_printk(&quot;root = %llu(%s), start = %llu, len = %llu, &quot;
+<span class="lineNum">     200 </span>            :                   &quot;orig_start = %llu, block_start = %llu(%s), &quot;
+<span class="lineNum">     201 </span>            :                   &quot;block_len = %llu, flags = %s, refs = %u, &quot;
+<span class="lineNum">     202 </span>            :                   &quot;compress_type = %u&quot;,
+<span class="lineNum">     203 </span>            :                   show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">     204 </span>            :                   (unsigned long long)__entry-&gt;start,
+<span class="lineNum">     205 </span>            :                   (unsigned long long)__entry-&gt;len,
+<span class="lineNum">     206 </span>            :                   (unsigned long long)__entry-&gt;orig_start,
+<span class="lineNum">     207 </span>            :                   show_map_type(__entry-&gt;block_start),
+<span class="lineNum">     208 </span>            :                   (unsigned long long)__entry-&gt;block_len,
+<span class="lineNum">     209 </span>            :                   show_map_flags(__entry-&gt;flags),
+<span class="lineNum">     210 </span>            :                   __entry-&gt;refs, __entry-&gt;compress_type)
+<span class="lineNum">     211 </span>            : );
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            : #define show_ordered_flags(flags)                                          \
+<span class="lineNum">     214 </span>            :         __print_flags(flags, &quot;|&quot;,                                        \
+<span class="lineNum">     215 </span>            :                 { (1 &lt;&lt; BTRFS_ORDERED_IO_DONE),   &quot;IO_DONE&quot;     }, \
+<span class="lineNum">     216 </span>            :                 { (1 &lt;&lt; BTRFS_ORDERED_COMPLETE),  &quot;COMPLETE&quot;    }, \
+<span class="lineNum">     217 </span>            :                 { (1 &lt;&lt; BTRFS_ORDERED_NOCOW),             &quot;NOCOW&quot;       }, \
+<span class="lineNum">     218 </span>            :                 { (1 &lt;&lt; BTRFS_ORDERED_COMPRESSED),        &quot;COMPRESSED&quot;  }, \
+<span class="lineNum">     219 </span>            :                 { (1 &lt;&lt; BTRFS_ORDERED_PREALLOC),  &quot;PREALLOC&quot;    }, \
+<span class="lineNum">     220 </span>            :                 { (1 &lt;&lt; BTRFS_ORDERED_DIRECT),            &quot;DIRECT&quot;      }, \
+<span class="lineNum">     221 </span>            :                 { (1 &lt;&lt; BTRFS_ORDERED_IOERR),             &quot;IOERR&quot;       }, \
+<span class="lineNum">     222 </span>            :                 { (1 &lt;&lt; BTRFS_ORDERED_UPDATED_ISIZE),     &quot;UPDATED_ISIZE&quot;       }, \
+<span class="lineNum">     223 </span>            :                 { (1 &lt;&lt; BTRFS_ORDERED_LOGGED_CSUM),       &quot;LOGGED_CSUM&quot; }, \
+<span class="lineNum">     224 </span>            :                 { (1 &lt;&lt; BTRFS_ORDERED_TRUNCATED),         &quot;TRUNCATED&quot;   })
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            : DECLARE_EVENT_CLASS(btrfs__ordered_extent,
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            :         TP_PROTO(struct inode *inode, struct btrfs_ordered_extent *ordered),
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            :         TP_ARGS(inode, ordered),
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     234 </span>            :                 __field(        ino_t,  ino             )
+<span class="lineNum">     235 </span>            :                 __field(        u64,  file_offset       )
+<span class="lineNum">     236 </span>            :                 __field(        u64,  start             )
+<span class="lineNum">     237 </span>            :                 __field(        u64,  len               )
+<span class="lineNum">     238 </span>            :                 __field(        u64,  disk_len          )
+<span class="lineNum">     239 </span>            :                 __field(        u64,  bytes_left        )
+<span class="lineNum">     240 </span>            :                 __field(        unsigned long,  flags   )
+<span class="lineNum">     241 </span>            :                 __field(        int,  compress_type     )
+<span class="lineNum">     242 </span>            :                 __field(        int,  refs              )
+<span class="lineNum">     243 </span>            :                 __field(        u64,  root_objectid     )
+<span class="lineNum">     244 </span>            :         ),
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            :         TP_fast_assign(
+<span class="lineNum">     247 </span>            :                 __entry-&gt;ino                 = inode-&gt;i_ino;
+<span class="lineNum">     248 </span>            :                 __entry-&gt;file_offset = ordered-&gt;file_offset;
+<span class="lineNum">     249 </span>            :                 __entry-&gt;start               = ordered-&gt;start;
+<span class="lineNum">     250 </span>            :                 __entry-&gt;len         = ordered-&gt;len;
+<span class="lineNum">     251 </span>            :                 __entry-&gt;disk_len    = ordered-&gt;disk_len;
+<span class="lineNum">     252 </span>            :                 __entry-&gt;bytes_left  = ordered-&gt;bytes_left;
+<span class="lineNum">     253 </span>            :                 __entry-&gt;flags               = ordered-&gt;flags;
+<span class="lineNum">     254 </span>            :                 __entry-&gt;compress_type       = ordered-&gt;compress_type;
+<span class="lineNum">     255 </span>            :                 __entry-&gt;refs                = atomic_read(&amp;ordered-&gt;refs);
+<span class="lineNum">     256 </span>            :                 __entry-&gt;root_objectid       =
+<span class="lineNum">     257 </span>            :                                 BTRFS_I(inode)-&gt;root-&gt;root_key.objectid;
+<span class="lineNum">     258 </span>            :         ),
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            :         TP_printk(&quot;root = %llu(%s), ino = %llu, file_offset = %llu, &quot;
+<span class="lineNum">     261 </span>            :                   &quot;start = %llu, len = %llu, disk_len = %llu, &quot;
+<span class="lineNum">     262 </span>            :                   &quot;bytes_left = %llu, flags = %s, compress_type = %d, &quot;
+<span class="lineNum">     263 </span>            :                   &quot;refs = %d&quot;,
+<span class="lineNum">     264 </span>            :                   show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">     265 </span>            :                   (unsigned long long)__entry-&gt;ino,
+<span class="lineNum">     266 </span>            :                   (unsigned long long)__entry-&gt;file_offset,
+<span class="lineNum">     267 </span>            :                   (unsigned long long)__entry-&gt;start,
+<span class="lineNum">     268 </span>            :                   (unsigned long long)__entry-&gt;len,
+<span class="lineNum">     269 </span>            :                   (unsigned long long)__entry-&gt;disk_len,
+<span class="lineNum">     270 </span>            :                   (unsigned long long)__entry-&gt;bytes_left,
+<span class="lineNum">     271 </span>            :                   show_ordered_flags(__entry-&gt;flags),
+<span class="lineNum">     272 </span>            :                   __entry-&gt;compress_type, __entry-&gt;refs)
+<a name="273"><span class="lineNum">     273 </span>            : );</a>
+<span class="lineNum">     274 </span>            : 
+<span class="lineNum">     275 </span><span class="lineCov">     154495 : DEFINE_EVENT(btrfs__ordered_extent, btrfs_ordered_extent_add,</span>
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            :         TP_PROTO(struct inode *inode, struct btrfs_ordered_extent *ordered),
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span>            :         TP_ARGS(inode, ordered)
+<a name="280"><span class="lineNum">     280 </span>            : );</a>
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineCov">     154515 : DEFINE_EVENT(btrfs__ordered_extent, btrfs_ordered_extent_remove,</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span>            :         TP_PROTO(struct inode *inode, struct btrfs_ordered_extent *ordered),
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            :         TP_ARGS(inode, ordered)
+<a name="287"><span class="lineNum">     287 </span>            : );</a>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineCov">      11625 : DEFINE_EVENT(btrfs__ordered_extent, btrfs_ordered_extent_start,</span>
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span>            :         TP_PROTO(struct inode *inode, struct btrfs_ordered_extent *ordered),
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            :         TP_ARGS(inode, ordered)
+<a name="294"><span class="lineNum">     294 </span>            : );</a>
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span><span class="lineCov">     596688 : DEFINE_EVENT(btrfs__ordered_extent, btrfs_ordered_extent_put,</span>
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            :         TP_PROTO(struct inode *inode, struct btrfs_ordered_extent *ordered),
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            :         TP_ARGS(inode, ordered)
+<span class="lineNum">     301 </span>            : );
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            : DECLARE_EVENT_CLASS(btrfs__writepage,
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            :         TP_PROTO(struct page *page, struct inode *inode,
+<span class="lineNum">     306 </span>            :                  struct writeback_control *wbc),
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span>            :         TP_ARGS(page, inode, wbc),
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     311 </span>            :                 __field(        ino_t,  ino                     )
+<span class="lineNum">     312 </span>            :                 __field(        pgoff_t,  index                 )
+<span class="lineNum">     313 </span>            :                 __field(        long,   nr_to_write             )
+<span class="lineNum">     314 </span>            :                 __field(        long,   pages_skipped           )
+<span class="lineNum">     315 </span>            :                 __field(        loff_t, range_start             )
+<span class="lineNum">     316 </span>            :                 __field(        loff_t, range_end               )
+<span class="lineNum">     317 </span>            :                 __field(        char,   for_kupdate             )
+<span class="lineNum">     318 </span>            :                 __field(        char,   for_reclaim             )
+<span class="lineNum">     319 </span>            :                 __field(        char,   range_cyclic            )
+<span class="lineNum">     320 </span>            :                 __field(        pgoff_t,  writeback_index       )
+<span class="lineNum">     321 </span>            :                 __field(        u64,    root_objectid           )
+<span class="lineNum">     322 </span>            :         ),
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            :         TP_fast_assign(
+<span class="lineNum">     325 </span>            :                 __entry-&gt;ino         = inode-&gt;i_ino;
+<span class="lineNum">     326 </span>            :                 __entry-&gt;index               = page-&gt;index;
+<span class="lineNum">     327 </span>            :                 __entry-&gt;nr_to_write = wbc-&gt;nr_to_write;
+<span class="lineNum">     328 </span>            :                 __entry-&gt;pages_skipped       = wbc-&gt;pages_skipped;
+<span class="lineNum">     329 </span>            :                 __entry-&gt;range_start = wbc-&gt;range_start;
+<span class="lineNum">     330 </span>            :                 __entry-&gt;range_end   = wbc-&gt;range_end;
+<span class="lineNum">     331 </span>            :                 __entry-&gt;for_kupdate = wbc-&gt;for_kupdate;
+<span class="lineNum">     332 </span>            :                 __entry-&gt;for_reclaim = wbc-&gt;for_reclaim;
+<span class="lineNum">     333 </span>            :                 __entry-&gt;range_cyclic        = wbc-&gt;range_cyclic;
+<span class="lineNum">     334 </span>            :                 __entry-&gt;writeback_index = inode-&gt;i_mapping-&gt;writeback_index;
+<span class="lineNum">     335 </span>            :                 __entry-&gt;root_objectid       =
+<span class="lineNum">     336 </span>            :                                  BTRFS_I(inode)-&gt;root-&gt;root_key.objectid;
+<span class="lineNum">     337 </span>            :         ),
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span>            :         TP_printk(&quot;root = %llu(%s), ino = %lu, page_index = %lu, &quot;
+<span class="lineNum">     340 </span>            :                   &quot;nr_to_write = %ld, pages_skipped = %ld, range_start = %llu, &quot;
+<span class="lineNum">     341 </span>            :                   &quot;range_end = %llu, for_kupdate = %d, &quot;
+<span class="lineNum">     342 </span>            :                   &quot;for_reclaim = %d, range_cyclic = %d, writeback_index = %lu&quot;,
+<span class="lineNum">     343 </span>            :                   show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">     344 </span>            :                   (unsigned long)__entry-&gt;ino, __entry-&gt;index,
+<span class="lineNum">     345 </span>            :                   __entry-&gt;nr_to_write, __entry-&gt;pages_skipped,
+<span class="lineNum">     346 </span>            :                   __entry-&gt;range_start, __entry-&gt;range_end,
+<span class="lineNum">     347 </span>            :                   __entry-&gt;for_kupdate,
+<span class="lineNum">     348 </span>            :                   __entry-&gt;for_reclaim, __entry-&gt;range_cyclic,
+<span class="lineNum">     349 </span>            :                   (unsigned long)__entry-&gt;writeback_index)
+<a name="350"><span class="lineNum">     350 </span>            : );</a>
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineCov">    3938889 : DEFINE_EVENT(btrfs__writepage, __extent_writepage,</span>
+<span class="lineNum">     353 </span>            : 
+<span class="lineNum">     354 </span>            :         TP_PROTO(struct page *page, struct inode *inode,
+<span class="lineNum">     355 </span>            :                  struct writeback_control *wbc),
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            :         TP_ARGS(page, inode, wbc)
+<a name="358"><span class="lineNum">     358 </span>            : );</a>
+<span class="lineNum">     359 </span>            : 
+<span class="lineNum">     360 </span><span class="lineCov">    3927091 : TRACE_EVENT(btrfs_writepage_end_io_hook,</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            :         TP_PROTO(struct page *page, u64 start, u64 end, int uptodate),
+<span class="lineNum">     363 </span>            : 
+<span class="lineNum">     364 </span>            :         TP_ARGS(page, start, end, uptodate),
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     367 </span>            :                 __field(        ino_t,   ino            )
+<span class="lineNum">     368 </span>            :                 __field(        pgoff_t, index          )
+<span class="lineNum">     369 </span>            :                 __field(        u64,     start          )
+<span class="lineNum">     370 </span>            :                 __field(        u64,     end            )
+<span class="lineNum">     371 </span>            :                 __field(        int,     uptodate       )
+<span class="lineNum">     372 </span>            :                 __field(        u64,    root_objectid   )
+<span class="lineNum">     373 </span>            :         ),
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span>            :         TP_fast_assign(
+<span class="lineNum">     376 </span>            :                 __entry-&gt;ino = page-&gt;mapping-&gt;host-&gt;i_ino;
+<span class="lineNum">     377 </span>            :                 __entry-&gt;index       = page-&gt;index;
+<span class="lineNum">     378 </span>            :                 __entry-&gt;start       = start;
+<span class="lineNum">     379 </span>            :                 __entry-&gt;end = end;
+<span class="lineNum">     380 </span>            :                 __entry-&gt;uptodate = uptodate;
+<span class="lineNum">     381 </span>            :                 __entry-&gt;root_objectid       =
+<span class="lineNum">     382 </span>            :                          BTRFS_I(page-&gt;mapping-&gt;host)-&gt;root-&gt;root_key.objectid;
+<span class="lineNum">     383 </span>            :         ),
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            :         TP_printk(&quot;root = %llu(%s), ino = %lu, page_index = %lu, start = %llu, &quot;
+<span class="lineNum">     386 </span>            :                   &quot;end = %llu, uptodate = %d&quot;,
+<span class="lineNum">     387 </span>            :                   show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">     388 </span>            :                   (unsigned long)__entry-&gt;ino, (unsigned long)__entry-&gt;index,
+<span class="lineNum">     389 </span>            :                   (unsigned long long)__entry-&gt;start,
+<span class="lineNum">     390 </span>            :                   (unsigned long long)__entry-&gt;end, __entry-&gt;uptodate)
+<a name="391"><span class="lineNum">     391 </span>            : );</a>
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineCov">       7494 : TRACE_EVENT(btrfs_sync_file,</span>
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span>            :         TP_PROTO(struct file *file, int datasync),
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            :         TP_ARGS(file, datasync),
+<span class="lineNum">     398 </span>            : 
+<span class="lineNum">     399 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     400 </span>            :                 __field(        ino_t,  ino             )
+<span class="lineNum">     401 </span>            :                 __field(        ino_t,  parent          )
+<span class="lineNum">     402 </span>            :                 __field(        int,    datasync        )
+<span class="lineNum">     403 </span>            :                 __field(        u64,    root_objectid   )
+<span class="lineNum">     404 </span>            :         ),
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            :         TP_fast_assign(
+<span class="lineNum">     407 </span>            :                 struct dentry *dentry = file-&gt;f_path.dentry;
+<span class="lineNum">     408 </span>            :                 struct inode *inode = dentry-&gt;d_inode;
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span>            :                 __entry-&gt;ino         = inode-&gt;i_ino;
+<span class="lineNum">     411 </span>            :                 __entry-&gt;parent              = dentry-&gt;d_parent-&gt;d_inode-&gt;i_ino;
+<span class="lineNum">     412 </span>            :                 __entry-&gt;datasync    = datasync;
+<span class="lineNum">     413 </span>            :                 __entry-&gt;root_objectid       =
+<span class="lineNum">     414 </span>            :                                  BTRFS_I(inode)-&gt;root-&gt;root_key.objectid;
+<span class="lineNum">     415 </span>            :         ),
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span>            :         TP_printk(&quot;root = %llu(%s), ino = %ld, parent = %ld, datasync = %d&quot;,
+<span class="lineNum">     418 </span>            :                   show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">     419 </span>            :                   (unsigned long)__entry-&gt;ino, (unsigned long)__entry-&gt;parent,
+<span class="lineNum">     420 </span>            :                   __entry-&gt;datasync)
+<span class="lineNum">     421 </span>            : );
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span>            : TRACE_EVENT(btrfs_sync_fs,
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            :         TP_PROTO(int wait),
+<span class="lineNum">     426 </span>            : 
+<span class="lineNum">     427 </span>            :         TP_ARGS(wait),
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     430 </span>            :                 __field(        int,  wait              )
+<span class="lineNum">     431 </span>            :         ),
+<span class="lineNum">     432 </span>            : 
+<span class="lineNum">     433 </span>            :         TP_fast_assign(
+<span class="lineNum">     434 </span>            :                 __entry-&gt;wait        = wait;
+<span class="lineNum">     435 </span>            :         ),
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span>            :         TP_printk(&quot;wait = %d&quot;, __entry-&gt;wait)
+<span class="lineNum">     438 </span>            : );
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span>            : #define show_ref_action(action)                                         \
+<span class="lineNum">     441 </span>            :         __print_symbolic(action,                                        \
+<span class="lineNum">     442 </span>            :                 { BTRFS_ADD_DELAYED_REF,    &quot;ADD_DELAYED_REF&quot; },      \
+<span class="lineNum">     443 </span>            :                 { BTRFS_DROP_DELAYED_REF,   &quot;DROP_DELAYED_REF&quot; },     \
+<span class="lineNum">     444 </span>            :                 { BTRFS_ADD_DELAYED_EXTENT, &quot;ADD_DELAYED_EXTENT&quot; },   \
+<span class="lineNum">     445 </span>            :                 { BTRFS_UPDATE_DELAYED_HEAD, &quot;UPDATE_DELAYED_HEAD&quot; })
+<span class="lineNum">     446 </span>            :                         
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            : DECLARE_EVENT_CLASS(btrfs_delayed_tree_ref,
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span>            :         TP_PROTO(struct btrfs_delayed_ref_node *ref,
+<span class="lineNum">     451 </span>            :                  struct btrfs_delayed_tree_ref *full_ref,
+<span class="lineNum">     452 </span>            :                  int action),
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            :         TP_ARGS(ref, full_ref, action),
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     457 </span>            :                 __field(        u64,  bytenr            )
+<span class="lineNum">     458 </span>            :                 __field(        u64,  num_bytes         )
+<span class="lineNum">     459 </span>            :                 __field(        int,  action            ) 
+<span class="lineNum">     460 </span>            :                 __field(        u64,  parent            )
+<span class="lineNum">     461 </span>            :                 __field(        u64,  ref_root          )
+<span class="lineNum">     462 </span>            :                 __field(        int,  level             )
+<span class="lineNum">     463 </span>            :                 __field(        int,  type              )
+<span class="lineNum">     464 </span>            :                 __field(        u64,  seq               )
+<span class="lineNum">     465 </span>            :         ),
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            :         TP_fast_assign(
+<span class="lineNum">     468 </span>            :                 __entry-&gt;bytenr              = ref-&gt;bytenr;
+<span class="lineNum">     469 </span>            :                 __entry-&gt;num_bytes   = ref-&gt;num_bytes;
+<span class="lineNum">     470 </span>            :                 __entry-&gt;action              = action;
+<span class="lineNum">     471 </span>            :                 __entry-&gt;parent              = full_ref-&gt;parent;
+<span class="lineNum">     472 </span>            :                 __entry-&gt;ref_root    = full_ref-&gt;root;
+<span class="lineNum">     473 </span>            :                 __entry-&gt;level               = full_ref-&gt;level;
+<span class="lineNum">     474 </span>            :                 __entry-&gt;type                = ref-&gt;type;
+<span class="lineNum">     475 </span>            :                 __entry-&gt;seq         = ref-&gt;seq;
+<span class="lineNum">     476 </span>            :         ),
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span>            :         TP_printk(&quot;bytenr = %llu, num_bytes = %llu, action = %s, &quot;
+<span class="lineNum">     479 </span>            :                   &quot;parent = %llu(%s), ref_root = %llu(%s), level = %d, &quot;
+<span class="lineNum">     480 </span>            :                   &quot;type = %s, seq = %llu&quot;,
+<span class="lineNum">     481 </span>            :                   (unsigned long long)__entry-&gt;bytenr,
+<span class="lineNum">     482 </span>            :                   (unsigned long long)__entry-&gt;num_bytes,
+<span class="lineNum">     483 </span>            :                   show_ref_action(__entry-&gt;action),
+<span class="lineNum">     484 </span>            :                   show_root_type(__entry-&gt;parent),
+<span class="lineNum">     485 </span>            :                   show_root_type(__entry-&gt;ref_root),
+<span class="lineNum">     486 </span>            :                   __entry-&gt;level, show_ref_type(__entry-&gt;type),
+<span class="lineNum">     487 </span>            :                   (unsigned long long)__entry-&gt;seq)
+<a name="488"><span class="lineNum">     488 </span>            : );</a>
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span><span class="lineCov">     333132 : DEFINE_EVENT(btrfs_delayed_tree_ref,  add_delayed_tree_ref,</span>
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span>            :         TP_PROTO(struct btrfs_delayed_ref_node *ref,
+<span class="lineNum">     493 </span>            :                  struct btrfs_delayed_tree_ref *full_ref,
+<span class="lineNum">     494 </span>            :                  int action),
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span>            :         TP_ARGS(ref, full_ref, action)
+<a name="497"><span class="lineNum">     497 </span>            : );</a>
+<span class="lineNum">     498 </span>            : 
+<span class="lineNum">     499 </span><span class="lineCov">     318210 : DEFINE_EVENT(btrfs_delayed_tree_ref,  run_delayed_tree_ref,</span>
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            :         TP_PROTO(struct btrfs_delayed_ref_node *ref,
+<span class="lineNum">     502 </span>            :                  struct btrfs_delayed_tree_ref *full_ref,
+<span class="lineNum">     503 </span>            :                  int action),
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span>            :         TP_ARGS(ref, full_ref, action)
+<span class="lineNum">     506 </span>            : );
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span>            : DECLARE_EVENT_CLASS(btrfs_delayed_data_ref,
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span>            :         TP_PROTO(struct btrfs_delayed_ref_node *ref,
+<span class="lineNum">     511 </span>            :                  struct btrfs_delayed_data_ref *full_ref,
+<span class="lineNum">     512 </span>            :                  int action),
+<span class="lineNum">     513 </span>            : 
+<span class="lineNum">     514 </span>            :         TP_ARGS(ref, full_ref, action),
+<span class="lineNum">     515 </span>            : 
+<span class="lineNum">     516 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     517 </span>            :                 __field(        u64,  bytenr            )
+<span class="lineNum">     518 </span>            :                 __field(        u64,  num_bytes         )
+<span class="lineNum">     519 </span>            :                 __field(        int,  action            ) 
+<span class="lineNum">     520 </span>            :                 __field(        u64,  parent            )
+<span class="lineNum">     521 </span>            :                 __field(        u64,  ref_root          )
+<span class="lineNum">     522 </span>            :                 __field(        u64,  owner             )
+<span class="lineNum">     523 </span>            :                 __field(        u64,  offset            )
+<span class="lineNum">     524 </span>            :                 __field(        int,  type              )
+<span class="lineNum">     525 </span>            :                 __field(        u64,  seq               )
+<span class="lineNum">     526 </span>            :         ),
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span>            :         TP_fast_assign(
+<span class="lineNum">     529 </span>            :                 __entry-&gt;bytenr              = ref-&gt;bytenr;
+<span class="lineNum">     530 </span>            :                 __entry-&gt;num_bytes   = ref-&gt;num_bytes;
+<span class="lineNum">     531 </span>            :                 __entry-&gt;action              = action;
+<span class="lineNum">     532 </span>            :                 __entry-&gt;parent              = full_ref-&gt;parent;
+<span class="lineNum">     533 </span>            :                 __entry-&gt;ref_root    = full_ref-&gt;root;
+<span class="lineNum">     534 </span>            :                 __entry-&gt;owner               = full_ref-&gt;objectid;
+<span class="lineNum">     535 </span>            :                 __entry-&gt;offset              = full_ref-&gt;offset;
+<span class="lineNum">     536 </span>            :                 __entry-&gt;type                = ref-&gt;type;
+<span class="lineNum">     537 </span>            :                 __entry-&gt;seq         = ref-&gt;seq;
+<span class="lineNum">     538 </span>            :         ),
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span>            :         TP_printk(&quot;bytenr = %llu, num_bytes = %llu, action = %s, &quot;
+<span class="lineNum">     541 </span>            :                   &quot;parent = %llu(%s), ref_root = %llu(%s), owner = %llu, &quot;
+<span class="lineNum">     542 </span>            :                   &quot;offset = %llu, type = %s, seq = %llu&quot;,
+<span class="lineNum">     543 </span>            :                   (unsigned long long)__entry-&gt;bytenr,
+<span class="lineNum">     544 </span>            :                   (unsigned long long)__entry-&gt;num_bytes,
+<span class="lineNum">     545 </span>            :                   show_ref_action(__entry-&gt;action),
+<span class="lineNum">     546 </span>            :                   show_root_type(__entry-&gt;parent),
+<span class="lineNum">     547 </span>            :                   show_root_type(__entry-&gt;ref_root),
+<span class="lineNum">     548 </span>            :                   (unsigned long long)__entry-&gt;owner,
+<span class="lineNum">     549 </span>            :                   (unsigned long long)__entry-&gt;offset,
+<span class="lineNum">     550 </span>            :                   show_ref_type(__entry-&gt;type),
+<span class="lineNum">     551 </span>            :                   (unsigned long long)__entry-&gt;seq)
+<a name="552"><span class="lineNum">     552 </span>            : );</a>
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span><span class="lineCov">     294495 : DEFINE_EVENT(btrfs_delayed_data_ref,  add_delayed_data_ref,</span>
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span>            :         TP_PROTO(struct btrfs_delayed_ref_node *ref,
+<span class="lineNum">     557 </span>            :                  struct btrfs_delayed_data_ref *full_ref,
+<span class="lineNum">     558 </span>            :                  int action),
+<span class="lineNum">     559 </span>            : 
+<span class="lineNum">     560 </span>            :         TP_ARGS(ref, full_ref, action)
+<a name="561"><span class="lineNum">     561 </span>            : );</a>
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineCov">     265803 : DEFINE_EVENT(btrfs_delayed_data_ref,  run_delayed_data_ref,</span>
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span>            :         TP_PROTO(struct btrfs_delayed_ref_node *ref,
+<span class="lineNum">     566 </span>            :                  struct btrfs_delayed_data_ref *full_ref,
+<span class="lineNum">     567 </span>            :                  int action),
+<span class="lineNum">     568 </span>            : 
+<span class="lineNum">     569 </span>            :         TP_ARGS(ref, full_ref, action)
+<span class="lineNum">     570 </span>            : );
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span>            : DECLARE_EVENT_CLASS(btrfs_delayed_ref_head,
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span>            :         TP_PROTO(struct btrfs_delayed_ref_node *ref,
+<span class="lineNum">     575 </span>            :                  struct btrfs_delayed_ref_head *head_ref,
+<span class="lineNum">     576 </span>            :                  int action),
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span>            :         TP_ARGS(ref, head_ref, action),
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     581 </span>            :                 __field(        u64,  bytenr            )
+<span class="lineNum">     582 </span>            :                 __field(        u64,  num_bytes         )
+<span class="lineNum">     583 </span>            :                 __field(        int,  action            ) 
+<span class="lineNum">     584 </span>            :                 __field(        int,  is_data           )
+<span class="lineNum">     585 </span>            :         ),
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span>            :         TP_fast_assign(
+<span class="lineNum">     588 </span>            :                 __entry-&gt;bytenr              = ref-&gt;bytenr;
+<span class="lineNum">     589 </span>            :                 __entry-&gt;num_bytes   = ref-&gt;num_bytes;
+<span class="lineNum">     590 </span>            :                 __entry-&gt;action              = action;
+<span class="lineNum">     591 </span>            :                 __entry-&gt;is_data     = head_ref-&gt;is_data;
+<span class="lineNum">     592 </span>            :         ),
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span>            :         TP_printk(&quot;bytenr = %llu, num_bytes = %llu, action = %s, is_data = %d&quot;,
+<span class="lineNum">     595 </span>            :                   (unsigned long long)__entry-&gt;bytenr,
+<span class="lineNum">     596 </span>            :                   (unsigned long long)__entry-&gt;num_bytes,
+<span class="lineNum">     597 </span>            :                   show_ref_action(__entry-&gt;action),
+<span class="lineNum">     598 </span>            :                   __entry-&gt;is_data)
+<a name="599"><span class="lineNum">     599 </span>            : );</a>
+<span class="lineNum">     600 </span>            : 
+<span class="lineNum">     601 </span><span class="lineCov">     628857 : DEFINE_EVENT(btrfs_delayed_ref_head,  add_delayed_ref_head,</span>
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            :         TP_PROTO(struct btrfs_delayed_ref_node *ref,
+<span class="lineNum">     604 </span>            :                  struct btrfs_delayed_ref_head *head_ref,
+<span class="lineNum">     605 </span>            :                  int action),
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span>            :         TP_ARGS(ref, head_ref, action)
+<a name="608"><span class="lineNum">     608 </span>            : );</a>
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span><span class="lineCov">     575292 : DEFINE_EVENT(btrfs_delayed_ref_head,  run_delayed_ref_head,</span>
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span>            :         TP_PROTO(struct btrfs_delayed_ref_node *ref,
+<span class="lineNum">     613 </span>            :                  struct btrfs_delayed_ref_head *head_ref,
+<span class="lineNum">     614 </span>            :                  int action),
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span>            :         TP_ARGS(ref, head_ref, action)
+<span class="lineNum">     617 </span>            : );
+<span class="lineNum">     618 </span>            : 
+<span class="lineNum">     619 </span>            : #define show_chunk_type(type)                                   \
+<span class="lineNum">     620 </span>            :         __print_flags(type, &quot;|&quot;,                              \
+<span class="lineNum">     621 </span>            :                 { BTRFS_BLOCK_GROUP_DATA,       &quot;DATA&quot;        },      \
+<span class="lineNum">     622 </span>            :                 { BTRFS_BLOCK_GROUP_SYSTEM,     &quot;SYSTEM&quot;},    \
+<span class="lineNum">     623 </span>            :                 { BTRFS_BLOCK_GROUP_METADATA,   &quot;METADATA&quot;},  \
+<span class="lineNum">     624 </span>            :                 { BTRFS_BLOCK_GROUP_RAID0,      &quot;RAID0&quot; },    \
+<span class="lineNum">     625 </span>            :                 { BTRFS_BLOCK_GROUP_RAID1,      &quot;RAID1&quot; },    \
+<span class="lineNum">     626 </span>            :                 { BTRFS_BLOCK_GROUP_DUP,        &quot;DUP&quot; },      \
+<span class="lineNum">     627 </span>            :                 { BTRFS_BLOCK_GROUP_RAID10,     &quot;RAID10&quot;},    \
+<span class="lineNum">     628 </span>            :                 { BTRFS_BLOCK_GROUP_RAID5,      &quot;RAID5&quot;       },      \
+<span class="lineNum">     629 </span>            :                 { BTRFS_BLOCK_GROUP_RAID6,      &quot;RAID6&quot;       })
+<span class="lineNum">     630 </span>            : 
+<span class="lineNum">     631 </span>            : DECLARE_EVENT_CLASS(btrfs__chunk,
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span>            :         TP_PROTO(struct btrfs_root *root, struct map_lookup *map,
+<span class="lineNum">     634 </span>            :                  u64 offset, u64 size),
+<span class="lineNum">     635 </span>            : 
+<span class="lineNum">     636 </span>            :         TP_ARGS(root, map, offset, size),
+<span class="lineNum">     637 </span>            : 
+<span class="lineNum">     638 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     639 </span>            :                 __field(        int,  num_stripes               )
+<span class="lineNum">     640 </span>            :                 __field(        u64,  type                      )
+<span class="lineNum">     641 </span>            :                 __field(        int,  sub_stripes               )
+<span class="lineNum">     642 </span>            :                 __field(        u64,  offset                    )
+<span class="lineNum">     643 </span>            :                 __field(        u64,  size                      )
+<span class="lineNum">     644 </span>            :                 __field(        u64,  root_objectid             )
+<span class="lineNum">     645 </span>            :         ),
+<span class="lineNum">     646 </span>            : 
+<span class="lineNum">     647 </span>            :         TP_fast_assign(
+<span class="lineNum">     648 </span>            :                 __entry-&gt;num_stripes = map-&gt;num_stripes;
+<span class="lineNum">     649 </span>            :                 __entry-&gt;type                = map-&gt;type;
+<span class="lineNum">     650 </span>            :                 __entry-&gt;sub_stripes = map-&gt;sub_stripes;
+<span class="lineNum">     651 </span>            :                 __entry-&gt;offset              = offset;
+<span class="lineNum">     652 </span>            :                 __entry-&gt;size                = size;
+<span class="lineNum">     653 </span>            :                 __entry-&gt;root_objectid       = root-&gt;root_key.objectid;
+<span class="lineNum">     654 </span>            :         ),
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span>            :         TP_printk(&quot;root = %llu(%s), offset = %llu, size = %llu, &quot;
+<span class="lineNum">     657 </span>            :                   &quot;num_stripes = %d, sub_stripes = %d, type = %s&quot;,
+<span class="lineNum">     658 </span>            :                   show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">     659 </span>            :                   (unsigned long long)__entry-&gt;offset,
+<span class="lineNum">     660 </span>            :                   (unsigned long long)__entry-&gt;size,
+<span class="lineNum">     661 </span>            :                   __entry-&gt;num_stripes, __entry-&gt;sub_stripes,
+<span class="lineNum">     662 </span>            :                   show_chunk_type(__entry-&gt;type))
+<a name="663"><span class="lineNum">     663 </span>            : );</a>
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span><span class="lineCov">        261 : DEFINE_EVENT(btrfs__chunk,  btrfs_chunk_alloc,</span>
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span>            :         TP_PROTO(struct btrfs_root *root, struct map_lookup *map,
+<span class="lineNum">     668 </span>            :                  u64 offset, u64 size),
+<span class="lineNum">     669 </span>            : 
+<span class="lineNum">     670 </span>            :         TP_ARGS(root, map, offset, size)
+<a name="671"><span class="lineNum">     671 </span>            : );</a>
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span><span class="lineCov">        216 : DEFINE_EVENT(btrfs__chunk,  btrfs_chunk_free,</span>
+<span class="lineNum">     674 </span>            : 
+<span class="lineNum">     675 </span>            :         TP_PROTO(struct btrfs_root *root, struct map_lookup *map,
+<span class="lineNum">     676 </span>            :                  u64 offset, u64 size),
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span>            :         TP_ARGS(root, map, offset, size)
+<a name="679"><span class="lineNum">     679 </span>            : );</a>
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span><span class="lineCov">     156852 : TRACE_EVENT(btrfs_cow_block,</span>
+<span class="lineNum">     682 </span>            : 
+<span class="lineNum">     683 </span>            :         TP_PROTO(struct btrfs_root *root, struct extent_buffer *buf,
+<span class="lineNum">     684 </span>            :                  struct extent_buffer *cow),
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span>            :         TP_ARGS(root, buf, cow),
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     689 </span>            :                 __field(        u64,  root_objectid             )
+<span class="lineNum">     690 </span>            :                 __field(        u64,  buf_start                 )
+<span class="lineNum">     691 </span>            :                 __field(        int,  refs                      )
+<span class="lineNum">     692 </span>            :                 __field(        u64,  cow_start                 )
+<span class="lineNum">     693 </span>            :                 __field(        int,  buf_level                 )
+<span class="lineNum">     694 </span>            :                 __field(        int,  cow_level                 )
+<span class="lineNum">     695 </span>            :         ),
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span>            :         TP_fast_assign(
+<span class="lineNum">     698 </span>            :                 __entry-&gt;root_objectid       = root-&gt;root_key.objectid;
+<span class="lineNum">     699 </span>            :                 __entry-&gt;buf_start   = buf-&gt;start;
+<span class="lineNum">     700 </span>            :                 __entry-&gt;refs                = atomic_read(&amp;buf-&gt;refs);
+<span class="lineNum">     701 </span>            :                 __entry-&gt;cow_start   = cow-&gt;start;
+<span class="lineNum">     702 </span>            :                 __entry-&gt;buf_level   = btrfs_header_level(buf);
+<span class="lineNum">     703 </span>            :                 __entry-&gt;cow_level   = btrfs_header_level(cow);
+<span class="lineNum">     704 </span>            :         ),
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span>            :         TP_printk(&quot;root = %llu(%s), refs = %d, orig_buf = %llu &quot;
+<span class="lineNum">     707 </span>            :                   &quot;(orig_level = %d), cow_buf = %llu (cow_level = %d)&quot;,
+<span class="lineNum">     708 </span>            :                   show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">     709 </span>            :                   __entry-&gt;refs,
+<span class="lineNum">     710 </span>            :                   (unsigned long long)__entry-&gt;buf_start,
+<span class="lineNum">     711 </span>            :                   __entry-&gt;buf_level,
+<span class="lineNum">     712 </span>            :                   (unsigned long long)__entry-&gt;cow_start,
+<span class="lineNum">     713 </span>            :                   __entry-&gt;cow_level)
+<a name="714"><span class="lineNum">     714 </span>            : );</a>
+<span class="lineNum">     715 </span>            : 
+<span class="lineNum">     716 </span><span class="lineCov">    3816497 : TRACE_EVENT(btrfs_space_reservation,</span>
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span>            :         TP_PROTO(struct btrfs_fs_info *fs_info, char *type, u64 val,
+<span class="lineNum">     719 </span>            :                  u64 bytes, int reserve),
+<span class="lineNum">     720 </span>            : 
+<span class="lineNum">     721 </span>            :         TP_ARGS(fs_info, type, val, bytes, reserve),
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     724 </span>            :                 __array(        u8,     fsid,   BTRFS_UUID_SIZE )
+<span class="lineNum">     725 </span>            :                 __string(       type,   type                    )
+<span class="lineNum">     726 </span>            :                 __field(        u64,    val                     )
+<span class="lineNum">     727 </span>            :                 __field(        u64,    bytes                   )
+<span class="lineNum">     728 </span>            :                 __field(        int,    reserve                 )
+<span class="lineNum">     729 </span>            :         ),
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span>            :         TP_fast_assign(
+<span class="lineNum">     732 </span>            :                 memcpy(__entry-&gt;fsid, fs_info-&gt;fsid, BTRFS_UUID_SIZE);
+<span class="lineNum">     733 </span>            :                 __assign_str(type, type);
+<span class="lineNum">     734 </span>            :                 __entry-&gt;val         = val;
+<span class="lineNum">     735 </span>            :                 __entry-&gt;bytes               = bytes;
+<span class="lineNum">     736 </span>            :                 __entry-&gt;reserve     = reserve;
+<span class="lineNum">     737 </span>            :         ),
+<span class="lineNum">     738 </span>            : 
+<span class="lineNum">     739 </span>            :         TP_printk(&quot;%pU: %s: %Lu %s %Lu&quot;, __entry-&gt;fsid, __get_str(type),
+<span class="lineNum">     740 </span>            :                   __entry-&gt;val, __entry-&gt;reserve ? &quot;reserve&quot; : &quot;release&quot;,
+<span class="lineNum">     741 </span>            :                   __entry-&gt;bytes)
+<span class="lineNum">     742 </span>            : );
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span>            : DECLARE_EVENT_CLASS(btrfs__reserved_extent,
+<span class="lineNum">     745 </span>            : 
+<span class="lineNum">     746 </span>            :         TP_PROTO(struct btrfs_root *root, u64 start, u64 len),
+<span class="lineNum">     747 </span>            : 
+<span class="lineNum">     748 </span>            :         TP_ARGS(root, start, len),
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     751 </span>            :                 __field(        u64,  root_objectid             )
+<span class="lineNum">     752 </span>            :                 __field(        u64,  start                     )
+<span class="lineNum">     753 </span>            :                 __field(        u64,  len                       )
+<span class="lineNum">     754 </span>            :         ),
+<span class="lineNum">     755 </span>            : 
+<span class="lineNum">     756 </span>            :         TP_fast_assign(
+<span class="lineNum">     757 </span>            :                 __entry-&gt;root_objectid       = root-&gt;root_key.objectid;
+<span class="lineNum">     758 </span>            :                 __entry-&gt;start               = start;
+<span class="lineNum">     759 </span>            :                 __entry-&gt;len         = len;
+<span class="lineNum">     760 </span>            :         ),
+<span class="lineNum">     761 </span>            : 
+<span class="lineNum">     762 </span>            :         TP_printk(&quot;root = %llu(%s), start = %llu, len = %llu&quot;,
+<span class="lineNum">     763 </span>            :                   show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">     764 </span>            :                   (unsigned long long)__entry-&gt;start,
+<span class="lineNum">     765 </span>            :                   (unsigned long long)__entry-&gt;len)
+<a name="766"><span class="lineNum">     766 </span>            : );</a>
+<span class="lineNum">     767 </span>            : 
+<span class="lineNum">     768 </span><span class="lineCov">     318252 : DEFINE_EVENT(btrfs__reserved_extent,  btrfs_reserved_extent_alloc,</span>
+<span class="lineNum">     769 </span>            : 
+<span class="lineNum">     770 </span>            :         TP_PROTO(struct btrfs_root *root, u64 start, u64 len),
+<span class="lineNum">     771 </span>            : 
+<span class="lineNum">     772 </span>            :         TP_ARGS(root, start, len)
+<a name="773"><span class="lineNum">     773 </span>            : );</a>
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span><span class="lineCov">      19962 : DEFINE_EVENT(btrfs__reserved_extent,  btrfs_reserved_extent_free,</span>
+<span class="lineNum">     776 </span>            : 
+<span class="lineNum">     777 </span>            :         TP_PROTO(struct btrfs_root *root, u64 start, u64 len),
+<span class="lineNum">     778 </span>            : 
+<span class="lineNum">     779 </span>            :         TP_ARGS(root, start, len)
+<a name="780"><span class="lineNum">     780 </span>            : );</a>
+<span class="lineNum">     781 </span>            : 
+<span class="lineNum">     782 </span><span class="lineCov">     336770 : TRACE_EVENT(find_free_extent,</span>
+<span class="lineNum">     783 </span>            : 
+<span class="lineNum">     784 </span>            :         TP_PROTO(struct btrfs_root *root, u64 num_bytes, u64 empty_size,
+<span class="lineNum">     785 </span>            :                  u64 data),
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span>            :         TP_ARGS(root, num_bytes, empty_size, data),
+<span class="lineNum">     788 </span>            : 
+<span class="lineNum">     789 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     790 </span>            :                 __field(        u64,    root_objectid           )
+<span class="lineNum">     791 </span>            :                 __field(        u64,    num_bytes               )
+<span class="lineNum">     792 </span>            :                 __field(        u64,    empty_size              )
+<span class="lineNum">     793 </span>            :                 __field(        u64,    data                    )
+<span class="lineNum">     794 </span>            :         ),
+<span class="lineNum">     795 </span>            : 
+<span class="lineNum">     796 </span>            :         TP_fast_assign(
+<span class="lineNum">     797 </span>            :                 __entry-&gt;root_objectid       = root-&gt;root_key.objectid;
+<span class="lineNum">     798 </span>            :                 __entry-&gt;num_bytes   = num_bytes;
+<span class="lineNum">     799 </span>            :                 __entry-&gt;empty_size  = empty_size;
+<span class="lineNum">     800 </span>            :                 __entry-&gt;data                = data;
+<span class="lineNum">     801 </span>            :         ),
+<span class="lineNum">     802 </span>            : 
+<span class="lineNum">     803 </span>            :         TP_printk(&quot;root = %Lu(%s), len = %Lu, empty_size = %Lu, &quot;
+<span class="lineNum">     804 </span>            :                   &quot;flags = %Lu(%s)&quot;, show_root_type(__entry-&gt;root_objectid),
+<span class="lineNum">     805 </span>            :                   __entry-&gt;num_bytes, __entry-&gt;empty_size, __entry-&gt;data,
+<span class="lineNum">     806 </span>            :                   __print_flags((unsigned long)__entry-&gt;data, &quot;|&quot;,
+<span class="lineNum">     807 </span>            :                                  BTRFS_GROUP_FLAGS))
+<span class="lineNum">     808 </span>            : );
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span>            : DECLARE_EVENT_CLASS(btrfs__reserve_extent,
+<span class="lineNum">     811 </span>            : 
+<span class="lineNum">     812 </span>            :         TP_PROTO(struct btrfs_root *root,
+<span class="lineNum">     813 </span>            :                  struct btrfs_block_group_cache *block_group, u64 start,
+<span class="lineNum">     814 </span>            :                  u64 len),
+<span class="lineNum">     815 </span>            : 
+<span class="lineNum">     816 </span>            :         TP_ARGS(root, block_group, start, len),
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     819 </span>            :                 __field(        u64,    root_objectid           )
+<span class="lineNum">     820 </span>            :                 __field(        u64,    bg_objectid             )
+<span class="lineNum">     821 </span>            :                 __field(        u64,    flags                   )
+<span class="lineNum">     822 </span>            :                 __field(        u64,    start                   )
+<span class="lineNum">     823 </span>            :                 __field(        u64,    len                     )
+<span class="lineNum">     824 </span>            :         ),
+<span class="lineNum">     825 </span>            : 
+<span class="lineNum">     826 </span>            :         TP_fast_assign(
+<span class="lineNum">     827 </span>            :                 __entry-&gt;root_objectid       = root-&gt;root_key.objectid;
+<span class="lineNum">     828 </span>            :                 __entry-&gt;bg_objectid = block_group-&gt;key.objectid;
+<span class="lineNum">     829 </span>            :                 __entry-&gt;flags               = block_group-&gt;flags;
+<span class="lineNum">     830 </span>            :                 __entry-&gt;start               = start;
+<span class="lineNum">     831 </span>            :                 __entry-&gt;len         = len;
+<span class="lineNum">     832 </span>            :         ),
+<span class="lineNum">     833 </span>            : 
+<span class="lineNum">     834 </span>            :         TP_printk(&quot;root = %Lu(%s), block_group = %Lu, flags = %Lu(%s), &quot;
+<span class="lineNum">     835 </span>            :                   &quot;start = %Lu, len = %Lu&quot;,
+<span class="lineNum">     836 </span>            :                   show_root_type(__entry-&gt;root_objectid), __entry-&gt;bg_objectid,
+<span class="lineNum">     837 </span>            :                   __entry-&gt;flags, __print_flags((unsigned long)__entry-&gt;flags,
+<span class="lineNum">     838 </span>            :                                                 &quot;|&quot;, BTRFS_GROUP_FLAGS),
+<span class="lineNum">     839 </span>            :                   __entry-&gt;start, __entry-&gt;len)
+<a name="840"><span class="lineNum">     840 </span>            : );</a>
+<span class="lineNum">     841 </span>            : 
+<span class="lineNum">     842 </span><span class="lineCov">     336786 : DEFINE_EVENT(btrfs__reserve_extent, btrfs_reserve_extent,</span>
+<span class="lineNum">     843 </span>            : 
+<span class="lineNum">     844 </span>            :         TP_PROTO(struct btrfs_root *root,
+<span class="lineNum">     845 </span>            :                  struct btrfs_block_group_cache *block_group, u64 start,
+<span class="lineNum">     846 </span>            :                  u64 len),
+<span class="lineNum">     847 </span>            : 
+<span class="lineNum">     848 </span>            :         TP_ARGS(root, block_group, start, len)
+<a name="849"><span class="lineNum">     849 </span>            : );</a>
+<span class="lineNum">     850 </span>            : 
+<span class="lineNum">     851 </span><span class="lineCov">     122082 : DEFINE_EVENT(btrfs__reserve_extent, btrfs_reserve_extent_cluster,</span>
+<span class="lineNum">     852 </span>            : 
+<span class="lineNum">     853 </span>            :         TP_PROTO(struct btrfs_root *root,
+<span class="lineNum">     854 </span>            :                  struct btrfs_block_group_cache *block_group, u64 start,
+<span class="lineNum">     855 </span>            :                  u64 len),
+<span class="lineNum">     856 </span>            : 
+<span class="lineNum">     857 </span>            :         TP_ARGS(root, block_group, start, len)
+<a name="858"><span class="lineNum">     858 </span>            : );</a>
+<span class="lineNum">     859 </span>            : 
+<span class="lineNum">     860 </span><span class="lineCov">        651 : TRACE_EVENT(btrfs_find_cluster,</span>
+<span class="lineNum">     861 </span>            : 
+<span class="lineNum">     862 </span>            :         TP_PROTO(struct btrfs_block_group_cache *block_group, u64 start,
+<span class="lineNum">     863 </span>            :                  u64 bytes, u64 empty_size, u64 min_bytes),
+<span class="lineNum">     864 </span>            : 
+<span class="lineNum">     865 </span>            :         TP_ARGS(block_group, start, bytes, empty_size, min_bytes),
+<span class="lineNum">     866 </span>            : 
+<span class="lineNum">     867 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     868 </span>            :                 __field(        u64,    bg_objectid             )
+<span class="lineNum">     869 </span>            :                 __field(        u64,    flags                   )
+<span class="lineNum">     870 </span>            :                 __field(        u64,    start                   )
+<span class="lineNum">     871 </span>            :                 __field(        u64,    bytes                   )
+<span class="lineNum">     872 </span>            :                 __field(        u64,    empty_size              )
+<span class="lineNum">     873 </span>            :                 __field(        u64,    min_bytes               )
+<span class="lineNum">     874 </span>            :         ),
+<span class="lineNum">     875 </span>            : 
+<span class="lineNum">     876 </span>            :         TP_fast_assign(
+<span class="lineNum">     877 </span>            :                 __entry-&gt;bg_objectid = block_group-&gt;key.objectid;
+<span class="lineNum">     878 </span>            :                 __entry-&gt;flags               = block_group-&gt;flags;
+<span class="lineNum">     879 </span>            :                 __entry-&gt;start               = start;
+<span class="lineNum">     880 </span>            :                 __entry-&gt;bytes               = bytes;
+<span class="lineNum">     881 </span>            :                 __entry-&gt;empty_size  = empty_size;
+<span class="lineNum">     882 </span>            :                 __entry-&gt;min_bytes   = min_bytes;
+<span class="lineNum">     883 </span>            :         ),
+<span class="lineNum">     884 </span>            : 
+<span class="lineNum">     885 </span>            :         TP_printk(&quot;block_group = %Lu, flags = %Lu(%s), start = %Lu, len = %Lu,&quot;
+<span class="lineNum">     886 </span>            :                   &quot; empty_size = %Lu, min_bytes = %Lu&quot;, __entry-&gt;bg_objectid,
+<span class="lineNum">     887 </span>            :                   __entry-&gt;flags,
+<span class="lineNum">     888 </span>            :                   __print_flags((unsigned long)__entry-&gt;flags, &quot;|&quot;,
+<span class="lineNum">     889 </span>            :                                 BTRFS_GROUP_FLAGS), __entry-&gt;start,
+<span class="lineNum">     890 </span>            :                   __entry-&gt;bytes, __entry-&gt;empty_size,  __entry-&gt;min_bytes)
+<a name="891"><span class="lineNum">     891 </span>            : );</a>
+<span class="lineNum">     892 </span>            : 
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 : TRACE_EVENT(btrfs_failed_cluster_setup,</span>
+<span class="lineNum">     894 </span>            : 
+<span class="lineNum">     895 </span>            :         TP_PROTO(struct btrfs_block_group_cache *block_group),
+<span class="lineNum">     896 </span>            : 
+<span class="lineNum">     897 </span>            :         TP_ARGS(block_group),
+<span class="lineNum">     898 </span>            : 
+<span class="lineNum">     899 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     900 </span>            :                 __field(        u64,    bg_objectid             )
+<span class="lineNum">     901 </span>            :         ),
+<span class="lineNum">     902 </span>            : 
+<span class="lineNum">     903 </span>            :         TP_fast_assign(
+<span class="lineNum">     904 </span>            :                 __entry-&gt;bg_objectid = block_group-&gt;key.objectid;
+<span class="lineNum">     905 </span>            :         ),
+<span class="lineNum">     906 </span>            : 
+<span class="lineNum">     907 </span>            :         TP_printk(&quot;block_group = %Lu&quot;, __entry-&gt;bg_objectid)
+<a name="908"><span class="lineNum">     908 </span>            : );</a>
+<span class="lineNum">     909 </span>            : 
+<span class="lineNum">     910 </span><span class="lineCov">        651 : TRACE_EVENT(btrfs_setup_cluster,</span>
+<span class="lineNum">     911 </span>            : 
+<span class="lineNum">     912 </span>            :         TP_PROTO(struct btrfs_block_group_cache *block_group,
+<span class="lineNum">     913 </span>            :                  struct btrfs_free_cluster *cluster, u64 size, int bitmap),
+<span class="lineNum">     914 </span>            : 
+<span class="lineNum">     915 </span>            :         TP_ARGS(block_group, cluster, size, bitmap),
+<span class="lineNum">     916 </span>            : 
+<span class="lineNum">     917 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     918 </span>            :                 __field(        u64,    bg_objectid             )
+<span class="lineNum">     919 </span>            :                 __field(        u64,    flags                   )
+<span class="lineNum">     920 </span>            :                 __field(        u64,    start                   )
+<span class="lineNum">     921 </span>            :                 __field(        u64,    max_size                )
+<span class="lineNum">     922 </span>            :                 __field(        u64,    size                    )
+<span class="lineNum">     923 </span>            :                 __field(        int,    bitmap                  )
+<span class="lineNum">     924 </span>            :         ),
+<span class="lineNum">     925 </span>            : 
+<span class="lineNum">     926 </span>            :         TP_fast_assign(
+<span class="lineNum">     927 </span>            :                 __entry-&gt;bg_objectid = block_group-&gt;key.objectid;
+<span class="lineNum">     928 </span>            :                 __entry-&gt;flags               = block_group-&gt;flags;
+<span class="lineNum">     929 </span>            :                 __entry-&gt;start               = cluster-&gt;window_start;
+<span class="lineNum">     930 </span>            :                 __entry-&gt;max_size    = cluster-&gt;max_size;
+<span class="lineNum">     931 </span>            :                 __entry-&gt;size                = size;
+<span class="lineNum">     932 </span>            :                 __entry-&gt;bitmap              = bitmap;
+<span class="lineNum">     933 </span>            :         ),
+<span class="lineNum">     934 </span>            : 
+<span class="lineNum">     935 </span>            :         TP_printk(&quot;block_group = %Lu, flags = %Lu(%s), window_start = %Lu, &quot;
+<span class="lineNum">     936 </span>            :                   &quot;size = %Lu, max_size = %Lu, bitmap = %d&quot;,
+<span class="lineNum">     937 </span>            :                   __entry-&gt;bg_objectid,
+<span class="lineNum">     938 </span>            :                   __entry-&gt;flags,
+<span class="lineNum">     939 </span>            :                   __print_flags((unsigned long)__entry-&gt;flags, &quot;|&quot;,
+<span class="lineNum">     940 </span>            :                                 BTRFS_GROUP_FLAGS), __entry-&gt;start,
+<span class="lineNum">     941 </span>            :                   __entry-&gt;size, __entry-&gt;max_size, __entry-&gt;bitmap)
+<span class="lineNum">     942 </span>            : );
+<a name="943"><span class="lineNum">     943 </span>            : </a>
+<span class="lineNum">     944 </span>            : struct extent_state;
+<span class="lineNum">     945 </span><span class="lineCov">    6812684 : TRACE_EVENT(alloc_extent_state,</span>
+<span class="lineNum">     946 </span>            : 
+<span class="lineNum">     947 </span>            :         TP_PROTO(struct extent_state *state, gfp_t mask, unsigned long IP),
+<span class="lineNum">     948 </span>            : 
+<span class="lineNum">     949 </span>            :         TP_ARGS(state, mask, IP),
+<span class="lineNum">     950 </span>            : 
+<span class="lineNum">     951 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     952 </span>            :                 __field(struct extent_state *, state)
+<span class="lineNum">     953 </span>            :                 __field(gfp_t, mask)
+<span class="lineNum">     954 </span>            :                 __field(unsigned long, ip)
+<span class="lineNum">     955 </span>            :         ),
+<span class="lineNum">     956 </span>            : 
+<span class="lineNum">     957 </span>            :         TP_fast_assign(
+<span class="lineNum">     958 </span>            :                 __entry-&gt;state       = state,
+<span class="lineNum">     959 </span>            :                 __entry-&gt;mask        = mask,
+<span class="lineNum">     960 </span>            :                 __entry-&gt;ip  = IP
+<span class="lineNum">     961 </span>            :         ),
+<span class="lineNum">     962 </span>            : 
+<span class="lineNum">     963 </span>            :         TP_printk(&quot;state=%p; mask = %s; caller = %pF&quot;, __entry-&gt;state,
+<span class="lineNum">     964 </span>            :                   show_gfp_flags(__entry-&gt;mask), (void *)__entry-&gt;ip)
+<a name="965"><span class="lineNum">     965 </span>            : );</a>
+<span class="lineNum">     966 </span>            : 
+<span class="lineNum">     967 </span><span class="lineCov">    6814218 : TRACE_EVENT(free_extent_state,</span>
+<span class="lineNum">     968 </span>            : 
+<span class="lineNum">     969 </span>            :         TP_PROTO(struct extent_state *state, unsigned long IP),
+<span class="lineNum">     970 </span>            : 
+<span class="lineNum">     971 </span>            :         TP_ARGS(state, IP),
+<span class="lineNum">     972 </span>            : 
+<span class="lineNum">     973 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     974 </span>            :                 __field(struct extent_state *, state)
+<span class="lineNum">     975 </span>            :                 __field(unsigned long, ip)
+<span class="lineNum">     976 </span>            :         ),
+<span class="lineNum">     977 </span>            : 
+<span class="lineNum">     978 </span>            :         TP_fast_assign(
+<span class="lineNum">     979 </span>            :                 __entry-&gt;state       = state,
+<span class="lineNum">     980 </span>            :                 __entry-&gt;ip = IP
+<span class="lineNum">     981 </span>            :         ),
+<span class="lineNum">     982 </span>            : 
+<span class="lineNum">     983 </span>            :         TP_printk(&quot; state=%p; caller = %pF&quot;, __entry-&gt;state,
+<span class="lineNum">     984 </span>            :                   (void *)__entry-&gt;ip)
+<span class="lineNum">     985 </span>            : );
+<span class="lineNum">     986 </span>            : 
+<span class="lineNum">     987 </span>            : DECLARE_EVENT_CLASS(btrfs__work,
+<span class="lineNum">     988 </span>            : 
+<span class="lineNum">     989 </span>            :         TP_PROTO(struct btrfs_work *work),
+<span class="lineNum">     990 </span>            : 
+<span class="lineNum">     991 </span>            :         TP_ARGS(work),
+<span class="lineNum">     992 </span>            : 
+<span class="lineNum">     993 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">     994 </span>            :                 __field(        void *, work                    )
+<span class="lineNum">     995 </span>            :                 __field(        void *, wq                      )
+<span class="lineNum">     996 </span>            :                 __field(        void *, func                    )
+<span class="lineNum">     997 </span>            :                 __field(        void *, ordered_func            )
+<span class="lineNum">     998 </span>            :                 __field(        void *, ordered_free            )
+<span class="lineNum">     999 </span>            :         ),
+<span class="lineNum">    1000 </span>            : 
+<span class="lineNum">    1001 </span>            :         TP_fast_assign(
+<span class="lineNum">    1002 </span>            :                 __entry-&gt;work                = work;
+<span class="lineNum">    1003 </span>            :                 __entry-&gt;wq          = work-&gt;wq;
+<span class="lineNum">    1004 </span>            :                 __entry-&gt;func                = work-&gt;func;
+<span class="lineNum">    1005 </span>            :                 __entry-&gt;ordered_func        = work-&gt;ordered_func;
+<span class="lineNum">    1006 </span>            :                 __entry-&gt;ordered_free        = work-&gt;ordered_free;
+<span class="lineNum">    1007 </span>            :         ),
+<span class="lineNum">    1008 </span>            : 
+<span class="lineNum">    1009 </span>            :         TP_printk(&quot;work=%p, wq=%p, func=%p, ordered_func=%p, ordered_free=%p&quot;,
+<span class="lineNum">    1010 </span>            :                   __entry-&gt;work, __entry-&gt;wq, __entry-&gt;func,
+<span class="lineNum">    1011 </span>            :                   __entry-&gt;ordered_func, __entry-&gt;ordered_free)
+<span class="lineNum">    1012 </span>            : );
+<span class="lineNum">    1013 </span>            : 
+<span class="lineNum">    1014 </span>            : /* For situiations that the work is freed */
+<span class="lineNum">    1015 </span>            : DECLARE_EVENT_CLASS(btrfs__work__done,
+<span class="lineNum">    1016 </span>            : 
+<span class="lineNum">    1017 </span>            :         TP_PROTO(struct btrfs_work *work),
+<span class="lineNum">    1018 </span>            : 
+<span class="lineNum">    1019 </span>            :         TP_ARGS(work),
+<span class="lineNum">    1020 </span>            : 
+<span class="lineNum">    1021 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">    1022 </span>            :                 __field(        void *, work                    )
+<span class="lineNum">    1023 </span>            :         ),
+<span class="lineNum">    1024 </span>            : 
+<span class="lineNum">    1025 </span>            :         TP_fast_assign(
+<span class="lineNum">    1026 </span>            :                 __entry-&gt;work                = work;
+<span class="lineNum">    1027 </span>            :         ),
+<span class="lineNum">    1028 </span>            : 
+<span class="lineNum">    1029 </span>            :         TP_printk(&quot;work-&gt;%p&quot;, __entry-&gt;work)
+<a name="1030"><span class="lineNum">    1030 </span>            : );</a>
+<span class="lineNum">    1031 </span>            : 
+<span class="lineNum">    1032 </span><span class="lineCov">    1087068 : DEFINE_EVENT(btrfs__work, btrfs_work_queued,</span>
+<span class="lineNum">    1033 </span>            : 
+<span class="lineNum">    1034 </span>            :         TP_PROTO(struct btrfs_work *work),
+<span class="lineNum">    1035 </span>            : 
+<span class="lineNum">    1036 </span>            :         TP_ARGS(work)
+<a name="1037"><span class="lineNum">    1037 </span>            : );</a>
+<span class="lineNum">    1038 </span>            : 
+<span class="lineNum">    1039 </span><span class="lineCov">     998817 : DEFINE_EVENT(btrfs__work, btrfs_work_sched,</span>
+<span class="lineNum">    1040 </span>            : 
+<span class="lineNum">    1041 </span>            :         TP_PROTO(struct btrfs_work *work),
+<span class="lineNum">    1042 </span>            : 
+<span class="lineNum">    1043 </span>            :         TP_ARGS(work)
+<span class="lineNum">    1044 </span>            : );
+<span class="lineNum">    1045 </span>            : 
+<span class="lineNum">    1046 </span>            : DEFINE_EVENT(btrfs__work, btrfs_normal_work_done,
+<span class="lineNum">    1047 </span>            : 
+<span class="lineNum">    1048 </span>            :         TP_PROTO(struct btrfs_work *work),
+<span class="lineNum">    1049 </span>            : 
+<span class="lineNum">    1050 </span>            :         TP_ARGS(work)
+<a name="1051"><span class="lineNum">    1051 </span>            : );</a>
+<span class="lineNum">    1052 </span>            : 
+<span class="lineNum">    1053 </span><span class="lineCov">     998728 : DEFINE_EVENT(btrfs__work__done, btrfs_all_work_done,</span>
+<span class="lineNum">    1054 </span>            : 
+<span class="lineNum">    1055 </span>            :         TP_PROTO(struct btrfs_work *work),
+<span class="lineNum">    1056 </span>            : 
+<span class="lineNum">    1057 </span>            :         TP_ARGS(work)
+<a name="1058"><span class="lineNum">    1058 </span>            : );</a>
+<span class="lineNum">    1059 </span>            : 
+<span class="lineNum">    1060 </span><span class="lineCov">     179274 : DEFINE_EVENT(btrfs__work, btrfs_ordered_sched,</span>
+<span class="lineNum">    1061 </span>            : 
+<span class="lineNum">    1062 </span>            :         TP_PROTO(struct btrfs_work *work),
+<span class="lineNum">    1063 </span>            : 
+<span class="lineNum">    1064 </span>            :         TP_ARGS(work)
+<span class="lineNum">    1065 </span>            : );
+<span class="lineNum">    1066 </span>            : 
+<span class="lineNum">    1067 </span>            : DECLARE_EVENT_CLASS(btrfs__workqueue,
+<span class="lineNum">    1068 </span>            : 
+<span class="lineNum">    1069 </span>            :         TP_PROTO(struct __btrfs_workqueue *wq, const char *name, int high),
+<span class="lineNum">    1070 </span>            : 
+<span class="lineNum">    1071 </span>            :         TP_ARGS(wq, name, high),
+<span class="lineNum">    1072 </span>            : 
+<span class="lineNum">    1073 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">    1074 </span>            :                 __field(        void *, wq                      )
+<span class="lineNum">    1075 </span>            :                 __string(       name,   name                    )
+<span class="lineNum">    1076 </span>            :                 __field(        int ,   high                    )
+<span class="lineNum">    1077 </span>            :         ),
+<span class="lineNum">    1078 </span>            : 
+<span class="lineNum">    1079 </span>            :         TP_fast_assign(
+<span class="lineNum">    1080 </span>            :                 __entry-&gt;wq          = wq;
+<span class="lineNum">    1081 </span>            :                 __assign_str(name, name);
+<span class="lineNum">    1082 </span>            :                 __entry-&gt;high                = high;
+<span class="lineNum">    1083 </span>            :         ),
+<span class="lineNum">    1084 </span>            : 
+<span class="lineNum">    1085 </span>            :         TP_printk(&quot;name=%s%s, wq=%p&quot;, __get_str(name),
+<span class="lineNum">    1086 </span>            :                   __print_flags(__entry-&gt;high, &quot;&quot;,
+<span class="lineNum">    1087 </span>            :                                 {(WQ_HIGHPRI),  &quot;-high&quot;}),
+<span class="lineNum">    1088 </span>            :                   __entry-&gt;wq)
+<a name="1089"><span class="lineNum">    1089 </span>            : );</a>
+<span class="lineNum">    1090 </span>            : 
+<span class="lineNum">    1091 </span><span class="lineCov">      12078 : DEFINE_EVENT(btrfs__workqueue, btrfs_workqueue_alloc,</span>
+<span class="lineNum">    1092 </span>            : 
+<span class="lineNum">    1093 </span>            :         TP_PROTO(struct __btrfs_workqueue *wq, const char *name, int high),
+<span class="lineNum">    1094 </span>            : 
+<span class="lineNum">    1095 </span>            :         TP_ARGS(wq, name, high)
+<span class="lineNum">    1096 </span>            : );
+<span class="lineNum">    1097 </span>            : 
+<span class="lineNum">    1098 </span>            : DECLARE_EVENT_CLASS(btrfs__workqueue_done,
+<span class="lineNum">    1099 </span>            : 
+<span class="lineNum">    1100 </span>            :         TP_PROTO(struct __btrfs_workqueue *wq),
+<span class="lineNum">    1101 </span>            : 
+<span class="lineNum">    1102 </span>            :         TP_ARGS(wq),
+<span class="lineNum">    1103 </span>            : 
+<span class="lineNum">    1104 </span>            :         TP_STRUCT__entry(
+<span class="lineNum">    1105 </span>            :                 __field(        void *, wq                      )
+<span class="lineNum">    1106 </span>            :         ),
+<span class="lineNum">    1107 </span>            : 
+<span class="lineNum">    1108 </span>            :         TP_fast_assign(
+<span class="lineNum">    1109 </span>            :                 __entry-&gt;wq          = wq;
+<span class="lineNum">    1110 </span>            :         ),
+<span class="lineNum">    1111 </span>            : 
+<span class="lineNum">    1112 </span>            :         TP_printk(&quot;wq=%p&quot;, __entry-&gt;wq)
+<a name="1113"><span class="lineNum">    1113 </span>            : );</a>
+<span class="lineNum">    1114 </span>            : 
+<span class="lineNum">    1115 </span><span class="lineCov">      12078 : DEFINE_EVENT(btrfs__workqueue_done, btrfs_workqueue_destroy,</span>
+<span class="lineNum">    1116 </span>            : 
+<span class="lineNum">    1117 </span>            :         TP_PROTO(struct __btrfs_workqueue *wq),
+<span class="lineNum">    1118 </span>            : 
+<span class="lineNum">    1119 </span>            :         TP_ARGS(wq)
+<span class="lineNum">    1120 </span>            : );
+<span class="lineNum">    1121 </span>            : 
+<span class="lineNum">    1122 </span>            : #endif /* _TRACE_BTRFS_H */
+<span class="lineNum">    1123 </span>            : 
+<span class="lineNum">    1124 </span>            : /* This part must be outside protection */
+<span class="lineNum">    1125 </span>            : #include &lt;trace/define_trace.h&gt;
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,1106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/wait.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - wait.h<span style="font-size: 80%;"> (source / <a href="wait.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_WAIT_H</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_WAIT_H
+<span class="lineNum">       3 </span>            : /*
+<span class="lineNum">       4 </span>            :  * Linux wait queue related types and methods
+<span class="lineNum">       5 </span>            :  */
+<span class="lineNum">       6 </span>            : #include &lt;linux/list.h&gt;
+<span class="lineNum">       7 </span>            : #include &lt;linux/stddef.h&gt;
+<span class="lineNum">       8 </span>            : #include &lt;linux/spinlock.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;asm/current.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;uapi/linux/wait.h&gt;
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : typedef struct __wait_queue wait_queue_t;
+<span class="lineNum">      13 </span>            : typedef int (*wait_queue_func_t)(wait_queue_t *wait, unsigned mode, int flags, void *key);
+<span class="lineNum">      14 </span>            : int default_wake_function(wait_queue_t *wait, unsigned mode, int flags, void *key);
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : struct __wait_queue {
+<span class="lineNum">      17 </span>            :         unsigned int            flags;
+<span class="lineNum">      18 </span>            : #define WQ_FLAG_EXCLUSIVE       0x01
+<span class="lineNum">      19 </span>            :         void                    *private;
+<span class="lineNum">      20 </span>            :         wait_queue_func_t       func;
+<span class="lineNum">      21 </span>            :         struct list_head        task_list;
+<span class="lineNum">      22 </span>            : };
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : struct wait_bit_key {
+<span class="lineNum">      25 </span>            :         void                    *flags;
+<span class="lineNum">      26 </span>            :         int                     bit_nr;
+<span class="lineNum">      27 </span>            : #define WAIT_ATOMIC_T_BIT_NR    -1
+<span class="lineNum">      28 </span>            :         unsigned long           private;
+<span class="lineNum">      29 </span>            : };
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : struct wait_bit_queue {
+<span class="lineNum">      32 </span>            :         struct wait_bit_key     key;
+<span class="lineNum">      33 </span>            :         wait_queue_t            wait;
+<span class="lineNum">      34 </span>            : };
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : struct __wait_queue_head {
+<span class="lineNum">      37 </span>            :         spinlock_t              lock;
+<span class="lineNum">      38 </span>            :         struct list_head        task_list;
+<span class="lineNum">      39 </span>            : };
+<span class="lineNum">      40 </span>            : typedef struct __wait_queue_head wait_queue_head_t;
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : struct task_struct;
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : /*
+<span class="lineNum">      45 </span>            :  * Macros for declaration and initialisaton of the datatypes
+<span class="lineNum">      46 </span>            :  */
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : #define __WAITQUEUE_INITIALIZER(name, tsk) {                            \
+<span class="lineNum">      49 </span>            :         .private        = tsk,                                          \
+<span class="lineNum">      50 </span>            :         .func           = default_wake_function,                        \
+<span class="lineNum">      51 </span>            :         .task_list      = { NULL, NULL } }
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : #define DECLARE_WAITQUEUE(name, tsk)                                    \
+<span class="lineNum">      54 </span>            :         wait_queue_t name = __WAITQUEUE_INITIALIZER(name, tsk)
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : #define __WAIT_QUEUE_HEAD_INITIALIZER(name) {                           \
+<span class="lineNum">      57 </span>            :         .lock           = __SPIN_LOCK_UNLOCKED(name.lock),              \
+<span class="lineNum">      58 </span>            :         .task_list      = { &amp;(name).task_list, &amp;(name).task_list } }
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : #define DECLARE_WAIT_QUEUE_HEAD(name) \
+<span class="lineNum">      61 </span>            :         wait_queue_head_t name = __WAIT_QUEUE_HEAD_INITIALIZER(name)
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : #define __WAIT_BIT_KEY_INITIALIZER(word, bit)                           \
+<span class="lineNum">      64 </span>            :         { .flags = word, .bit_nr = bit, }
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : #define __WAIT_ATOMIC_T_KEY_INITIALIZER(p)                              \
+<span class="lineNum">      67 </span>            :         { .flags = p, .bit_nr = WAIT_ATOMIC_T_BIT_NR, }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : extern void __init_waitqueue_head(wait_queue_head_t *q, const char *name, struct lock_class_key *);
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : #define init_waitqueue_head(q)                          \
+<span class="lineNum">      72 </span>            :         do {                                            \
+<span class="lineNum">      73 </span>            :                 static struct lock_class_key __key;     \
+<span class="lineNum">      74 </span>            :                                                         \
+<span class="lineNum">      75 </span>            :                 __init_waitqueue_head((q), #q, &amp;__key);     \
+<span class="lineNum">      76 </span>            :         } while (0)
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : #ifdef CONFIG_LOCKDEP
+<span class="lineNum">      79 </span>            : # define __WAIT_QUEUE_HEAD_INIT_ONSTACK(name) \
+<span class="lineNum">      80 </span>            :         ({ init_waitqueue_head(&amp;name); name; })
+<span class="lineNum">      81 </span>            : # define DECLARE_WAIT_QUEUE_HEAD_ONSTACK(name) \
+<span class="lineNum">      82 </span>            :         wait_queue_head_t name = __WAIT_QUEUE_HEAD_INIT_ONSTACK(name)
+<span class="lineNum">      83 </span>            : #else
+<span class="lineNum">      84 </span>            : # define DECLARE_WAIT_QUEUE_HEAD_ONSTACK(name) DECLARE_WAIT_QUEUE_HEAD(name)
+<span class="lineNum">      85 </span>            : #endif
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : static inline void init_waitqueue_entry(wait_queue_t *q, struct task_struct *p)
+<span class="lineNum">      88 </span>            : {
+<span class="lineNum">      89 </span>            :         q-&gt;flags     = 0;
+<span class="lineNum">      90 </span>            :         q-&gt;private   = p;
+<span class="lineNum">      91 </span>            :         q-&gt;func              = default_wake_function;
+<span class="lineNum">      92 </span>            : }
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : static inline void
+<span class="lineNum">      95 </span>            : init_waitqueue_func_entry(wait_queue_t *q, wait_queue_func_t func)
+<span class="lineNum">      96 </span>            : {
+<span class="lineNum">      97 </span>            :         q-&gt;flags     = 0;
+<span class="lineNum">      98 </span>            :         q-&gt;private   = NULL;
+<span class="lineNum">      99 </span>            :         q-&gt;func              = func;
+<span class="lineNum">     100 </span>            : }
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : static inline int waitqueue_active(wait_queue_head_t *q)
+<span class="lineNum">     103 </span>            : {
+<span class="lineNum">     104 </span><span class="lineCov">    1980292 :         return !list_empty(&amp;q-&gt;task_list);</span>
+<span class="lineNum">     105 </span>            : }
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : extern void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait);
+<span class="lineNum">     108 </span>            : extern void add_wait_queue_exclusive(wait_queue_head_t *q, wait_queue_t *wait);
+<span class="lineNum">     109 </span>            : extern void remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait);
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            : static inline void __add_wait_queue(wait_queue_head_t *head, wait_queue_t *new)
+<span class="lineNum">     112 </span>            : {
+<span class="lineNum">     113 </span>            :         list_add(&amp;new-&gt;task_list, &amp;head-&gt;task_list);
+<span class="lineNum">     114 </span>            : }
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            : /*
+<span class="lineNum">     117 </span>            :  * Used for wake-one threads:
+<span class="lineNum">     118 </span>            :  */
+<span class="lineNum">     119 </span>            : static inline void
+<span class="lineNum">     120 </span>            : __add_wait_queue_exclusive(wait_queue_head_t *q, wait_queue_t *wait)
+<span class="lineNum">     121 </span>            : {
+<span class="lineNum">     122 </span>            :         wait-&gt;flags |= WQ_FLAG_EXCLUSIVE;
+<span class="lineNum">     123 </span>            :         __add_wait_queue(q, wait);
+<span class="lineNum">     124 </span>            : }
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            : static inline void __add_wait_queue_tail(wait_queue_head_t *head,
+<span class="lineNum">     127 </span>            :                                          wait_queue_t *new)
+<span class="lineNum">     128 </span>            : {
+<span class="lineNum">     129 </span>            :         list_add_tail(&amp;new-&gt;task_list, &amp;head-&gt;task_list);
+<span class="lineNum">     130 </span>            : }
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : static inline void
+<span class="lineNum">     133 </span>            : __add_wait_queue_tail_exclusive(wait_queue_head_t *q, wait_queue_t *wait)
+<span class="lineNum">     134 </span>            : {
+<span class="lineNum">     135 </span>            :         wait-&gt;flags |= WQ_FLAG_EXCLUSIVE;
+<span class="lineNum">     136 </span>            :         __add_wait_queue_tail(q, wait);
+<span class="lineNum">     137 </span>            : }
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : static inline void
+<span class="lineNum">     140 </span>            : __remove_wait_queue(wait_queue_head_t *head, wait_queue_t *old)
+<span class="lineNum">     141 </span>            : {
+<span class="lineNum">     142 </span>            :         list_del(&amp;old-&gt;task_list);
+<span class="lineNum">     143 </span>            : }
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : typedef int wait_bit_action_f(struct wait_bit_key *);
+<span class="lineNum">     146 </span>            : void __wake_up(wait_queue_head_t *q, unsigned int mode, int nr, void *key);
+<span class="lineNum">     147 </span>            : void __wake_up_locked_key(wait_queue_head_t *q, unsigned int mode, void *key);
+<span class="lineNum">     148 </span>            : void __wake_up_sync_key(wait_queue_head_t *q, unsigned int mode, int nr, void *key);
+<span class="lineNum">     149 </span>            : void __wake_up_locked(wait_queue_head_t *q, unsigned int mode, int nr);
+<span class="lineNum">     150 </span>            : void __wake_up_sync(wait_queue_head_t *q, unsigned int mode, int nr);
+<span class="lineNum">     151 </span>            : void __wake_up_bit(wait_queue_head_t *, void *, int);
+<span class="lineNum">     152 </span>            : int __wait_on_bit(wait_queue_head_t *, struct wait_bit_queue *, wait_bit_action_f *, unsigned);
+<span class="lineNum">     153 </span>            : int __wait_on_bit_lock(wait_queue_head_t *, struct wait_bit_queue *, wait_bit_action_f *, unsigned);
+<span class="lineNum">     154 </span>            : void wake_up_bit(void *, int);
+<span class="lineNum">     155 </span>            : void wake_up_atomic_t(atomic_t *);
+<span class="lineNum">     156 </span>            : int out_of_line_wait_on_bit(void *, int, wait_bit_action_f *, unsigned);
+<span class="lineNum">     157 </span>            : int out_of_line_wait_on_bit_lock(void *, int, wait_bit_action_f *, unsigned);
+<span class="lineNum">     158 </span>            : int out_of_line_wait_on_atomic_t(atomic_t *, int (*)(atomic_t *), unsigned);
+<span class="lineNum">     159 </span>            : wait_queue_head_t *bit_waitqueue(void *, int);
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            : #define wake_up(x)                      __wake_up(x, TASK_NORMAL, 1, NULL)
+<span class="lineNum">     162 </span>            : #define wake_up_nr(x, nr)               __wake_up(x, TASK_NORMAL, nr, NULL)
+<span class="lineNum">     163 </span>            : #define wake_up_all(x)                  __wake_up(x, TASK_NORMAL, 0, NULL)
+<span class="lineNum">     164 </span>            : #define wake_up_locked(x)               __wake_up_locked((x), TASK_NORMAL, 1)
+<span class="lineNum">     165 </span>            : #define wake_up_all_locked(x)           __wake_up_locked((x), TASK_NORMAL, 0)
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            : #define wake_up_interruptible(x)        __wake_up(x, TASK_INTERRUPTIBLE, 1, NULL)
+<span class="lineNum">     168 </span>            : #define wake_up_interruptible_nr(x, nr) __wake_up(x, TASK_INTERRUPTIBLE, nr, NULL)
+<span class="lineNum">     169 </span>            : #define wake_up_interruptible_all(x)    __wake_up(x, TASK_INTERRUPTIBLE, 0, NULL)
+<span class="lineNum">     170 </span>            : #define wake_up_interruptible_sync(x)   __wake_up_sync((x), TASK_INTERRUPTIBLE, 1)
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            : /*
+<span class="lineNum">     173 </span>            :  * Wakeup macros to be used to report events to the targets.
+<span class="lineNum">     174 </span>            :  */
+<span class="lineNum">     175 </span>            : #define wake_up_poll(x, m)                                              \
+<span class="lineNum">     176 </span>            :         __wake_up(x, TASK_NORMAL, 1, (void *) (m))
+<span class="lineNum">     177 </span>            : #define wake_up_locked_poll(x, m)                                       \
+<span class="lineNum">     178 </span>            :         __wake_up_locked_key((x), TASK_NORMAL, (void *) (m))
+<span class="lineNum">     179 </span>            : #define wake_up_interruptible_poll(x, m)                                \
+<span class="lineNum">     180 </span>            :         __wake_up(x, TASK_INTERRUPTIBLE, 1, (void *) (m))
+<span class="lineNum">     181 </span>            : #define wake_up_interruptible_sync_poll(x, m)                           \
+<span class="lineNum">     182 </span>            :         __wake_up_sync_key((x), TASK_INTERRUPTIBLE, 1, (void *) (m))
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            : #define ___wait_cond_timeout(condition)                                 \
+<span class="lineNum">     185 </span>            : ({                                                                      \
+<span class="lineNum">     186 </span>            :         bool __cond = (condition);                                      \
+<span class="lineNum">     187 </span>            :         if (__cond &amp;&amp; !__ret)                                           \
+<span class="lineNum">     188 </span>            :                 __ret = 1;                                              \
+<span class="lineNum">     189 </span>            :         __cond || !__ret;                                               \
+<span class="lineNum">     190 </span>            : })
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            : #define ___wait_is_interruptible(state)                                 \
+<span class="lineNum">     193 </span>            :         (!__builtin_constant_p(state) ||                                \
+<span class="lineNum">     194 </span>            :                 state == TASK_INTERRUPTIBLE || state == TASK_KILLABLE)  \
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            : /*
+<span class="lineNum">     197 </span>            :  * The below macro ___wait_event() has an explicit shadow of the __ret
+<span class="lineNum">     198 </span>            :  * variable when used from the wait_event_*() macros.
+<span class="lineNum">     199 </span>            :  *
+<span class="lineNum">     200 </span>            :  * This is so that both can use the ___wait_cond_timeout() construct
+<span class="lineNum">     201 </span>            :  * to wrap the condition.
+<span class="lineNum">     202 </span>            :  *
+<span class="lineNum">     203 </span>            :  * The type inconsistency of the wait_event_*() __ret variable is also
+<span class="lineNum">     204 </span>            :  * on purpose; we use long where we can return timeout values and int
+<span class="lineNum">     205 </span>            :  * otherwise.
+<span class="lineNum">     206 </span>            :  */
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span>            : #define ___wait_event(wq, condition, state, exclusive, ret, cmd)        \
+<span class="lineNum">     209 </span>            : ({                                                                      \
+<span class="lineNum">     210 </span>            :         __label__ __out;                                                \
+<span class="lineNum">     211 </span>            :         wait_queue_t __wait;                                            \
+<span class="lineNum">     212 </span>            :         long __ret = ret;       /* explicit shadow */                   \
+<span class="lineNum">     213 </span>            :                                                                         \
+<span class="lineNum">     214 </span>            :         INIT_LIST_HEAD(&amp;__wait.task_list);                          \
+<span class="lineNum">     215 </span>            :         if (exclusive)                                                  \
+<span class="lineNum">     216 </span>            :                 __wait.flags = WQ_FLAG_EXCLUSIVE;                       \
+<span class="lineNum">     217 </span>            :         else                                                            \
+<span class="lineNum">     218 </span>            :                 __wait.flags = 0;                                       \
+<span class="lineNum">     219 </span>            :                                                                         \
+<span class="lineNum">     220 </span>            :         for (;;) {                                                      \
+<span class="lineNum">     221 </span>            :                 long __int = prepare_to_wait_event(&amp;wq, &amp;__wait, state);\
+<span class="lineNum">     222 </span>            :                                                                         \
+<span class="lineNum">     223 </span>            :                 if (condition)                                          \
+<span class="lineNum">     224 </span>            :                         break;                                          \
+<span class="lineNum">     225 </span>            :                                                                         \
+<span class="lineNum">     226 </span>            :                 if (___wait_is_interruptible(state) &amp;&amp; __int) {         \
+<span class="lineNum">     227 </span>            :                         __ret = __int;                                  \
+<span class="lineNum">     228 </span>            :                         if (exclusive) {                                \
+<span class="lineNum">     229 </span>            :                                 abort_exclusive_wait(&amp;wq, &amp;__wait,      \
+<span class="lineNum">     230 </span>            :                                                      state, NULL);      \
+<span class="lineNum">     231 </span>            :                                 goto __out;                             \
+<span class="lineNum">     232 </span>            :                         }                                               \
+<span class="lineNum">     233 </span>            :                         break;                                          \
+<span class="lineNum">     234 </span>            :                 }                                                       \
+<span class="lineNum">     235 </span>            :                                                                         \
+<span class="lineNum">     236 </span>            :                 cmd;                                                    \
+<span class="lineNum">     237 </span>            :         }                                                               \
+<span class="lineNum">     238 </span>            :         finish_wait(&amp;wq, &amp;__wait);                                      \
+<span class="lineNum">     239 </span>            : __out:  __ret;                                                          \
+<span class="lineNum">     240 </span>            : })
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            : #define __wait_event(wq, condition)                                     \
+<span class="lineNum">     243 </span>            :         (void)___wait_event(wq, condition, TASK_UNINTERRUPTIBLE, 0, 0,  \
+<span class="lineNum">     244 </span>            :                             schedule())
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            : /**
+<span class="lineNum">     247 </span>            :  * wait_event - sleep until a condition gets true
+<span class="lineNum">     248 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     249 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     250 </span>            :  *
+<span class="lineNum">     251 </span>            :  * The process is put to sleep (TASK_UNINTERRUPTIBLE) until the
+<span class="lineNum">     252 </span>            :  * @condition evaluates to true. The @condition is checked each time
+<span class="lineNum">     253 </span>            :  * the waitqueue @wq is woken up.
+<span class="lineNum">     254 </span>            :  *
+<span class="lineNum">     255 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     256 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     257 </span>            :  */
+<span class="lineNum">     258 </span>            : #define wait_event(wq, condition)                                       \
+<span class="lineNum">     259 </span>            : do {                                                                    \
+<span class="lineNum">     260 </span>            :         if (condition)                                                  \
+<span class="lineNum">     261 </span>            :                 break;                                                  \
+<span class="lineNum">     262 </span>            :         __wait_event(wq, condition);                                    \
+<span class="lineNum">     263 </span>            : } while (0)
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span>            : #define __wait_event_timeout(wq, condition, timeout)                    \
+<span class="lineNum">     266 </span>            :         ___wait_event(wq, ___wait_cond_timeout(condition),              \
+<span class="lineNum">     267 </span>            :                       TASK_UNINTERRUPTIBLE, 0, timeout,                 \
+<span class="lineNum">     268 </span>            :                       __ret = schedule_timeout(__ret))
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            : /**
+<span class="lineNum">     271 </span>            :  * wait_event_timeout - sleep until a condition gets true or a timeout elapses
+<span class="lineNum">     272 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     273 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     274 </span>            :  * @timeout: timeout, in jiffies
+<span class="lineNum">     275 </span>            :  *
+<span class="lineNum">     276 </span>            :  * The process is put to sleep (TASK_UNINTERRUPTIBLE) until the
+<span class="lineNum">     277 </span>            :  * @condition evaluates to true. The @condition is checked each time
+<span class="lineNum">     278 </span>            :  * the waitqueue @wq is woken up.
+<span class="lineNum">     279 </span>            :  *
+<span class="lineNum">     280 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     281 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     282 </span>            :  *
+<span class="lineNum">     283 </span>            :  * The function returns 0 if the @timeout elapsed, or the remaining
+<span class="lineNum">     284 </span>            :  * jiffies (at least 1) if the @condition evaluated to %true before
+<span class="lineNum">     285 </span>            :  * the @timeout elapsed.
+<span class="lineNum">     286 </span>            :  */
+<span class="lineNum">     287 </span>            : #define wait_event_timeout(wq, condition, timeout)                      \
+<span class="lineNum">     288 </span>            : ({                                                                      \
+<span class="lineNum">     289 </span>            :         long __ret = timeout;                                           \
+<span class="lineNum">     290 </span>            :         if (!___wait_cond_timeout(condition))                           \
+<span class="lineNum">     291 </span>            :                 __ret = __wait_event_timeout(wq, condition, timeout);   \
+<span class="lineNum">     292 </span>            :         __ret;                                                          \
+<span class="lineNum">     293 </span>            : })
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            : #define __wait_event_cmd(wq, condition, cmd1, cmd2)                     \
+<span class="lineNum">     296 </span>            :         (void)___wait_event(wq, condition, TASK_UNINTERRUPTIBLE, 0, 0,  \
+<span class="lineNum">     297 </span>            :                             cmd1; schedule(); cmd2)
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            : /**
+<span class="lineNum">     300 </span>            :  * wait_event_cmd - sleep until a condition gets true
+<span class="lineNum">     301 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     302 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     303 </span>            :  * @cmd1: the command will be executed before sleep
+<span class="lineNum">     304 </span>            :  * @cmd2: the command will be executed after sleep
+<span class="lineNum">     305 </span>            :  *
+<span class="lineNum">     306 </span>            :  * The process is put to sleep (TASK_UNINTERRUPTIBLE) until the
+<span class="lineNum">     307 </span>            :  * @condition evaluates to true. The @condition is checked each time
+<span class="lineNum">     308 </span>            :  * the waitqueue @wq is woken up.
+<span class="lineNum">     309 </span>            :  *
+<span class="lineNum">     310 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     311 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     312 </span>            :  */
+<span class="lineNum">     313 </span>            : #define wait_event_cmd(wq, condition, cmd1, cmd2)                       \
+<span class="lineNum">     314 </span>            : do {                                                                    \
+<span class="lineNum">     315 </span>            :         if (condition)                                                  \
+<span class="lineNum">     316 </span>            :                 break;                                                  \
+<span class="lineNum">     317 </span>            :         __wait_event_cmd(wq, condition, cmd1, cmd2);                    \
+<span class="lineNum">     318 </span>            : } while (0)
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            : #define __wait_event_interruptible(wq, condition)                       \
+<span class="lineNum">     321 </span>            :         ___wait_event(wq, condition, TASK_INTERRUPTIBLE, 0, 0,          \
+<span class="lineNum">     322 </span>            :                       schedule())
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            : /**
+<span class="lineNum">     325 </span>            :  * wait_event_interruptible - sleep until a condition gets true
+<span class="lineNum">     326 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     327 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     328 </span>            :  *
+<span class="lineNum">     329 </span>            :  * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+<span class="lineNum">     330 </span>            :  * @condition evaluates to true or a signal is received.
+<span class="lineNum">     331 </span>            :  * The @condition is checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     332 </span>            :  *
+<span class="lineNum">     333 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     334 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     335 </span>            :  *
+<span class="lineNum">     336 </span>            :  * The function will return -ERESTARTSYS if it was interrupted by a
+<span class="lineNum">     337 </span>            :  * signal and 0 if @condition evaluated to true.
+<span class="lineNum">     338 </span>            :  */
+<span class="lineNum">     339 </span>            : #define wait_event_interruptible(wq, condition)                         \
+<span class="lineNum">     340 </span>            : ({                                                                      \
+<span class="lineNum">     341 </span>            :         int __ret = 0;                                                  \
+<span class="lineNum">     342 </span>            :         if (!(condition))                                               \
+<span class="lineNum">     343 </span>            :                 __ret = __wait_event_interruptible(wq, condition);      \
+<span class="lineNum">     344 </span>            :         __ret;                                                          \
+<span class="lineNum">     345 </span>            : })
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span>            : #define __wait_event_interruptible_timeout(wq, condition, timeout)      \
+<span class="lineNum">     348 </span>            :         ___wait_event(wq, ___wait_cond_timeout(condition),              \
+<span class="lineNum">     349 </span>            :                       TASK_INTERRUPTIBLE, 0, timeout,                   \
+<span class="lineNum">     350 </span>            :                       __ret = schedule_timeout(__ret))
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span>            : /**
+<span class="lineNum">     353 </span>            :  * wait_event_interruptible_timeout - sleep until a condition gets true or a timeout elapses
+<span class="lineNum">     354 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     355 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     356 </span>            :  * @timeout: timeout, in jiffies
+<span class="lineNum">     357 </span>            :  *
+<span class="lineNum">     358 </span>            :  * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+<span class="lineNum">     359 </span>            :  * @condition evaluates to true or a signal is received.
+<span class="lineNum">     360 </span>            :  * The @condition is checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     361 </span>            :  *
+<span class="lineNum">     362 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     363 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     364 </span>            :  *
+<span class="lineNum">     365 </span>            :  * Returns:
+<span class="lineNum">     366 </span>            :  * 0 if the @timeout elapsed, -%ERESTARTSYS if it was interrupted by
+<span class="lineNum">     367 </span>            :  * a signal, or the remaining jiffies (at least 1) if the @condition
+<span class="lineNum">     368 </span>            :  * evaluated to %true before the @timeout elapsed.
+<span class="lineNum">     369 </span>            :  */
+<span class="lineNum">     370 </span>            : #define wait_event_interruptible_timeout(wq, condition, timeout)        \
+<span class="lineNum">     371 </span>            : ({                                                                      \
+<span class="lineNum">     372 </span>            :         long __ret = timeout;                                           \
+<span class="lineNum">     373 </span>            :         if (!___wait_cond_timeout(condition))                           \
+<span class="lineNum">     374 </span>            :                 __ret = __wait_event_interruptible_timeout(wq,          \
+<span class="lineNum">     375 </span>            :                                                 condition, timeout);    \
+<span class="lineNum">     376 </span>            :         __ret;                                                          \
+<span class="lineNum">     377 </span>            : })
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span>            : #define __wait_event_hrtimeout(wq, condition, timeout, state)           \
+<span class="lineNum">     380 </span>            : ({                                                                      \
+<span class="lineNum">     381 </span>            :         int __ret = 0;                                                  \
+<span class="lineNum">     382 </span>            :         struct hrtimer_sleeper __t;                                     \
+<span class="lineNum">     383 </span>            :                                                                         \
+<span class="lineNum">     384 </span>            :         hrtimer_init_on_stack(&amp;__t.timer, CLOCK_MONOTONIC,          \
+<span class="lineNum">     385 </span>            :                               HRTIMER_MODE_REL);                        \
+<span class="lineNum">     386 </span>            :         hrtimer_init_sleeper(&amp;__t, current);                                \
+<span class="lineNum">     387 </span>            :         if ((timeout).tv64 != KTIME_MAX)                                \
+<span class="lineNum">     388 </span>            :                 hrtimer_start_range_ns(&amp;__t.timer, timeout,         \
+<span class="lineNum">     389 </span>            :                                        current-&gt;timer_slack_ns,              \
+<span class="lineNum">     390 </span>            :                                        HRTIMER_MODE_REL);               \
+<span class="lineNum">     391 </span>            :                                                                         \
+<span class="lineNum">     392 </span>            :         __ret = ___wait_event(wq, condition, state, 0, 0,               \
+<span class="lineNum">     393 </span>            :                 if (!__t.task) {                                        \
+<span class="lineNum">     394 </span>            :                         __ret = -ETIME;                                 \
+<span class="lineNum">     395 </span>            :                         break;                                          \
+<span class="lineNum">     396 </span>            :                 }                                                       \
+<span class="lineNum">     397 </span>            :                 schedule());                                            \
+<span class="lineNum">     398 </span>            :                                                                         \
+<span class="lineNum">     399 </span>            :         hrtimer_cancel(&amp;__t.timer);                                 \
+<span class="lineNum">     400 </span>            :         destroy_hrtimer_on_stack(&amp;__t.timer);                               \
+<span class="lineNum">     401 </span>            :         __ret;                                                          \
+<span class="lineNum">     402 </span>            : })
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span>            : /**
+<span class="lineNum">     405 </span>            :  * wait_event_hrtimeout - sleep until a condition gets true or a timeout elapses
+<span class="lineNum">     406 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     407 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     408 </span>            :  * @timeout: timeout, as a ktime_t
+<span class="lineNum">     409 </span>            :  *
+<span class="lineNum">     410 </span>            :  * The process is put to sleep (TASK_UNINTERRUPTIBLE) until the
+<span class="lineNum">     411 </span>            :  * @condition evaluates to true or a signal is received.
+<span class="lineNum">     412 </span>            :  * The @condition is checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     413 </span>            :  *
+<span class="lineNum">     414 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     415 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     416 </span>            :  *
+<span class="lineNum">     417 </span>            :  * The function returns 0 if @condition became true, or -ETIME if the timeout
+<span class="lineNum">     418 </span>            :  * elapsed.
+<span class="lineNum">     419 </span>            :  */
+<span class="lineNum">     420 </span>            : #define wait_event_hrtimeout(wq, condition, timeout)                    \
+<span class="lineNum">     421 </span>            : ({                                                                      \
+<span class="lineNum">     422 </span>            :         int __ret = 0;                                                  \
+<span class="lineNum">     423 </span>            :         if (!(condition))                                               \
+<span class="lineNum">     424 </span>            :                 __ret = __wait_event_hrtimeout(wq, condition, timeout,  \
+<span class="lineNum">     425 </span>            :                                                TASK_UNINTERRUPTIBLE);   \
+<span class="lineNum">     426 </span>            :         __ret;                                                          \
+<span class="lineNum">     427 </span>            : })
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span>            : /**
+<span class="lineNum">     430 </span>            :  * wait_event_interruptible_hrtimeout - sleep until a condition gets true or a timeout elapses
+<span class="lineNum">     431 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     432 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     433 </span>            :  * @timeout: timeout, as a ktime_t
+<span class="lineNum">     434 </span>            :  *
+<span class="lineNum">     435 </span>            :  * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+<span class="lineNum">     436 </span>            :  * @condition evaluates to true or a signal is received.
+<span class="lineNum">     437 </span>            :  * The @condition is checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     438 </span>            :  *
+<span class="lineNum">     439 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     440 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     441 </span>            :  *
+<span class="lineNum">     442 </span>            :  * The function returns 0 if @condition became true, -ERESTARTSYS if it was
+<span class="lineNum">     443 </span>            :  * interrupted by a signal, or -ETIME if the timeout elapsed.
+<span class="lineNum">     444 </span>            :  */
+<span class="lineNum">     445 </span>            : #define wait_event_interruptible_hrtimeout(wq, condition, timeout)      \
+<span class="lineNum">     446 </span>            : ({                                                                      \
+<span class="lineNum">     447 </span>            :         long __ret = 0;                                                 \
+<span class="lineNum">     448 </span>            :         if (!(condition))                                               \
+<span class="lineNum">     449 </span>            :                 __ret = __wait_event_hrtimeout(wq, condition, timeout,  \
+<span class="lineNum">     450 </span>            :                                                TASK_INTERRUPTIBLE);     \
+<span class="lineNum">     451 </span>            :         __ret;                                                          \
+<span class="lineNum">     452 </span>            : })
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            : #define __wait_event_interruptible_exclusive(wq, condition)             \
+<span class="lineNum">     455 </span>            :         ___wait_event(wq, condition, TASK_INTERRUPTIBLE, 1, 0,          \
+<span class="lineNum">     456 </span>            :                       schedule())
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span>            : #define wait_event_interruptible_exclusive(wq, condition)               \
+<span class="lineNum">     459 </span>            : ({                                                                      \
+<span class="lineNum">     460 </span>            :         int __ret = 0;                                                  \
+<span class="lineNum">     461 </span>            :         if (!(condition))                                               \
+<span class="lineNum">     462 </span>            :                 __ret = __wait_event_interruptible_exclusive(wq, condition);\
+<span class="lineNum">     463 </span>            :         __ret;                                                          \
+<span class="lineNum">     464 </span>            : })
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            : #define __wait_event_interruptible_locked(wq, condition, exclusive, irq) \
+<span class="lineNum">     468 </span>            : ({                                                                      \
+<span class="lineNum">     469 </span>            :         int __ret = 0;                                                  \
+<span class="lineNum">     470 </span>            :         DEFINE_WAIT(__wait);                                            \
+<span class="lineNum">     471 </span>            :         if (exclusive)                                                  \
+<span class="lineNum">     472 </span>            :                 __wait.flags |= WQ_FLAG_EXCLUSIVE;                      \
+<span class="lineNum">     473 </span>            :         do {                                                            \
+<span class="lineNum">     474 </span>            :                 if (likely(list_empty(&amp;__wait.task_list)))          \
+<span class="lineNum">     475 </span>            :                         __add_wait_queue_tail(&amp;(wq), &amp;__wait);          \
+<span class="lineNum">     476 </span>            :                 set_current_state(TASK_INTERRUPTIBLE);                  \
+<span class="lineNum">     477 </span>            :                 if (signal_pending(current)) {                          \
+<span class="lineNum">     478 </span>            :                         __ret = -ERESTARTSYS;                           \
+<span class="lineNum">     479 </span>            :                         break;                                          \
+<span class="lineNum">     480 </span>            :                 }                                                       \
+<span class="lineNum">     481 </span>            :                 if (irq)                                                \
+<span class="lineNum">     482 </span>            :                         spin_unlock_irq(&amp;(wq).lock);                        \
+<span class="lineNum">     483 </span>            :                 else                                                    \
+<span class="lineNum">     484 </span>            :                         spin_unlock(&amp;(wq).lock);                    \
+<span class="lineNum">     485 </span>            :                 schedule();                                             \
+<span class="lineNum">     486 </span>            :                 if (irq)                                                \
+<span class="lineNum">     487 </span>            :                         spin_lock_irq(&amp;(wq).lock);                  \
+<span class="lineNum">     488 </span>            :                 else                                                    \
+<span class="lineNum">     489 </span>            :                         spin_lock(&amp;(wq).lock);                              \
+<span class="lineNum">     490 </span>            :         } while (!(condition));                                         \
+<span class="lineNum">     491 </span>            :         __remove_wait_queue(&amp;(wq), &amp;__wait);                            \
+<span class="lineNum">     492 </span>            :         __set_current_state(TASK_RUNNING);                              \
+<span class="lineNum">     493 </span>            :         __ret;                                                          \
+<span class="lineNum">     494 </span>            : })
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span>            : /**
+<span class="lineNum">     498 </span>            :  * wait_event_interruptible_locked - sleep until a condition gets true
+<span class="lineNum">     499 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     500 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     501 </span>            :  *
+<span class="lineNum">     502 </span>            :  * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+<span class="lineNum">     503 </span>            :  * @condition evaluates to true or a signal is received.
+<span class="lineNum">     504 </span>            :  * The @condition is checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     505 </span>            :  *
+<span class="lineNum">     506 </span>            :  * It must be called with wq.lock being held.  This spinlock is
+<span class="lineNum">     507 </span>            :  * unlocked while sleeping but @condition testing is done while lock
+<span class="lineNum">     508 </span>            :  * is held and when this macro exits the lock is held.
+<span class="lineNum">     509 </span>            :  *
+<span class="lineNum">     510 </span>            :  * The lock is locked/unlocked using spin_lock()/spin_unlock()
+<span class="lineNum">     511 </span>            :  * functions which must match the way they are locked/unlocked outside
+<span class="lineNum">     512 </span>            :  * of this macro.
+<span class="lineNum">     513 </span>            :  *
+<span class="lineNum">     514 </span>            :  * wake_up_locked() has to be called after changing any variable that could
+<span class="lineNum">     515 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     516 </span>            :  *
+<span class="lineNum">     517 </span>            :  * The function will return -ERESTARTSYS if it was interrupted by a
+<span class="lineNum">     518 </span>            :  * signal and 0 if @condition evaluated to true.
+<span class="lineNum">     519 </span>            :  */
+<span class="lineNum">     520 </span>            : #define wait_event_interruptible_locked(wq, condition)                  \
+<span class="lineNum">     521 </span>            :         ((condition)                                                    \
+<span class="lineNum">     522 </span>            :          ? 0 : __wait_event_interruptible_locked(wq, condition, 0, 0))
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span>            : /**
+<span class="lineNum">     525 </span>            :  * wait_event_interruptible_locked_irq - sleep until a condition gets true
+<span class="lineNum">     526 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     527 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     528 </span>            :  *
+<span class="lineNum">     529 </span>            :  * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+<span class="lineNum">     530 </span>            :  * @condition evaluates to true or a signal is received.
+<span class="lineNum">     531 </span>            :  * The @condition is checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     532 </span>            :  *
+<span class="lineNum">     533 </span>            :  * It must be called with wq.lock being held.  This spinlock is
+<span class="lineNum">     534 </span>            :  * unlocked while sleeping but @condition testing is done while lock
+<span class="lineNum">     535 </span>            :  * is held and when this macro exits the lock is held.
+<span class="lineNum">     536 </span>            :  *
+<span class="lineNum">     537 </span>            :  * The lock is locked/unlocked using spin_lock_irq()/spin_unlock_irq()
+<span class="lineNum">     538 </span>            :  * functions which must match the way they are locked/unlocked outside
+<span class="lineNum">     539 </span>            :  * of this macro.
+<span class="lineNum">     540 </span>            :  *
+<span class="lineNum">     541 </span>            :  * wake_up_locked() has to be called after changing any variable that could
+<span class="lineNum">     542 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     543 </span>            :  *
+<span class="lineNum">     544 </span>            :  * The function will return -ERESTARTSYS if it was interrupted by a
+<span class="lineNum">     545 </span>            :  * signal and 0 if @condition evaluated to true.
+<span class="lineNum">     546 </span>            :  */
+<span class="lineNum">     547 </span>            : #define wait_event_interruptible_locked_irq(wq, condition)              \
+<span class="lineNum">     548 </span>            :         ((condition)                                                    \
+<span class="lineNum">     549 </span>            :          ? 0 : __wait_event_interruptible_locked(wq, condition, 0, 1))
+<span class="lineNum">     550 </span>            : 
+<span class="lineNum">     551 </span>            : /**
+<span class="lineNum">     552 </span>            :  * wait_event_interruptible_exclusive_locked - sleep exclusively until a condition gets true
+<span class="lineNum">     553 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     554 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     555 </span>            :  *
+<span class="lineNum">     556 </span>            :  * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+<span class="lineNum">     557 </span>            :  * @condition evaluates to true or a signal is received.
+<span class="lineNum">     558 </span>            :  * The @condition is checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     559 </span>            :  *
+<span class="lineNum">     560 </span>            :  * It must be called with wq.lock being held.  This spinlock is
+<span class="lineNum">     561 </span>            :  * unlocked while sleeping but @condition testing is done while lock
+<span class="lineNum">     562 </span>            :  * is held and when this macro exits the lock is held.
+<span class="lineNum">     563 </span>            :  *
+<span class="lineNum">     564 </span>            :  * The lock is locked/unlocked using spin_lock()/spin_unlock()
+<span class="lineNum">     565 </span>            :  * functions which must match the way they are locked/unlocked outside
+<span class="lineNum">     566 </span>            :  * of this macro.
+<span class="lineNum">     567 </span>            :  *
+<span class="lineNum">     568 </span>            :  * The process is put on the wait queue with an WQ_FLAG_EXCLUSIVE flag
+<span class="lineNum">     569 </span>            :  * set thus when other process waits process on the list if this
+<span class="lineNum">     570 </span>            :  * process is awaken further processes are not considered.
+<span class="lineNum">     571 </span>            :  *
+<span class="lineNum">     572 </span>            :  * wake_up_locked() has to be called after changing any variable that could
+<span class="lineNum">     573 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     574 </span>            :  *
+<span class="lineNum">     575 </span>            :  * The function will return -ERESTARTSYS if it was interrupted by a
+<span class="lineNum">     576 </span>            :  * signal and 0 if @condition evaluated to true.
+<span class="lineNum">     577 </span>            :  */
+<span class="lineNum">     578 </span>            : #define wait_event_interruptible_exclusive_locked(wq, condition)        \
+<span class="lineNum">     579 </span>            :         ((condition)                                                    \
+<span class="lineNum">     580 </span>            :          ? 0 : __wait_event_interruptible_locked(wq, condition, 1, 0))
+<span class="lineNum">     581 </span>            : 
+<span class="lineNum">     582 </span>            : /**
+<span class="lineNum">     583 </span>            :  * wait_event_interruptible_exclusive_locked_irq - sleep until a condition gets true
+<span class="lineNum">     584 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     585 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     586 </span>            :  *
+<span class="lineNum">     587 </span>            :  * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+<span class="lineNum">     588 </span>            :  * @condition evaluates to true or a signal is received.
+<span class="lineNum">     589 </span>            :  * The @condition is checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     590 </span>            :  *
+<span class="lineNum">     591 </span>            :  * It must be called with wq.lock being held.  This spinlock is
+<span class="lineNum">     592 </span>            :  * unlocked while sleeping but @condition testing is done while lock
+<span class="lineNum">     593 </span>            :  * is held and when this macro exits the lock is held.
+<span class="lineNum">     594 </span>            :  *
+<span class="lineNum">     595 </span>            :  * The lock is locked/unlocked using spin_lock_irq()/spin_unlock_irq()
+<span class="lineNum">     596 </span>            :  * functions which must match the way they are locked/unlocked outside
+<span class="lineNum">     597 </span>            :  * of this macro.
+<span class="lineNum">     598 </span>            :  *
+<span class="lineNum">     599 </span>            :  * The process is put on the wait queue with an WQ_FLAG_EXCLUSIVE flag
+<span class="lineNum">     600 </span>            :  * set thus when other process waits process on the list if this
+<span class="lineNum">     601 </span>            :  * process is awaken further processes are not considered.
+<span class="lineNum">     602 </span>            :  *
+<span class="lineNum">     603 </span>            :  * wake_up_locked() has to be called after changing any variable that could
+<span class="lineNum">     604 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     605 </span>            :  *
+<span class="lineNum">     606 </span>            :  * The function will return -ERESTARTSYS if it was interrupted by a
+<span class="lineNum">     607 </span>            :  * signal and 0 if @condition evaluated to true.
+<span class="lineNum">     608 </span>            :  */
+<span class="lineNum">     609 </span>            : #define wait_event_interruptible_exclusive_locked_irq(wq, condition)    \
+<span class="lineNum">     610 </span>            :         ((condition)                                                    \
+<span class="lineNum">     611 </span>            :          ? 0 : __wait_event_interruptible_locked(wq, condition, 1, 1))
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span>            : 
+<span class="lineNum">     614 </span>            : #define __wait_event_killable(wq, condition)                            \
+<span class="lineNum">     615 </span>            :         ___wait_event(wq, condition, TASK_KILLABLE, 0, 0, schedule())
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span>            : /**
+<span class="lineNum">     618 </span>            :  * wait_event_killable - sleep until a condition gets true
+<span class="lineNum">     619 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     620 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     621 </span>            :  *
+<span class="lineNum">     622 </span>            :  * The process is put to sleep (TASK_KILLABLE) until the
+<span class="lineNum">     623 </span>            :  * @condition evaluates to true or a signal is received.
+<span class="lineNum">     624 </span>            :  * The @condition is checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     625 </span>            :  *
+<span class="lineNum">     626 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     627 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     628 </span>            :  *
+<span class="lineNum">     629 </span>            :  * The function will return -ERESTARTSYS if it was interrupted by a
+<span class="lineNum">     630 </span>            :  * signal and 0 if @condition evaluated to true.
+<span class="lineNum">     631 </span>            :  */
+<span class="lineNum">     632 </span>            : #define wait_event_killable(wq, condition)                              \
+<span class="lineNum">     633 </span>            : ({                                                                      \
+<span class="lineNum">     634 </span>            :         int __ret = 0;                                                  \
+<span class="lineNum">     635 </span>            :         if (!(condition))                                               \
+<span class="lineNum">     636 </span>            :                 __ret = __wait_event_killable(wq, condition);           \
+<span class="lineNum">     637 </span>            :         __ret;                                                          \
+<span class="lineNum">     638 </span>            : })
+<span class="lineNum">     639 </span>            : 
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span>            : #define __wait_event_lock_irq(wq, condition, lock, cmd)                 \
+<span class="lineNum">     642 </span>            :         (void)___wait_event(wq, condition, TASK_UNINTERRUPTIBLE, 0, 0,  \
+<span class="lineNum">     643 </span>            :                             spin_unlock_irq(&amp;lock);                 \
+<span class="lineNum">     644 </span>            :                             cmd;                                        \
+<span class="lineNum">     645 </span>            :                             schedule();                                 \
+<span class="lineNum">     646 </span>            :                             spin_lock_irq(&amp;lock))
+<span class="lineNum">     647 </span>            : 
+<span class="lineNum">     648 </span>            : /**
+<span class="lineNum">     649 </span>            :  * wait_event_lock_irq_cmd - sleep until a condition gets true. The
+<span class="lineNum">     650 </span>            :  *                           condition is checked under the lock. This
+<span class="lineNum">     651 </span>            :  *                           is expected to be called with the lock
+<span class="lineNum">     652 </span>            :  *                           taken.
+<span class="lineNum">     653 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     654 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     655 </span>            :  * @lock: a locked spinlock_t, which will be released before cmd
+<span class="lineNum">     656 </span>            :  *        and schedule() and reacquired afterwards.
+<span class="lineNum">     657 </span>            :  * @cmd: a command which is invoked outside the critical section before
+<span class="lineNum">     658 </span>            :  *       sleep
+<span class="lineNum">     659 </span>            :  *
+<span class="lineNum">     660 </span>            :  * The process is put to sleep (TASK_UNINTERRUPTIBLE) until the
+<span class="lineNum">     661 </span>            :  * @condition evaluates to true. The @condition is checked each time
+<span class="lineNum">     662 </span>            :  * the waitqueue @wq is woken up.
+<span class="lineNum">     663 </span>            :  *
+<span class="lineNum">     664 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     665 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     666 </span>            :  *
+<span class="lineNum">     667 </span>            :  * This is supposed to be called while holding the lock. The lock is
+<span class="lineNum">     668 </span>            :  * dropped before invoking the cmd and going to sleep and is reacquired
+<span class="lineNum">     669 </span>            :  * afterwards.
+<span class="lineNum">     670 </span>            :  */
+<span class="lineNum">     671 </span>            : #define wait_event_lock_irq_cmd(wq, condition, lock, cmd)               \
+<span class="lineNum">     672 </span>            : do {                                                                    \
+<span class="lineNum">     673 </span>            :         if (condition)                                                  \
+<span class="lineNum">     674 </span>            :                 break;                                                  \
+<span class="lineNum">     675 </span>            :         __wait_event_lock_irq(wq, condition, lock, cmd);                \
+<span class="lineNum">     676 </span>            : } while (0)
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span>            : /**
+<span class="lineNum">     679 </span>            :  * wait_event_lock_irq - sleep until a condition gets true. The
+<span class="lineNum">     680 </span>            :  *                       condition is checked under the lock. This
+<span class="lineNum">     681 </span>            :  *                       is expected to be called with the lock
+<span class="lineNum">     682 </span>            :  *                       taken.
+<span class="lineNum">     683 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     684 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     685 </span>            :  * @lock: a locked spinlock_t, which will be released before schedule()
+<span class="lineNum">     686 </span>            :  *        and reacquired afterwards.
+<span class="lineNum">     687 </span>            :  *
+<span class="lineNum">     688 </span>            :  * The process is put to sleep (TASK_UNINTERRUPTIBLE) until the
+<span class="lineNum">     689 </span>            :  * @condition evaluates to true. The @condition is checked each time
+<span class="lineNum">     690 </span>            :  * the waitqueue @wq is woken up.
+<span class="lineNum">     691 </span>            :  *
+<span class="lineNum">     692 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     693 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     694 </span>            :  *
+<span class="lineNum">     695 </span>            :  * This is supposed to be called while holding the lock. The lock is
+<span class="lineNum">     696 </span>            :  * dropped before going to sleep and is reacquired afterwards.
+<span class="lineNum">     697 </span>            :  */
+<span class="lineNum">     698 </span>            : #define wait_event_lock_irq(wq, condition, lock)                        \
+<span class="lineNum">     699 </span>            : do {                                                                    \
+<span class="lineNum">     700 </span>            :         if (condition)                                                  \
+<span class="lineNum">     701 </span>            :                 break;                                                  \
+<span class="lineNum">     702 </span>            :         __wait_event_lock_irq(wq, condition, lock, );                   \
+<span class="lineNum">     703 </span>            : } while (0)
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span>            : #define __wait_event_interruptible_lock_irq(wq, condition, lock, cmd)   \
+<span class="lineNum">     707 </span>            :         ___wait_event(wq, condition, TASK_INTERRUPTIBLE, 0, 0,          \
+<span class="lineNum">     708 </span>            :                       spin_unlock_irq(&amp;lock);                               \
+<span class="lineNum">     709 </span>            :                       cmd;                                              \
+<span class="lineNum">     710 </span>            :                       schedule();                                       \
+<span class="lineNum">     711 </span>            :                       spin_lock_irq(&amp;lock))
+<span class="lineNum">     712 </span>            : 
+<span class="lineNum">     713 </span>            : /**
+<span class="lineNum">     714 </span>            :  * wait_event_interruptible_lock_irq_cmd - sleep until a condition gets true.
+<span class="lineNum">     715 </span>            :  *              The condition is checked under the lock. This is expected to
+<span class="lineNum">     716 </span>            :  *              be called with the lock taken.
+<span class="lineNum">     717 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     718 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     719 </span>            :  * @lock: a locked spinlock_t, which will be released before cmd and
+<span class="lineNum">     720 </span>            :  *        schedule() and reacquired afterwards.
+<span class="lineNum">     721 </span>            :  * @cmd: a command which is invoked outside the critical section before
+<span class="lineNum">     722 </span>            :  *       sleep
+<span class="lineNum">     723 </span>            :  *
+<span class="lineNum">     724 </span>            :  * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+<span class="lineNum">     725 </span>            :  * @condition evaluates to true or a signal is received. The @condition is
+<span class="lineNum">     726 </span>            :  * checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     727 </span>            :  *
+<span class="lineNum">     728 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     729 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     730 </span>            :  *
+<span class="lineNum">     731 </span>            :  * This is supposed to be called while holding the lock. The lock is
+<span class="lineNum">     732 </span>            :  * dropped before invoking the cmd and going to sleep and is reacquired
+<span class="lineNum">     733 </span>            :  * afterwards.
+<span class="lineNum">     734 </span>            :  *
+<span class="lineNum">     735 </span>            :  * The macro will return -ERESTARTSYS if it was interrupted by a signal
+<span class="lineNum">     736 </span>            :  * and 0 if @condition evaluated to true.
+<span class="lineNum">     737 </span>            :  */
+<span class="lineNum">     738 </span>            : #define wait_event_interruptible_lock_irq_cmd(wq, condition, lock, cmd) \
+<span class="lineNum">     739 </span>            : ({                                                                      \
+<span class="lineNum">     740 </span>            :         int __ret = 0;                                                  \
+<span class="lineNum">     741 </span>            :         if (!(condition))                                               \
+<span class="lineNum">     742 </span>            :                 __ret = __wait_event_interruptible_lock_irq(wq,         \
+<span class="lineNum">     743 </span>            :                                                 condition, lock, cmd);  \
+<span class="lineNum">     744 </span>            :         __ret;                                                          \
+<span class="lineNum">     745 </span>            : })
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span>            : /**
+<span class="lineNum">     748 </span>            :  * wait_event_interruptible_lock_irq - sleep until a condition gets true.
+<span class="lineNum">     749 </span>            :  *              The condition is checked under the lock. This is expected
+<span class="lineNum">     750 </span>            :  *              to be called with the lock taken.
+<span class="lineNum">     751 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     752 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     753 </span>            :  * @lock: a locked spinlock_t, which will be released before schedule()
+<span class="lineNum">     754 </span>            :  *        and reacquired afterwards.
+<span class="lineNum">     755 </span>            :  *
+<span class="lineNum">     756 </span>            :  * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+<span class="lineNum">     757 </span>            :  * @condition evaluates to true or signal is received. The @condition is
+<span class="lineNum">     758 </span>            :  * checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     759 </span>            :  *
+<span class="lineNum">     760 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     761 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     762 </span>            :  *
+<span class="lineNum">     763 </span>            :  * This is supposed to be called while holding the lock. The lock is
+<span class="lineNum">     764 </span>            :  * dropped before going to sleep and is reacquired afterwards.
+<span class="lineNum">     765 </span>            :  *
+<span class="lineNum">     766 </span>            :  * The macro will return -ERESTARTSYS if it was interrupted by a signal
+<span class="lineNum">     767 </span>            :  * and 0 if @condition evaluated to true.
+<span class="lineNum">     768 </span>            :  */
+<span class="lineNum">     769 </span>            : #define wait_event_interruptible_lock_irq(wq, condition, lock)          \
+<span class="lineNum">     770 </span>            : ({                                                                      \
+<span class="lineNum">     771 </span>            :         int __ret = 0;                                                  \
+<span class="lineNum">     772 </span>            :         if (!(condition))                                               \
+<span class="lineNum">     773 </span>            :                 __ret = __wait_event_interruptible_lock_irq(wq,         \
+<span class="lineNum">     774 </span>            :                                                 condition, lock,);      \
+<span class="lineNum">     775 </span>            :         __ret;                                                          \
+<span class="lineNum">     776 </span>            : })
+<span class="lineNum">     777 </span>            : 
+<span class="lineNum">     778 </span>            : #define __wait_event_interruptible_lock_irq_timeout(wq, condition,      \
+<span class="lineNum">     779 </span>            :                                                     lock, timeout)      \
+<span class="lineNum">     780 </span>            :         ___wait_event(wq, ___wait_cond_timeout(condition),              \
+<span class="lineNum">     781 </span>            :                       TASK_INTERRUPTIBLE, 0, timeout,                   \
+<span class="lineNum">     782 </span>            :                       spin_unlock_irq(&amp;lock);                               \
+<span class="lineNum">     783 </span>            :                       __ret = schedule_timeout(__ret);                  \
+<span class="lineNum">     784 </span>            :                       spin_lock_irq(&amp;lock));
+<span class="lineNum">     785 </span>            : 
+<span class="lineNum">     786 </span>            : /**
+<span class="lineNum">     787 </span>            :  * wait_event_interruptible_lock_irq_timeout - sleep until a condition gets
+<span class="lineNum">     788 </span>            :  *              true or a timeout elapses. The condition is checked under
+<span class="lineNum">     789 </span>            :  *              the lock. This is expected to be called with the lock taken.
+<span class="lineNum">     790 </span>            :  * @wq: the waitqueue to wait on
+<span class="lineNum">     791 </span>            :  * @condition: a C expression for the event to wait for
+<span class="lineNum">     792 </span>            :  * @lock: a locked spinlock_t, which will be released before schedule()
+<span class="lineNum">     793 </span>            :  *        and reacquired afterwards.
+<span class="lineNum">     794 </span>            :  * @timeout: timeout, in jiffies
+<span class="lineNum">     795 </span>            :  *
+<span class="lineNum">     796 </span>            :  * The process is put to sleep (TASK_INTERRUPTIBLE) until the
+<span class="lineNum">     797 </span>            :  * @condition evaluates to true or signal is received. The @condition is
+<span class="lineNum">     798 </span>            :  * checked each time the waitqueue @wq is woken up.
+<span class="lineNum">     799 </span>            :  *
+<span class="lineNum">     800 </span>            :  * wake_up() has to be called after changing any variable that could
+<span class="lineNum">     801 </span>            :  * change the result of the wait condition.
+<span class="lineNum">     802 </span>            :  *
+<span class="lineNum">     803 </span>            :  * This is supposed to be called while holding the lock. The lock is
+<span class="lineNum">     804 </span>            :  * dropped before going to sleep and is reacquired afterwards.
+<span class="lineNum">     805 </span>            :  *
+<span class="lineNum">     806 </span>            :  * The function returns 0 if the @timeout elapsed, -ERESTARTSYS if it
+<span class="lineNum">     807 </span>            :  * was interrupted by a signal, and the remaining jiffies otherwise
+<span class="lineNum">     808 </span>            :  * if the condition evaluated to true before the timeout elapsed.
+<span class="lineNum">     809 </span>            :  */
+<span class="lineNum">     810 </span>            : #define wait_event_interruptible_lock_irq_timeout(wq, condition, lock,  \
+<span class="lineNum">     811 </span>            :                                                   timeout)              \
+<span class="lineNum">     812 </span>            : ({                                                                      \
+<span class="lineNum">     813 </span>            :         long __ret = timeout;                                           \
+<span class="lineNum">     814 </span>            :         if (!___wait_cond_timeout(condition))                           \
+<span class="lineNum">     815 </span>            :                 __ret = __wait_event_interruptible_lock_irq_timeout(    \
+<span class="lineNum">     816 </span>            :                                         wq, condition, lock, timeout);  \
+<span class="lineNum">     817 </span>            :         __ret;                                                          \
+<span class="lineNum">     818 </span>            : })
+<span class="lineNum">     819 </span>            : 
+<span class="lineNum">     820 </span>            : /*
+<span class="lineNum">     821 </span>            :  * Waitqueues which are removed from the waitqueue_head at wakeup time
+<span class="lineNum">     822 </span>            :  */
+<span class="lineNum">     823 </span>            : void prepare_to_wait(wait_queue_head_t *q, wait_queue_t *wait, int state);
+<span class="lineNum">     824 </span>            : void prepare_to_wait_exclusive(wait_queue_head_t *q, wait_queue_t *wait, int state);
+<span class="lineNum">     825 </span>            : long prepare_to_wait_event(wait_queue_head_t *q, wait_queue_t *wait, int state);
+<span class="lineNum">     826 </span>            : void finish_wait(wait_queue_head_t *q, wait_queue_t *wait);
+<span class="lineNum">     827 </span>            : void abort_exclusive_wait(wait_queue_head_t *q, wait_queue_t *wait, unsigned int mode, void *key);
+<span class="lineNum">     828 </span>            : int autoremove_wake_function(wait_queue_t *wait, unsigned mode, int sync, void *key);
+<span class="lineNum">     829 </span>            : int wake_bit_function(wait_queue_t *wait, unsigned mode, int sync, void *key);
+<span class="lineNum">     830 </span>            : 
+<span class="lineNum">     831 </span>            : #define DEFINE_WAIT_FUNC(name, function)                                \
+<span class="lineNum">     832 </span>            :         wait_queue_t name = {                                           \
+<span class="lineNum">     833 </span>            :                 .private        = current,                              \
+<span class="lineNum">     834 </span>            :                 .func           = function,                             \
+<span class="lineNum">     835 </span>            :                 .task_list      = LIST_HEAD_INIT((name).task_list),     \
+<span class="lineNum">     836 </span>            :         }
+<span class="lineNum">     837 </span>            : 
+<span class="lineNum">     838 </span>            : #define DEFINE_WAIT(name) DEFINE_WAIT_FUNC(name, autoremove_wake_function)
+<span class="lineNum">     839 </span>            : 
+<span class="lineNum">     840 </span>            : #define DEFINE_WAIT_BIT(name, word, bit)                                \
+<span class="lineNum">     841 </span>            :         struct wait_bit_queue name = {                                  \
+<span class="lineNum">     842 </span>            :                 .key = __WAIT_BIT_KEY_INITIALIZER(word, bit),           \
+<span class="lineNum">     843 </span>            :                 .wait   = {                                             \
+<span class="lineNum">     844 </span>            :                         .private        = current,                      \
+<span class="lineNum">     845 </span>            :                         .func           = wake_bit_function,            \
+<span class="lineNum">     846 </span>            :                         .task_list      =                               \
+<span class="lineNum">     847 </span>            :                                 LIST_HEAD_INIT((name).wait.task_list),  \
+<span class="lineNum">     848 </span>            :                 },                                                      \
+<span class="lineNum">     849 </span>            :         }
+<span class="lineNum">     850 </span>            : 
+<span class="lineNum">     851 </span>            : #define init_wait(wait)                                                 \
+<span class="lineNum">     852 </span>            :         do {                                                            \
+<span class="lineNum">     853 </span>            :                 (wait)-&gt;private = current;                           \
+<span class="lineNum">     854 </span>            :                 (wait)-&gt;func = autoremove_wake_function;             \
+<span class="lineNum">     855 </span>            :                 INIT_LIST_HEAD(&amp;(wait)-&gt;task_list);                      \
+<span class="lineNum">     856 </span>            :                 (wait)-&gt;flags = 0;                                   \
+<span class="lineNum">     857 </span>            :         } while (0)
+<span class="lineNum">     858 </span>            : 
+<span class="lineNum">     859 </span>            : 
+<span class="lineNum">     860 </span>            : extern int bit_wait(struct wait_bit_key *);
+<span class="lineNum">     861 </span>            : extern int bit_wait_io(struct wait_bit_key *);
+<span class="lineNum">     862 </span>            : 
+<span class="lineNum">     863 </span>            : /**
+<span class="lineNum">     864 </span>            :  * wait_on_bit - wait for a bit to be cleared
+<span class="lineNum">     865 </span>            :  * @word: the word being waited on, a kernel virtual address
+<span class="lineNum">     866 </span>            :  * @bit: the bit of the word being waited on
+<span class="lineNum">     867 </span>            :  * @mode: the task state to sleep in
+<span class="lineNum">     868 </span>            :  *
+<span class="lineNum">     869 </span>            :  * There is a standard hashed waitqueue table for generic use. This
+<span class="lineNum">     870 </span>            :  * is the part of the hashtable's accessor API that waits on a bit.
+<span class="lineNum">     871 </span>            :  * For instance, if one were to have waiters on a bitflag, one would
+<span class="lineNum">     872 </span>            :  * call wait_on_bit() in threads waiting for the bit to clear.
+<span class="lineNum">     873 </span>            :  * One uses wait_on_bit() where one is waiting for the bit to clear,
+<span class="lineNum">     874 </span>            :  * but has no intention of setting it.
+<span class="lineNum">     875 </span>            :  * Returned value will be zero if the bit was cleared, or non-zero
+<span class="lineNum">     876 </span>            :  * if the process received a signal and the mode permitted wakeup
+<span class="lineNum">     877 </span>            :  * on that signal.
+<span class="lineNum">     878 </span>            :  */
+<span class="lineNum">     879 </span>            : static inline int
+<span class="lineNum">     880 </span>            : wait_on_bit(void *word, int bit, unsigned mode)
+<span class="lineNum">     881 </span>            : {
+<span class="lineNum">     882 </span>            :         if (!test_bit(bit, word))
+<span class="lineNum">     883 </span>            :                 return 0;
+<span class="lineNum">     884 </span>            :         return out_of_line_wait_on_bit(word, bit,
+<span class="lineNum">     885 </span>            :                                        bit_wait,
+<span class="lineNum">     886 </span>            :                                        mode);
+<span class="lineNum">     887 </span>            : }
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span>            : /**
+<span class="lineNum">     890 </span>            :  * wait_on_bit_io - wait for a bit to be cleared
+<span class="lineNum">     891 </span>            :  * @word: the word being waited on, a kernel virtual address
+<span class="lineNum">     892 </span>            :  * @bit: the bit of the word being waited on
+<span class="lineNum">     893 </span>            :  * @mode: the task state to sleep in
+<span class="lineNum">     894 </span>            :  *
+<span class="lineNum">     895 </span>            :  * Use the standard hashed waitqueue table to wait for a bit
+<span class="lineNum">     896 </span>            :  * to be cleared.  This is similar to wait_on_bit(), but calls
+<span class="lineNum">     897 </span>            :  * io_schedule() instead of schedule() for the actual waiting.
+<span class="lineNum">     898 </span>            :  *
+<span class="lineNum">     899 </span>            :  * Returned value will be zero if the bit was cleared, or non-zero
+<span class="lineNum">     900 </span>            :  * if the process received a signal and the mode permitted wakeup
+<span class="lineNum">     901 </span>            :  * on that signal.
+<a name="902"><span class="lineNum">     902 </span>            :  */</a>
+<span class="lineNum">     903 </span>            : static inline int
+<span class="lineNum">     904 </span><span class="lineCov">         45 : wait_on_bit_io(void *word, int bit, unsigned mode)</span>
+<span class="lineNum">     905 </span>            : {
+<span class="lineNum">     906 </span><span class="lineCov">         90 :         if (!test_bit(bit, word))</span>
+<span class="lineNum">     907 </span>            :                 return 0;
+<span class="lineNum">     908 </span><span class="lineCov">         45 :         return out_of_line_wait_on_bit(word, bit,</span>
+<span class="lineNum">     909 </span>            :                                        bit_wait_io,
+<span class="lineNum">     910 </span>            :                                        mode);
+<span class="lineNum">     911 </span>            : }
+<span class="lineNum">     912 </span>            : 
+<span class="lineNum">     913 </span>            : /**
+<span class="lineNum">     914 </span>            :  * wait_on_bit_action - wait for a bit to be cleared
+<span class="lineNum">     915 </span>            :  * @word: the word being waited on, a kernel virtual address
+<span class="lineNum">     916 </span>            :  * @bit: the bit of the word being waited on
+<span class="lineNum">     917 </span>            :  * @action: the function used to sleep, which may take special actions
+<span class="lineNum">     918 </span>            :  * @mode: the task state to sleep in
+<span class="lineNum">     919 </span>            :  *
+<span class="lineNum">     920 </span>            :  * Use the standard hashed waitqueue table to wait for a bit
+<span class="lineNum">     921 </span>            :  * to be cleared, and allow the waiting action to be specified.
+<span class="lineNum">     922 </span>            :  * This is like wait_on_bit() but allows fine control of how the waiting
+<span class="lineNum">     923 </span>            :  * is done.
+<span class="lineNum">     924 </span>            :  *
+<span class="lineNum">     925 </span>            :  * Returned value will be zero if the bit was cleared, or non-zero
+<span class="lineNum">     926 </span>            :  * if the process received a signal and the mode permitted wakeup
+<span class="lineNum">     927 </span>            :  * on that signal.
+<span class="lineNum">     928 </span>            :  */
+<span class="lineNum">     929 </span>            : static inline int
+<span class="lineNum">     930 </span>            : wait_on_bit_action(void *word, int bit, wait_bit_action_f *action, unsigned mode)
+<span class="lineNum">     931 </span>            : {
+<span class="lineNum">     932 </span>            :         if (!test_bit(bit, word))
+<span class="lineNum">     933 </span>            :                 return 0;
+<span class="lineNum">     934 </span>            :         return out_of_line_wait_on_bit(word, bit, action, mode);
+<span class="lineNum">     935 </span>            : }
+<span class="lineNum">     936 </span>            : 
+<span class="lineNum">     937 </span>            : /**
+<span class="lineNum">     938 </span>            :  * wait_on_bit_lock - wait for a bit to be cleared, when wanting to set it
+<span class="lineNum">     939 </span>            :  * @word: the word being waited on, a kernel virtual address
+<span class="lineNum">     940 </span>            :  * @bit: the bit of the word being waited on
+<span class="lineNum">     941 </span>            :  * @mode: the task state to sleep in
+<span class="lineNum">     942 </span>            :  *
+<span class="lineNum">     943 </span>            :  * There is a standard hashed waitqueue table for generic use. This
+<span class="lineNum">     944 </span>            :  * is the part of the hashtable's accessor API that waits on a bit
+<span class="lineNum">     945 </span>            :  * when one intends to set it, for instance, trying to lock bitflags.
+<span class="lineNum">     946 </span>            :  * For instance, if one were to have waiters trying to set bitflag
+<span class="lineNum">     947 </span>            :  * and waiting for it to clear before setting it, one would call
+<span class="lineNum">     948 </span>            :  * wait_on_bit() in threads waiting to be able to set the bit.
+<span class="lineNum">     949 </span>            :  * One uses wait_on_bit_lock() where one is waiting for the bit to
+<span class="lineNum">     950 </span>            :  * clear with the intention of setting it, and when done, clearing it.
+<span class="lineNum">     951 </span>            :  *
+<span class="lineNum">     952 </span>            :  * Returns zero if the bit was (eventually) found to be clear and was
+<span class="lineNum">     953 </span>            :  * set.  Returns non-zero if a signal was delivered to the process and
+<span class="lineNum">     954 </span>            :  * the @mode allows that signal to wake the process.
+<span class="lineNum">     955 </span>            :  */
+<span class="lineNum">     956 </span>            : static inline int
+<span class="lineNum">     957 </span>            : wait_on_bit_lock(void *word, int bit, unsigned mode)
+<span class="lineNum">     958 </span>            : {
+<span class="lineNum">     959 </span>            :         if (!test_and_set_bit(bit, word))
+<span class="lineNum">     960 </span>            :                 return 0;
+<span class="lineNum">     961 </span>            :         return out_of_line_wait_on_bit_lock(word, bit, bit_wait, mode);
+<span class="lineNum">     962 </span>            : }
+<span class="lineNum">     963 </span>            : 
+<span class="lineNum">     964 </span>            : /**
+<span class="lineNum">     965 </span>            :  * wait_on_bit_lock_io - wait for a bit to be cleared, when wanting to set it
+<span class="lineNum">     966 </span>            :  * @word: the word being waited on, a kernel virtual address
+<span class="lineNum">     967 </span>            :  * @bit: the bit of the word being waited on
+<span class="lineNum">     968 </span>            :  * @mode: the task state to sleep in
+<span class="lineNum">     969 </span>            :  *
+<span class="lineNum">     970 </span>            :  * Use the standard hashed waitqueue table to wait for a bit
+<span class="lineNum">     971 </span>            :  * to be cleared and then to atomically set it.  This is similar
+<span class="lineNum">     972 </span>            :  * to wait_on_bit(), but calls io_schedule() instead of schedule()
+<span class="lineNum">     973 </span>            :  * for the actual waiting.
+<span class="lineNum">     974 </span>            :  *
+<span class="lineNum">     975 </span>            :  * Returns zero if the bit was (eventually) found to be clear and was
+<span class="lineNum">     976 </span>            :  * set.  Returns non-zero if a signal was delivered to the process and
+<span class="lineNum">     977 </span>            :  * the @mode allows that signal to wake the process.
+<span class="lineNum">     978 </span>            :  */
+<span class="lineNum">     979 </span>            : static inline int
+<span class="lineNum">     980 </span>            : wait_on_bit_lock_io(void *word, int bit, unsigned mode)
+<span class="lineNum">     981 </span>            : {
+<span class="lineNum">     982 </span>            :         if (!test_and_set_bit(bit, word))
+<span class="lineNum">     983 </span>            :                 return 0;
+<span class="lineNum">     984 </span>            :         return out_of_line_wait_on_bit_lock(word, bit, bit_wait_io, mode);
+<span class="lineNum">     985 </span>            : }
+<span class="lineNum">     986 </span>            : 
+<span class="lineNum">     987 </span>            : /**
+<span class="lineNum">     988 </span>            :  * wait_on_bit_lock_action - wait for a bit to be cleared, when wanting to set it
+<span class="lineNum">     989 </span>            :  * @word: the word being waited on, a kernel virtual address
+<span class="lineNum">     990 </span>            :  * @bit: the bit of the word being waited on
+<span class="lineNum">     991 </span>            :  * @action: the function used to sleep, which may take special actions
+<span class="lineNum">     992 </span>            :  * @mode: the task state to sleep in
+<span class="lineNum">     993 </span>            :  *
+<span class="lineNum">     994 </span>            :  * Use the standard hashed waitqueue table to wait for a bit
+<span class="lineNum">     995 </span>            :  * to be cleared and then to set it, and allow the waiting action
+<span class="lineNum">     996 </span>            :  * to be specified.
+<span class="lineNum">     997 </span>            :  * This is like wait_on_bit() but allows fine control of how the waiting
+<span class="lineNum">     998 </span>            :  * is done.
+<span class="lineNum">     999 </span>            :  *
+<span class="lineNum">    1000 </span>            :  * Returns zero if the bit was (eventually) found to be clear and was
+<span class="lineNum">    1001 </span>            :  * set.  Returns non-zero if a signal was delivered to the process and
+<span class="lineNum">    1002 </span>            :  * the @mode allows that signal to wake the process.
+<span class="lineNum">    1003 </span>            :  */
+<span class="lineNum">    1004 </span>            : static inline int
+<span class="lineNum">    1005 </span>            : wait_on_bit_lock_action(void *word, int bit, wait_bit_action_f *action, unsigned mode)
+<span class="lineNum">    1006 </span>            : {
+<span class="lineNum">    1007 </span>            :         if (!test_and_set_bit(bit, word))
+<span class="lineNum">    1008 </span>            :                 return 0;
+<span class="lineNum">    1009 </span>            :         return out_of_line_wait_on_bit_lock(word, bit, action, mode);
+<span class="lineNum">    1010 </span>            : }
+<span class="lineNum">    1011 </span>            : 
+<span class="lineNum">    1012 </span>            : /**
+<span class="lineNum">    1013 </span>            :  * wait_on_atomic_t - Wait for an atomic_t to become 0
+<span class="lineNum">    1014 </span>            :  * @val: The atomic value being waited on, a kernel virtual address
+<span class="lineNum">    1015 </span>            :  * @action: the function used to sleep, which may take special actions
+<span class="lineNum">    1016 </span>            :  * @mode: the task state to sleep in
+<span class="lineNum">    1017 </span>            :  *
+<span class="lineNum">    1018 </span>            :  * Wait for an atomic_t to become 0.  We abuse the bit-wait waitqueue table for
+<span class="lineNum">    1019 </span>            :  * the purpose of getting a waitqueue, but we set the key to a bit number
+<span class="lineNum">    1020 </span>            :  * outside of the target 'word'.
+<span class="lineNum">    1021 </span>            :  */
+<span class="lineNum">    1022 </span>            : static inline
+<span class="lineNum">    1023 </span>            : int wait_on_atomic_t(atomic_t *val, int (*action)(atomic_t *), unsigned mode)
+<span class="lineNum">    1024 </span>            : {
+<span class="lineNum">    1025 </span>            :         if (atomic_read(val) == 0)
+<span class="lineNum">    1026 </span>            :                 return 0;
+<span class="lineNum">    1027 </span>            :         return out_of_line_wait_on_atomic_t(val, action, mode);
+<span class="lineNum">    1028 </span>            : }
+<span class="lineNum">    1029 </span>            : 
+<span class="lineNum">    1030 </span>            : #endif /* _LINUX_WAIT_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

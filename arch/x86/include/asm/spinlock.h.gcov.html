@@ -1,0 +1,366 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - arch/x86/include/asm/spinlock.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">arch/x86/include/asm</a> - spinlock.h<span style="font-size: 80%;"> (source / <a href="spinlock.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _ASM_X86_SPINLOCK_H</a>
+<span class="lineNum">       2 </span>            : #define _ASM_X86_SPINLOCK_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;linux/jump_label.h&gt;
+<span class="lineNum">       5 </span>            : #include &lt;linux/atomic.h&gt;
+<span class="lineNum">       6 </span>            : #include &lt;asm/page.h&gt;
+<span class="lineNum">       7 </span>            : #include &lt;asm/processor.h&gt;
+<span class="lineNum">       8 </span>            : #include &lt;linux/compiler.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;asm/paravirt.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;asm/bitops.h&gt;
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : /*
+<span class="lineNum">      13 </span>            :  * Your basic SMP spinlocks, allowing only a single CPU anywhere
+<span class="lineNum">      14 </span>            :  *
+<span class="lineNum">      15 </span>            :  * Simple spin lock operations.  There are two variants, one clears IRQ's
+<span class="lineNum">      16 </span>            :  * on the local processor, one does not.
+<span class="lineNum">      17 </span>            :  *
+<span class="lineNum">      18 </span>            :  * These are fair FIFO ticket locks, which support up to 2^16 CPUs.
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  * (the type definitions are in asm/spinlock_types.h)
+<span class="lineNum">      21 </span>            :  */
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #ifdef CONFIG_X86_32
+<span class="lineNum">      24 </span>            : # define LOCK_PTR_REG &quot;a&quot;
+<span class="lineNum">      25 </span>            : #else
+<span class="lineNum">      26 </span>            : # define LOCK_PTR_REG &quot;D&quot;
+<span class="lineNum">      27 </span>            : #endif
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #if defined(CONFIG_X86_32) &amp;&amp; (defined(CONFIG_X86_PPRO_FENCE))
+<span class="lineNum">      30 </span>            : /*
+<span class="lineNum">      31 </span>            :  * On PPro SMP, we use a locked operation to unlock
+<span class="lineNum">      32 </span>            :  * (PPro errata 66, 92)
+<span class="lineNum">      33 </span>            :  */
+<span class="lineNum">      34 </span>            : # define UNLOCK_LOCK_PREFIX LOCK_PREFIX
+<span class="lineNum">      35 </span>            : #else
+<span class="lineNum">      36 </span>            : # define UNLOCK_LOCK_PREFIX
+<span class="lineNum">      37 </span>            : #endif
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : /* How long a lock should spin before we consider blocking */
+<span class="lineNum">      40 </span>            : #define SPIN_THRESHOLD  (1 &lt;&lt; 15)
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : extern struct static_key paravirt_ticketlocks_enabled;
+<span class="lineNum">      43 </span>            : static __always_inline bool static_key_false(struct static_key *key);
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : #ifdef CONFIG_PARAVIRT_SPINLOCKS
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : static inline void __ticket_enter_slowpath(arch_spinlock_t *lock)
+<span class="lineNum">      48 </span>            : {
+<span class="lineNum">      49 </span>            :         set_bit(0, (volatile unsigned long *)&amp;lock-&gt;tickets.tail);
+<span class="lineNum">      50 </span>            : }
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : #else  /* !CONFIG_PARAVIRT_SPINLOCKS */
+<span class="lineNum">      53 </span>            : static __always_inline void __ticket_lock_spinning(arch_spinlock_t *lock,
+<span class="lineNum">      54 </span>            :                                                         __ticket_t ticket)
+<span class="lineNum">      55 </span>            : {
+<span class="lineNum">      56 </span>            : }
+<span class="lineNum">      57 </span>            : static inline void __ticket_unlock_kick(arch_spinlock_t *lock,
+<span class="lineNum">      58 </span>            :                                                         __ticket_t ticket)
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span>            : }
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : #endif /* CONFIG_PARAVIRT_SPINLOCKS */
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : static __always_inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+<span class="lineNum">      65 </span>            : {
+<span class="lineNum">      66 </span>            :         return lock.tickets.head == lock.tickets.tail;
+<span class="lineNum">      67 </span>            : }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : /*
+<span class="lineNum">      70 </span>            :  * Ticket locks are conceptually two parts, one indicating the current head of
+<span class="lineNum">      71 </span>            :  * the queue, and the other indicating the current tail. The lock is acquired
+<span class="lineNum">      72 </span>            :  * by atomically noting the tail and incrementing it by one (thus adding
+<span class="lineNum">      73 </span>            :  * ourself to the queue and noting our position), then waiting until the head
+<span class="lineNum">      74 </span>            :  * becomes equal to the the initial value of the tail.
+<span class="lineNum">      75 </span>            :  *
+<span class="lineNum">      76 </span>            :  * We use an xadd covering *both* parts of the lock, to increment the tail and
+<span class="lineNum">      77 </span>            :  * also load the position of the head, which takes care of memory ordering
+<span class="lineNum">      78 </span>            :  * issues and should be optimal for the uncontended case. Note the tail must be
+<span class="lineNum">      79 </span>            :  * in the high part, because a wide xadd increment of the low part would carry
+<span class="lineNum">      80 </span>            :  * up and contaminate the high part.
+<span class="lineNum">      81 </span>            :  */
+<span class="lineNum">      82 </span>            : static __always_inline void arch_spin_lock(arch_spinlock_t *lock)
+<span class="lineNum">      83 </span>            : {
+<span class="lineNum">      84 </span>            :         register struct __raw_tickets inc = { .tail = TICKET_LOCK_INC };
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            :         inc = xadd(&amp;lock-&gt;tickets, inc);
+<span class="lineNum">      87 </span>            :         if (likely(inc.head == inc.tail))
+<span class="lineNum">      88 </span>            :                 goto out;
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :         inc.tail &amp;= ~TICKET_SLOWPATH_FLAG;
+<span class="lineNum">      91 </span>            :         for (;;) {
+<span class="lineNum">      92 </span>            :                 unsigned count = SPIN_THRESHOLD;
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            :                 do {
+<span class="lineNum">      95 </span>            :                         if (ACCESS_ONCE(lock-&gt;tickets.head) == inc.tail)
+<span class="lineNum">      96 </span>            :                                 goto out;
+<span class="lineNum">      97 </span>            :                         cpu_relax();
+<span class="lineNum">      98 </span>            :                 } while (--count);
+<span class="lineNum">      99 </span>            :                 __ticket_lock_spinning(lock, inc.tail);
+<span class="lineNum">     100 </span>            :         }
+<span class="lineNum">     101 </span>            : out:    barrier();      /* make sure nothing creeps before the lock is taken */
+<span class="lineNum">     102 </span>            : }
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : static __always_inline int arch_spin_trylock(arch_spinlock_t *lock)
+<span class="lineNum">     105 </span>            : {
+<span class="lineNum">     106 </span>            :         arch_spinlock_t old, new;
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            :         old.tickets = ACCESS_ONCE(lock-&gt;tickets);
+<span class="lineNum">     109 </span>            :         if (old.tickets.head != (old.tickets.tail &amp; ~TICKET_SLOWPATH_FLAG))
+<span class="lineNum">     110 </span>            :                 return 0;
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            :         new.head_tail = old.head_tail + (TICKET_LOCK_INC &lt;&lt; TICKET_SHIFT);
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :         /* cmpxchg is a full barrier, so nothing can move before it */
+<span class="lineNum">     115 </span>            :         return cmpxchg(&amp;lock-&gt;head_tail, old.head_tail, new.head_tail) == old.head_tail;
+<span class="lineNum">     116 </span>            : }
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : static inline void __ticket_unlock_slowpath(arch_spinlock_t *lock,
+<span class="lineNum">     119 </span>            :                                             arch_spinlock_t old)
+<span class="lineNum">     120 </span>            : {
+<span class="lineNum">     121 </span>            :         arch_spinlock_t new;
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            :         BUILD_BUG_ON(((__ticket_t)NR_CPUS) != NR_CPUS);
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            :         /* Perform the unlock on the &quot;before&quot; copy */
+<span class="lineNum">     126 </span>            :         old.tickets.head += TICKET_LOCK_INC;
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            :         /* Clear the slowpath flag */
+<span class="lineNum">     129 </span>            :         new.head_tail = old.head_tail &amp; ~(TICKET_SLOWPATH_FLAG &lt;&lt; TICKET_SHIFT);
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            :         /*
+<span class="lineNum">     132 </span>            :          * If the lock is uncontended, clear the flag - use cmpxchg in
+<span class="lineNum">     133 </span>            :          * case it changes behind our back though.
+<span class="lineNum">     134 </span>            :          */
+<span class="lineNum">     135 </span>            :         if (new.tickets.head != new.tickets.tail ||
+<span class="lineNum">     136 </span>            :             cmpxchg(&amp;lock-&gt;head_tail, old.head_tail,
+<span class="lineNum">     137 </span>            :                                         new.head_tail) != old.head_tail) {
+<span class="lineNum">     138 </span>            :                 /*
+<span class="lineNum">     139 </span>            :                  * Lock still has someone queued for it, so wake up an
+<span class="lineNum">     140 </span>            :                  * appropriate waiter.
+<span class="lineNum">     141 </span>            :                  */
+<span class="lineNum">     142 </span>            :                 __ticket_unlock_kick(lock, old.tickets.head);
+<span class="lineNum">     143 </span>            :         }
+<span class="lineNum">     144 </span>            : }
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            : static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
+<span class="lineNum">     147 </span>            : {
+<span class="lineNum">     148 </span>            :         if (TICKET_SLOWPATH_FLAG &amp;&amp;
+<span class="lineNum">     149 </span>            :             static_key_false(&amp;paravirt_ticketlocks_enabled)) {
+<span class="lineNum">     150 </span>            :                 arch_spinlock_t prev;
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            :                 prev = *lock;
+<span class="lineNum">     153 </span>            :                 add_smp(&amp;lock-&gt;tickets.head, TICKET_LOCK_INC);
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            :                 /* add_smp() is a full mb() */
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            :                 if (unlikely(lock-&gt;tickets.tail &amp; TICKET_SLOWPATH_FLAG))
+<span class="lineNum">     158 </span>            :                         __ticket_unlock_slowpath(lock, prev);
+<span class="lineNum">     159 </span>            :         } else
+<span class="lineNum">     160 </span><span class="lineCov">   23956349 :                 __add(&amp;lock-&gt;tickets.head, TICKET_LOCK_INC, UNLOCK_LOCK_PREFIX);</span>
+<span class="lineNum">     161 </span>            : }
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            : static inline int arch_spin_is_locked(arch_spinlock_t *lock)
+<span class="lineNum">     164 </span>            : {
+<span class="lineNum">     165 </span><span class="lineCov">     584663 :         struct __raw_tickets tmp = ACCESS_ONCE(lock-&gt;tickets);</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span><span class="lineCov">     584663 :         return tmp.tail != tmp.head;</span>
+<span class="lineNum">     168 </span>            : }
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            : static inline int arch_spin_is_contended(arch_spinlock_t *lock)
+<span class="lineNum">     171 </span>            : {
+<span class="lineNum">     172 </span>            :         struct __raw_tickets tmp = ACCESS_ONCE(lock-&gt;tickets);
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            :         return (__ticket_t)(tmp.tail - tmp.head) &gt; TICKET_LOCK_INC;
+<span class="lineNum">     175 </span>            : }
+<span class="lineNum">     176 </span>            : #define arch_spin_is_contended  arch_spin_is_contended
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            : static __always_inline void arch_spin_lock_flags(arch_spinlock_t *lock,
+<span class="lineNum">     179 </span>            :                                                   unsigned long flags)
+<span class="lineNum">     180 </span>            : {
+<span class="lineNum">     181 </span>            :         arch_spin_lock(lock);
+<span class="lineNum">     182 </span>            : }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            : static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+<span class="lineNum">     185 </span>            : {
+<span class="lineNum">     186 </span>            :         while (arch_spin_is_locked(lock))
+<span class="lineNum">     187 </span>            :                 cpu_relax();
+<span class="lineNum">     188 </span>            : }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : #ifndef CONFIG_QUEUE_RWLOCK
+<span class="lineNum">     191 </span>            : /*
+<span class="lineNum">     192 </span>            :  * Read-write spinlocks, allowing multiple readers
+<span class="lineNum">     193 </span>            :  * but only one writer.
+<span class="lineNum">     194 </span>            :  *
+<span class="lineNum">     195 </span>            :  * NOTE! it is quite common to have readers in interrupts
+<span class="lineNum">     196 </span>            :  * but no interrupt writers. For those circumstances we
+<span class="lineNum">     197 </span>            :  * can &quot;mix&quot; irq-safe locks - any writer needs to get a
+<span class="lineNum">     198 </span>            :  * irq-safe write-lock, but readers can get non-irqsafe
+<span class="lineNum">     199 </span>            :  * read-locks.
+<span class="lineNum">     200 </span>            :  *
+<span class="lineNum">     201 </span>            :  * On x86, we implement read-write locks as a 32-bit counter
+<span class="lineNum">     202 </span>            :  * with the high bit (sign) being the &quot;contended&quot; bit.
+<span class="lineNum">     203 </span>            :  */
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            : /**
+<span class="lineNum">     206 </span>            :  * read_can_lock - would read_trylock() succeed?
+<span class="lineNum">     207 </span>            :  * @lock: the rwlock in question.
+<span class="lineNum">     208 </span>            :  */
+<span class="lineNum">     209 </span>            : static inline int arch_read_can_lock(arch_rwlock_t *lock)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            :         return lock-&gt;lock &gt; 0;
+<span class="lineNum">     212 </span>            : }
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span>            : /**
+<span class="lineNum">     215 </span>            :  * write_can_lock - would write_trylock() succeed?
+<span class="lineNum">     216 </span>            :  * @lock: the rwlock in question.
+<span class="lineNum">     217 </span>            :  */
+<span class="lineNum">     218 </span>            : static inline int arch_write_can_lock(arch_rwlock_t *lock)
+<span class="lineNum">     219 </span>            : {
+<span class="lineNum">     220 </span>            :         return lock-&gt;write == WRITE_LOCK_CMP;
+<span class="lineNum">     221 </span>            : }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            : static inline void arch_read_lock(arch_rwlock_t *rw)
+<span class="lineNum">     224 </span>            : {
+<span class="lineNum">     225 </span>            :         asm volatile(LOCK_PREFIX READ_LOCK_SIZE(dec) &quot; (%0)\n\t&quot;
+<span class="lineNum">     226 </span>            :                      &quot;jns 1f\n&quot;
+<span class="lineNum">     227 </span>            :                      &quot;call __read_lock_failed\n\t&quot;
+<span class="lineNum">     228 </span>            :                      &quot;1:\n&quot;
+<span class="lineNum">     229 </span>            :                      ::LOCK_PTR_REG (rw) : &quot;memory&quot;);
+<span class="lineNum">     230 </span>            : }
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            : static inline void arch_write_lock(arch_rwlock_t *rw)
+<span class="lineNum">     233 </span>            : {
+<span class="lineNum">     234 </span>            :         asm volatile(LOCK_PREFIX WRITE_LOCK_SUB(%1) &quot;(%0)\n\t&quot;
+<span class="lineNum">     235 </span>            :                      &quot;jz 1f\n&quot;
+<span class="lineNum">     236 </span>            :                      &quot;call __write_lock_failed\n\t&quot;
+<span class="lineNum">     237 </span>            :                      &quot;1:\n&quot;
+<span class="lineNum">     238 </span>            :                      ::LOCK_PTR_REG (&amp;rw-&gt;write), &quot;i&quot; (RW_LOCK_BIAS)
+<span class="lineNum">     239 </span>            :                      : &quot;memory&quot;);
+<span class="lineNum">     240 </span>            : }
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            : static inline int arch_read_trylock(arch_rwlock_t *lock)
+<span class="lineNum">     243 </span>            : {
+<span class="lineNum">     244 </span>            :         READ_LOCK_ATOMIC(t) *count = (READ_LOCK_ATOMIC(t) *)lock;
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            :         if (READ_LOCK_ATOMIC(dec_return)(count) &gt;= 0)
+<span class="lineNum">     247 </span>            :                 return 1;
+<span class="lineNum">     248 </span>            :         READ_LOCK_ATOMIC(inc)(count);
+<span class="lineNum">     249 </span>            :         return 0;
+<span class="lineNum">     250 </span>            : }
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            : static inline int arch_write_trylock(arch_rwlock_t *lock)
+<span class="lineNum">     253 </span>            : {
+<span class="lineNum">     254 </span>            :         atomic_t *count = (atomic_t *)&amp;lock-&gt;write;
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            :         if (atomic_sub_and_test(WRITE_LOCK_CMP, count))
+<span class="lineNum">     257 </span>            :                 return 1;
+<span class="lineNum">     258 </span>            :         atomic_add(WRITE_LOCK_CMP, count);
+<span class="lineNum">     259 </span>            :         return 0;
+<span class="lineNum">     260 </span>            : }
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span>            : static inline void arch_read_unlock(arch_rwlock_t *rw)
+<span class="lineNum">     263 </span>            : {
+<span class="lineNum">     264 </span>            :         asm volatile(LOCK_PREFIX READ_LOCK_SIZE(inc) &quot; %0&quot;
+<span class="lineNum">     265 </span>            :                      :&quot;+m&quot; (rw-&gt;lock) : : &quot;memory&quot;);
+<span class="lineNum">     266 </span>            : }
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            : static inline void arch_write_unlock(arch_rwlock_t *rw)
+<span class="lineNum">     269 </span>            : {
+<span class="lineNum">     270 </span>            :         asm volatile(LOCK_PREFIX WRITE_LOCK_ADD(%1) &quot;%0&quot;
+<span class="lineNum">     271 </span>            :                      : &quot;+m&quot; (rw-&gt;write) : &quot;i&quot; (RW_LOCK_BIAS) : &quot;memory&quot;);
+<span class="lineNum">     272 </span>            : }
+<span class="lineNum">     273 </span>            : #else
+<span class="lineNum">     274 </span>            : #include &lt;asm/qrwlock.h&gt;
+<span class="lineNum">     275 </span>            : #endif /* CONFIG_QUEUE_RWLOCK */
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : #define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
+<span class="lineNum">     278 </span>            : #define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            : #undef READ_LOCK_SIZE
+<span class="lineNum">     281 </span>            : #undef READ_LOCK_ATOMIC
+<span class="lineNum">     282 </span>            : #undef WRITE_LOCK_ADD
+<span class="lineNum">     283 </span>            : #undef WRITE_LOCK_SUB
+<span class="lineNum">     284 </span>            : #undef WRITE_LOCK_CMP
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            : #define arch_spin_relax(lock)   cpu_relax()
+<span class="lineNum">     287 </span>            : #define arch_read_relax(lock)   cpu_relax()
+<span class="lineNum">     288 </span>            : #define arch_write_relax(lock)  cpu_relax()
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            : #endif /* _ASM_X86_SPINLOCK_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

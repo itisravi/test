@@ -1,0 +1,640 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/inode.c - functions</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - inode.c<span style="font-size: 80%;"> (<a href="inode.c.gcov.html">source</a> / functions)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2595</td>
+            <td class="headerCovTableEntry">3379</td>
+            <td class="headerCovTableEntryMed">76.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">130</td>
+            <td class="headerCovTableEntry">142</td>
+            <td class="headerCovTableEntryHi">91.5 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <center>
+  <table width="60%" cellpadding=1 cellspacing=1 border=0>
+    <tr><td><br></td></tr>
+    <tr>
+      <td width="80%" class="tableHead">Function Name <span class="tableHeadSort"><a href="inode.c.func.html"><img src="../../updown.png" width=10 height=14 alt="Sort by function name" title="Sort by function name" border=0></a></span></td>
+      <td width="20%" class="tableHead">Hit count <span class="tableHeadSort"><img src="../../glass.png" width=10 height=14 alt="Sort by hit count" title="Sort by hit count" border=0></span></td>
+    </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#9024">btrfs_permission</a></td>
+              <td class="coverFnHi">6492852</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7759">btrfs_invalidatepage</a></td>
+              <td class="coverFnHi">1756188</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#6256">btrfs_get_extent</a></td>
+              <td class="coverFnHi">1605417</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1639">btrfs_merge_bio_hook</a></td>
+              <td class="coverFnHi">1495689</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5244">btrfs_dentry_delete</a></td>
+              <td class="coverFnHi">1454590</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#9019">btrfs_set_page_dirty</a></td>
+              <td class="coverFnHi">1363190</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#2826">btrfs_writepage_end_io_hook</a></td>
+              <td class="coverFnHi">1309032</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1871">btrfs_writepage_start_hook</a></td>
+              <td class="coverFnHi">1308900</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1552">btrfs_set_bit_hook</a></td>
+              <td class="coverFnHi">1083201</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1588">btrfs_clear_bit_hook</a></td>
+              <td class="coverFnHi">858660</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8353">btrfs_getattr</a></td>
+              <td class="coverFnHi">853993</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1476">btrfs_split_extent_hook</a></td>
+              <td class="coverFnHi">597391</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1494">btrfs_merge_extent_hook</a></td>
+              <td class="coverFnHi">555603</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7735">__btrfs_releasepage</a></td>
+              <td class="coverFnHi">188223</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3650">btrfs_update_inode</a></td>
+              <td class="coverFnHi">172140</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1785">btrfs_set_extent_delalloc</a></td>
+              <td class="coverFnHi">131791</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1709">btrfs_submit_bio_hook</a></td>
+              <td class="coverFnHi">92080</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#2923">btrfs_add_delayed_iput</a></td>
+              <td class="coverFnHi">86695</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8266">btrfs_drop_inode</a></td>
+              <td class="coverFnHi">85705</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#2862">btrfs_readpage_end_io_hook</a></td>
+              <td class="coverFnHi">72320</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1692">__btrfs_submit_bio_done</a></td>
+              <td class="coverFnHi">59547</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1671">__btrfs_submit_bio_start</a></td>
+              <td class="coverFnHi">59544</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1897">insert_reserved_file_extent</a></td>
+              <td class="coverFnHi">53371</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3675">btrfs_update_inode_fallback</a></td>
+              <td class="coverFnHi">51685</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#2640">btrfs_finish_ordered_io</a></td>
+              <td class="coverFnHi">51505</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#2819">finish_ordered_fn</a></td>
+              <td class="coverFnHi">51505</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1770">add_pending_csums.isra.37</a></td>
+              <td class="coverFnHi">51414</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1528">btrfs_del_delalloc_inode</a></td>
+              <td class="coverFnHi">48378</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1507">btrfs_add_delalloc_inodes</a></td>
+              <td class="coverFnHi">48376</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5536">btrfs_update_time</a></td>
+              <td class="coverFnHi">46157</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#2621">btrfs_release_delalloc_bytes.isra.36</a></td>
+              <td class="coverFnHi">45797</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#824">get_extent_allocation_hint</a></td>
+              <td class="coverFnHi">45642</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3568">fill_inode_item.isra.32</a></td>
+              <td class="coverFnHi">42409</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4853">btrfs_inode_by_name.isra.33</a></td>
+              <td class="coverFnHi">40768</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5155">btrfs_lookup_dentry</a></td>
+              <td class="coverFnHi">40768</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5268">btrfs_lookup</a></td>
+              <td class="coverFnHi">40574</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5263">btrfs_dentry_release</a></td>
+              <td class="coverFnHi">39072</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7717">btrfs_writepages</a></td>
+              <td class="coverFnHi">38223</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5087">btrfs_iget_locked</a></td>
+              <td class="coverFnHi">36211</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5107">btrfs_iget</a></td>
+              <td class="coverFnHi">36211</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5080">btrfs_find_actor</a></td>
+              <td class="coverFnHi">31256</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1449">run_delalloc_range</a></td>
+              <td class="coverFnHi">29881</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7696">btrfs_readpage</a></td>
+              <td class="coverFnHi">26884</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5616">btrfs_set_inode_index</a></td>
+              <td class="coverFnHi">26501</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5810">btrfs_add_link</a></td>
+              <td class="coverFnHi">26306</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8159">btrfs_alloc_inode</a></td>
+              <td class="coverFnHi">25711</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4671">evict_inode_truncate_pages</a></td>
+              <td class="coverFnHi">25704</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4723">btrfs_evict_inode</a></td>
+              <td class="coverFnHi">25704</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4984">inode_tree_del</a></td>
+              <td class="coverFnHi">25704</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8215">btrfs_i_callback</a></td>
+              <td class="coverFnHi">25704</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8221">btrfs_destroy_inode</a></td>
+              <td class="coverFnHi">25704</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4948">inode_tree_add</a></td>
+              <td class="coverFnHi">25418</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#6836">btrfs_page_exists_in_range</a></td>
+              <td class="coverFnHi">25365</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7578">check_direct_IO.isra.39</a></td>
+              <td class="coverFnHi">25263</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7611">btrfs_direct_IO</a></td>
+              <td class="coverFnHi">25262</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#6906">lock_extent_direct</a></td>
+              <td class="coverFnHi">25259</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#6658">btrfs_new_extent_direct</a></td>
+              <td class="coverFnHi">25259</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7241">btrfs_endio_direct_write</a></td>
+              <td class="coverFnHi">25258</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7391">btrfs_submit_direct_hook</a></td>
+              <td class="coverFnHi">25258</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7014">btrfs_get_blocks_direct</a></td>
+              <td class="coverFnHi">25258</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#6966">create_pinned_em</a></td>
+              <td class="coverFnHi">25256</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7339">__btrfs_submit_dio_bio</a></td>
+              <td class="coverFnHi">25255</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7502">btrfs_submit_direct</a></td>
+              <td class="coverFnHi">25241</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#869">cow_file_range</a></td>
+              <td class="coverFnHi">24236</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7727">btrfs_readpages</a></td>
+              <td class="coverFnHi">24097</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5288">btrfs_real_readdir</a></td>
+              <td class="coverFnHi">22061</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3613">btrfs_update_inode_item</a></td>
+              <td class="coverFnHi">21938</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5635">btrfs_insert_inode_locked</a></td>
+              <td class="coverFnHi">20472</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5646">btrfs_new_inode</a></td>
+              <td class="coverFnHi">20472</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#109">btrfs_init_inode_security</a></td>
+              <td class="coverFnHi">20423</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8280">init_once</a></td>
+              <td class="coverFnHi">15021</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5891">btrfs_create</a></td>
+              <td class="coverFnHi">13864</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4010">btrfs_truncate_inode_items</a></td>
+              <td class="coverFnHi">13759</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1162">run_delalloc_nocow</a></td>
+              <td class="coverFnHi">13707</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5502">btrfs_dirty_inode</a></td>
+              <td class="coverFnHi">13216</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3692">__btrfs_unlink_inode</a></td>
+              <td class="coverFnHi">12289</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#229">cow_file_range_inline</a></td>
+              <td class="coverFnHi">11214</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3791">btrfs_unlink_inode</a></td>
+              <td class="coverFnHi">9978</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3813">__unlink_start_trans</a></td>
+              <td class="coverFnHi">9966</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3104">btrfs_orphan_del</a></td>
+              <td class="coverFnHi">9631</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3018">btrfs_orphan_add</a></td>
+              <td class="coverFnHi">9630</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3849">btrfs_unlink</a></td>
+              <td class="coverFnHi">8623</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4628">btrfs_setattr</a></td>
+              <td class="coverFnHi">8070</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8886">__btrfs_prealloc_file_range</a></td>
+              <td class="coverFnHi">7582</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4267">btrfs_truncate_page</a></td>
+              <td class="coverFnHi">6432</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#2939">btrfs_run_delayed_iputs</a></td>
+              <td class="coverFnHi">6133</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7862">btrfs_page_mkwrite</a></td>
+              <td class="coverFnHi">6081</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1135">csum_exist_in_range.isra.38</a></td>
+              <td class="coverFnHi">5707</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4370">maybe_insert_hole</a></td>
+              <td class="coverFnHi">5031</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5070">btrfs_init_locked_inode</a></td>
+              <td class="coverFnHi">5018</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3411">btrfs_read_locked_inode</a></td>
+              <td class="coverFnHi">5018</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4419">btrfs_cont_expand</a></td>
+              <td class="coverFnHi">4955</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3345">acls_after_inode_item</a></td>
+              <td class="coverFnHi">4946</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#9010">btrfs_prealloc_file_range_trans</a></td>
+              <td class="coverFnHi">3975</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#126">insert_inline_extent</a></td>
+              <td class="coverFnHi">3851</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4524">btrfs_setsize.isra.42</a></td>
+              <td class="coverFnHi">3682</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#9001">btrfs_prealloc_file_range</a></td>
+              <td class="coverFnHi">3607</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5891">btrfs_link</a></td>
+              <td class="coverFnHi">3573</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7982">btrfs_truncate</a></td>
+              <td class="coverFnHi">2723</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#2969">btrfs_orphan_commit_root</a></td>
+              <td class="coverFnHi">2548</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#6121">btrfs_mkdir</a></td>
+              <td class="coverFnHi">2413</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8372">btrfs_rename</a></td>
+              <td class="coverFnHi">2315</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8552">btrfs_rename2</a></td>
+              <td class="coverFnHi">2315</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5891">btrfs_symlink</a></td>
+              <td class="coverFnHi">2172</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5891">btrfs_mknod</a></td>
+              <td class="coverFnHi">2097</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3959">btrfs_rmdir</a></td>
+              <td class="coverFnHi">1911</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#6531">btrfs_get_extent_fiemap</a></td>
+              <td class="coverFnHi">1891</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7752">btrfs_releasepage</a></td>
+              <td class="coverFnHi">1568</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7684">btrfs_fiemap</a></td>
+              <td class="coverFnHi">851</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3139">btrfs_orphan_cleanup</a></td>
+              <td class="coverFnHi">785</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#328">add_async_extent</a></td>
+              <td class="coverFnHi">234</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1066">async_cow_free</a></td>
+              <td class="coverFnHi">211</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#366">compress_file_range</a></td>
+              <td class="coverFnHi">211</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1027">async_cow_start</a></td>
+              <td class="coverFnHi">211</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1045">async_cow_submit</a></td>
+              <td class="coverFnHi">211</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#626">submit_compressed_extents</a></td>
+              <td class="coverFnHi">211</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1075">cow_file_range_async</a></td>
+              <td class="coverFnHi">208</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#4889">fixup_tree_root_location.isra.40</a></td>
+              <td class="coverFnHi">205</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5560">btrfs_set_inode_index_count</a></td>
+              <td class="coverFnHi">185</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8617">__start_delalloc_inodes</a></td>
+              <td class="coverFnHi">155</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8681">btrfs_start_delalloc_inodes</a></td>
+              <td class="coverFnHi">146</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#6196">merge_extent_mapping.isra.35</a></td>
+              <td class="coverFnHi">123</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8707">btrfs_start_delalloc_roots</a></td>
+              <td class="coverFnHi">90</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8562">btrfs_run_delalloc_work</a></td>
+              <td class="coverFnHi">72</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8586">btrfs_alloc_delalloc_work</a></td>
+              <td class="coverFnHi">72</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8607">btrfs_wait_and_free_delalloc_work</a></td>
+              <td class="coverFnHi">72</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8125">btrfs_create_subvol_root</a></td>
+              <td class="coverFnHi">49</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#3879">btrfs_unlink_subvol</a></td>
+              <td class="coverFnHi">34</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5007">btrfs_invalidate_inodes</a></td>
+              <td class="coverFnHi">33</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#9039">btrfs_tmpfile</a></td>
+              <td class="coverFnHi">2</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8287">btrfs_destroy_cachep</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#6215">uncompress_inline.isra.41</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7189">btrfs_endio_direct_read</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7299">btrfs_end_dio_bio</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5133">new_simple_dir</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7332">btrfs_dio_bio_alloc</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#6695">can_nocow_extent</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7288">__btrfs_submit_bio_start_direct_io</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#7703">btrfs_writepage</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#1799">btrfs_writepage_fixup_worker</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#8308">btrfs_init_cachep</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="inode.c.gcov.html#5471">btrfs_write_inode</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+  </table>
+  <br>
+  </center>
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

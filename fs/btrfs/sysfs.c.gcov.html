@@ -1,0 +1,829 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/sysfs.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - sysfs.c<span style="font-size: 80%;"> (source / <a href="sysfs.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">84</td>
+            <td class="headerCovTableEntry">236</td>
+            <td class="headerCovTableEntryLo">35.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">11</td>
+            <td class="headerCovTableEntry">37</td>
+            <td class="headerCovTableEntryLo">29.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2007 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;linux/sched.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/slab.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/spinlock.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;linux/completion.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;linux/buffer_head.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;linux/kobject.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;linux/bug.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;linux/genhd.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;linux/debugfs.h&gt;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;disk-io.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;transaction.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;sysfs.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;volumes.h&quot;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : static inline struct btrfs_fs_info *to_fs_info(struct kobject *kobj);
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : static u64 get_features(struct btrfs_fs_info *fs_info,
+<span class="lineNum">      38 </span>            :                         enum btrfs_feature_set set)
+<a name="39"><span class="lineNum">      39 </span>            : {</a>
+<span class="lineNum">      40 </span>            :         struct btrfs_super_block *disk_super = fs_info-&gt;super_copy;
+<span class="lineNum">      41 </span><span class="lineCov">       3315 :         if (set == FEAT_COMPAT)</span>
+<span class="lineNum">      42 </span>            :                 return btrfs_super_compat_flags(disk_super);
+<span class="lineNum">      43 </span><span class="lineCov">       2873 :         else if (set == FEAT_COMPAT_RO)</span>
+<span class="lineNum">      44 </span>            :                 return btrfs_super_compat_ro_flags(disk_super);
+<span class="lineNum">      45 </span>            :         else
+<span class="lineNum">      46 </span>            :                 return btrfs_super_incompat_flags(disk_super);
+<span class="lineNum">      47 </span>            : }
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : static void set_features(struct btrfs_fs_info *fs_info,
+<span class="lineNum">      50 </span>            :                          enum btrfs_feature_set set, u64 features)
+<span class="lineNum">      51 </span>            : {
+<span class="lineNum">      52 </span>            :         struct btrfs_super_block *disk_super = fs_info-&gt;super_copy;
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :         if (set == FEAT_COMPAT)</span>
+<span class="lineNum">      54 </span>            :                 btrfs_set_super_compat_flags(disk_super, features);
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :         else if (set == FEAT_COMPAT_RO)</span>
+<span class="lineNum">      56 </span>            :                 btrfs_set_super_compat_ro_flags(disk_super, features);
+<span class="lineNum">      57 </span>            :         else
+<span class="lineNum">      58 </span>            :                 btrfs_set_super_incompat_flags(disk_super, features);
+<a name="59"><span class="lineNum">      59 </span>            : }</a>
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span><span class="lineCov">       1989 : static int can_modify_feature(struct btrfs_feature_attr *fa)</span>
+<span class="lineNum">      62 </span>            : {
+<span class="lineNum">      63 </span>            :         int val = 0;
+<span class="lineNum">      64 </span>            :         u64 set, clear;
+<span class="lineNum">      65 </span><span class="lineCov">       1989 :         switch (fa-&gt;feature_set) {</span>
+<span class="lineNum">      66 </span>            :         case FEAT_COMPAT:
+<span class="lineNum">      67 </span>            :                 set = BTRFS_FEATURE_COMPAT_SAFE_SET;
+<span class="lineNum">      68 </span>            :                 clear = BTRFS_FEATURE_COMPAT_SAFE_CLEAR;
+<span class="lineNum">      69 </span>            :                 break;
+<span class="lineNum">      70 </span>            :         case FEAT_COMPAT_RO:
+<span class="lineNum">      71 </span>            :                 set = BTRFS_FEATURE_COMPAT_RO_SAFE_SET;
+<span class="lineNum">      72 </span>            :                 clear = BTRFS_FEATURE_COMPAT_RO_SAFE_CLEAR;
+<span class="lineNum">      73 </span>            :                 break;
+<span class="lineNum">      74 </span>            :         case FEAT_INCOMPAT:
+<span class="lineNum">      75 </span>            :                 set = BTRFS_FEATURE_INCOMPAT_SAFE_SET;
+<span class="lineNum">      76 </span>            :                 clear = BTRFS_FEATURE_INCOMPAT_SAFE_CLEAR;
+<span class="lineNum">      77 </span>            :                 break;
+<span class="lineNum">      78 </span>            :         default:
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :                 printk(KERN_WARNING &quot;btrfs: sysfs: unknown feature set %d\n&quot;,</span>
+<span class="lineNum">      80 </span>            :                                 fa-&gt;feature_set);
+<span class="lineNum">      81 </span>            :                 return 0;
+<span class="lineNum">      82 </span>            :         }
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span><span class="lineCov">       1989 :         if (set &amp; fa-&gt;feature_bit)</span>
+<span class="lineNum">      85 </span>            :                 val |= 1;
+<span class="lineNum">      86 </span>            :         if (clear &amp; fa-&gt;feature_bit)
+<span class="lineNum">      87 </span>            :                 val |= 2;
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span>            :         return val;
+<span class="lineNum">      90 </span>            : }
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 : static ssize_t btrfs_feature_attr_show(struct kobject *kobj,</span>
+<span class="lineNum">      93 </span>            :                                        struct kobj_attribute *a, char *buf)
+<span class="lineNum">      94 </span>            : {
+<span class="lineNum">      95 </span>            :         int val = 0;
+<span class="lineNum">      96 </span><span class="lineNoCov">          0 :         struct btrfs_fs_info *fs_info = to_fs_info(kobj);</span>
+<span class="lineNum">      97 </span><span class="lineNoCov">          0 :         struct btrfs_feature_attr *fa = to_btrfs_feature_attr(a);</span>
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :         if (fs_info) {</span>
+<span class="lineNum">      99 </span><span class="lineNoCov">          0 :                 u64 features = get_features(fs_info, fa-&gt;feature_set);</span>
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :                 if (features &amp; fa-&gt;feature_bit)</span>
+<span class="lineNum">     101 </span>            :                         val = 1;
+<span class="lineNum">     102 </span>            :         } else
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :                 val = can_modify_feature(fa);</span>
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span><span class="lineNoCov">          0 :         return snprintf(buf, PAGE_SIZE, &quot;%d\n&quot;, val);</span>
+<span class="lineNum">     106 </span>            : }
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 : static ssize_t btrfs_feature_attr_store(struct kobject *kobj,</span>
+<span class="lineNum">     109 </span>            :                                         struct kobj_attribute *a,
+<span class="lineNum">     110 </span>            :                                         const char *buf, size_t count)
+<span class="lineNum">     111 </span>            : {
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :         struct btrfs_fs_info *fs_info;</span>
+<span class="lineNum">     113 </span>            :         struct btrfs_feature_attr *fa = to_btrfs_feature_attr(a);
+<span class="lineNum">     114 </span>            :         struct btrfs_trans_handle *trans;
+<span class="lineNum">     115 </span>            :         u64 features, set, clear;
+<span class="lineNum">     116 </span>            :         unsigned long val;
+<span class="lineNum">     117 </span>            :         int ret;
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            :         fs_info = to_fs_info(kobj);
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :         if (!fs_info)</span>
+<span class="lineNum">     121 </span>            :                 return -EPERM;
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         ret = kstrtoul(skip_spaces(buf), 0, &amp;val);</span>
+<span class="lineNum">     124 </span><span class="lineNoCov">          0 :         if (ret)</span>
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         if (fa-&gt;feature_set == FEAT_COMPAT) {</span>
+<span class="lineNum">     128 </span>            :                 set = BTRFS_FEATURE_COMPAT_SAFE_SET;
+<span class="lineNum">     129 </span>            :                 clear = BTRFS_FEATURE_COMPAT_SAFE_CLEAR;
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         } else if (fa-&gt;feature_set == FEAT_COMPAT_RO) {</span>
+<span class="lineNum">     131 </span>            :                 set = BTRFS_FEATURE_COMPAT_RO_SAFE_SET;
+<span class="lineNum">     132 </span>            :                 clear = BTRFS_FEATURE_COMPAT_RO_SAFE_CLEAR;
+<span class="lineNum">     133 </span>            :         } else {
+<span class="lineNum">     134 </span>            :                 set = BTRFS_FEATURE_INCOMPAT_SAFE_SET;
+<span class="lineNum">     135 </span>            :                 clear = BTRFS_FEATURE_INCOMPAT_SAFE_CLEAR;
+<span class="lineNum">     136 </span>            :         }
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :         features = get_features(fs_info, fa-&gt;feature_set);
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            :         /* Nothing to do */
+<span class="lineNum">     141 </span><span class="lineNoCov">          0 :         if ((val &amp;&amp; (features &amp; fa-&gt;feature_bit)) ||</span>
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :             (!val &amp;&amp; !(features &amp; fa-&gt;feature_bit)))</span>
+<span class="lineNum">     143 </span><span class="lineNoCov">          0 :                 return count;</span>
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :         if ((val &amp;&amp; !(set &amp; fa-&gt;feature_bit)) ||</span>
+<span class="lineNum">     146 </span>            :             (!val &amp;&amp; !(clear &amp; fa-&gt;feature_bit))) {
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :                 btrfs_info(fs_info,</span>
+<span class="lineNum">     148 </span>            :                         &quot;%sabling feature %s on mounted fs is not supported.&quot;,
+<span class="lineNum">     149 </span>            :                         val ? &quot;En&quot; : &quot;Dis&quot;, fa-&gt;kobj_attr.attr.name);
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :                 return -EPERM;</span>
+<span class="lineNum">     151 </span>            :         }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         btrfs_info(fs_info, &quot;%s %s feature flag&quot;,</span>
+<span class="lineNum">     154 </span>            :                    val ? &quot;Setting&quot; : &quot;Clearing&quot;, fa-&gt;kobj_attr.attr.name);
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         trans = btrfs_start_transaction(fs_info-&gt;fs_root, 0);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         if (IS_ERR(trans))</span>
+<span class="lineNum">     158 </span><span class="lineNoCov">          0 :                 return PTR_ERR(trans);</span>
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            :         spin_lock(&amp;fs_info-&gt;super_lock);
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :         features = get_features(fs_info, fa-&gt;feature_set);</span>
+<span class="lineNum">     162 </span><span class="lineNoCov">          0 :         if (val)</span>
+<span class="lineNum">     163 </span><span class="lineNoCov">          0 :                 features |= fa-&gt;feature_bit;</span>
+<span class="lineNum">     164 </span>            :         else
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                 features &amp;= ~fa-&gt;feature_bit;</span>
+<span class="lineNum">     166 </span>            :         set_features(fs_info, fa-&gt;feature_set, features);
+<span class="lineNum">     167 </span>            :         spin_unlock(&amp;fs_info-&gt;super_lock);
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :         ret = btrfs_commit_transaction(trans, fs_info-&gt;fs_root);</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :         if (ret)</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :         return count;</span>
+<span class="lineNum">     174 </span>            : }
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span><span class="lineCov">       1989 : static umode_t btrfs_feature_visible(struct kobject *kobj,</span>
+<span class="lineNum">     177 </span>            :                                      struct attribute *attr, int unused)
+<span class="lineNum">     178 </span>            : {
+<span class="lineNum">     179 </span><span class="lineCov">       1989 :         struct btrfs_fs_info *fs_info = to_fs_info(kobj);</span>
+<span class="lineNum">     180 </span><span class="lineCov">       1989 :         umode_t mode = attr-&gt;mode;</span>
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineCov">       1989 :         if (fs_info) {</span>
+<span class="lineNum">     183 </span>            :                 struct btrfs_feature_attr *fa;
+<span class="lineNum">     184 </span>            :                 u64 features;
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            :                 fa = attr_to_btrfs_feature_attr(attr);
+<span class="lineNum">     187 </span><span class="lineCov">       1989 :                 features = get_features(fs_info, fa-&gt;feature_set);</span>
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span><span class="lineCov">       1989 :                 if (can_modify_feature(fa))</span>
+<span class="lineNum">     190 </span><span class="lineCov">        221 :                         mode |= S_IWUSR;</span>
+<span class="lineNum">     191 </span><span class="lineCov">       1768 :                 else if (!(features &amp; fa-&gt;feature_bit))</span>
+<span class="lineNum">     192 </span>            :                         mode = 0;
+<span class="lineNum">     193 </span>            :         }
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span><span class="lineCov">       1989 :         return mode;</span>
+<span class="lineNum">     196 </span>            : }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : BTRFS_FEAT_ATTR_INCOMPAT(mixed_backref, MIXED_BACKREF);
+<span class="lineNum">     199 </span>            : BTRFS_FEAT_ATTR_INCOMPAT(default_subvol, DEFAULT_SUBVOL);
+<span class="lineNum">     200 </span>            : BTRFS_FEAT_ATTR_INCOMPAT(mixed_groups, MIXED_GROUPS);
+<span class="lineNum">     201 </span>            : BTRFS_FEAT_ATTR_INCOMPAT(compress_lzo, COMPRESS_LZO);
+<span class="lineNum">     202 </span>            : BTRFS_FEAT_ATTR_INCOMPAT(big_metadata, BIG_METADATA);
+<span class="lineNum">     203 </span>            : BTRFS_FEAT_ATTR_INCOMPAT(extended_iref, EXTENDED_IREF);
+<span class="lineNum">     204 </span>            : BTRFS_FEAT_ATTR_INCOMPAT(raid56, RAID56);
+<span class="lineNum">     205 </span>            : BTRFS_FEAT_ATTR_INCOMPAT(skinny_metadata, SKINNY_METADATA);
+<span class="lineNum">     206 </span>            : BTRFS_FEAT_ATTR_INCOMPAT(no_holes, NO_HOLES);
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span>            : static struct attribute *btrfs_supported_feature_attrs[] = {
+<span class="lineNum">     209 </span>            :         BTRFS_FEAT_ATTR_PTR(mixed_backref),
+<span class="lineNum">     210 </span>            :         BTRFS_FEAT_ATTR_PTR(default_subvol),
+<span class="lineNum">     211 </span>            :         BTRFS_FEAT_ATTR_PTR(mixed_groups),
+<span class="lineNum">     212 </span>            :         BTRFS_FEAT_ATTR_PTR(compress_lzo),
+<span class="lineNum">     213 </span>            :         BTRFS_FEAT_ATTR_PTR(big_metadata),
+<span class="lineNum">     214 </span>            :         BTRFS_FEAT_ATTR_PTR(extended_iref),
+<span class="lineNum">     215 </span>            :         BTRFS_FEAT_ATTR_PTR(raid56),
+<span class="lineNum">     216 </span>            :         BTRFS_FEAT_ATTR_PTR(skinny_metadata),
+<span class="lineNum">     217 </span>            :         BTRFS_FEAT_ATTR_PTR(no_holes),
+<span class="lineNum">     218 </span>            :         NULL
+<span class="lineNum">     219 </span>            : };
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            : static const struct attribute_group btrfs_feature_attr_group = {
+<span class="lineNum">     222 </span>            :         .name = &quot;features&quot;,
+<span class="lineNum">     223 </span>            :         .is_visible = btrfs_feature_visible,
+<span class="lineNum">     224 </span>            :         .attrs = btrfs_supported_feature_attrs,
+<a name="225"><span class="lineNum">     225 </span>            : };</a>
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span><span class="lineNoCov">          0 : static ssize_t btrfs_show_u64(u64 *value_ptr, spinlock_t *lock, char *buf)</span>
+<span class="lineNum">     228 </span>            : {
+<span class="lineNum">     229 </span>            :         u64 val;
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :         if (lock)</span>
+<span class="lineNum">     231 </span>            :                 spin_lock(lock);
+<span class="lineNum">     232 </span><span class="lineNoCov">          0 :         val = *value_ptr;</span>
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :         if (lock)</span>
+<span class="lineNum">     234 </span>            :                 spin_unlock(lock);
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         return snprintf(buf, PAGE_SIZE, &quot;%llu\n&quot;, val);</span>
+<a name="236"><span class="lineNum">     236 </span>            : }</a>
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span><span class="lineNoCov">          0 : static ssize_t global_rsv_size_show(struct kobject *kobj,</span>
+<span class="lineNum">     239 </span>            :                                     struct kobj_attribute *ka, char *buf)
+<span class="lineNum">     240 </span>            : {
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :         struct btrfs_fs_info *fs_info = to_fs_info(kobj-&gt;parent);</span>
+<span class="lineNum">     242 </span>            :         struct btrfs_block_rsv *block_rsv = &amp;fs_info-&gt;global_block_rsv;
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :         return btrfs_show_u64(&amp;block_rsv-&gt;size, &amp;block_rsv-&gt;lock, buf);</span>
+<span class="lineNum">     244 </span>            : }
+<a name="245"><span class="lineNum">     245 </span>            : BTRFS_ATTR(global_rsv_size, 0444, global_rsv_size_show);</a>
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 : static ssize_t global_rsv_reserved_show(struct kobject *kobj,</span>
+<span class="lineNum">     248 </span>            :                                         struct kobj_attribute *a, char *buf)
+<span class="lineNum">     249 </span>            : {
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         struct btrfs_fs_info *fs_info = to_fs_info(kobj-&gt;parent);</span>
+<span class="lineNum">     251 </span>            :         struct btrfs_block_rsv *block_rsv = &amp;fs_info-&gt;global_block_rsv;
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         return btrfs_show_u64(&amp;block_rsv-&gt;reserved, &amp;block_rsv-&gt;lock, buf);</span>
+<span class="lineNum">     253 </span>            : }
+<span class="lineNum">     254 </span>            : BTRFS_ATTR(global_rsv_reserved, 0444, global_rsv_reserved_show);
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            : #define to_space_info(_kobj) container_of(_kobj, struct btrfs_space_info, kobj)
+<span class="lineNum">     257 </span>            : #define to_raid_kobj(_kobj) container_of(_kobj, struct raid_kobject, kobj)
+<span class="lineNum">     258 </span>            : 
+<span class="lineNum">     259 </span>            : static ssize_t raid_bytes_show(struct kobject *kobj,
+<span class="lineNum">     260 </span>            :                                struct kobj_attribute *attr, char *buf);
+<span class="lineNum">     261 </span>            : BTRFS_RAID_ATTR(total_bytes, raid_bytes_show);
+<a name="262"><span class="lineNum">     262 </span>            : BTRFS_RAID_ATTR(used_bytes, raid_bytes_show);</a>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 : static ssize_t raid_bytes_show(struct kobject *kobj,</span>
+<span class="lineNum">     265 </span>            :                                struct kobj_attribute *attr, char *buf)
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            : {
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         struct btrfs_space_info *sinfo = to_space_info(kobj-&gt;parent);</span>
+<span class="lineNum">     269 </span>            :         struct btrfs_block_group_cache *block_group;
+<span class="lineNum">     270 </span><span class="lineNoCov">          0 :         int index = to_raid_kobj(kobj)-&gt;raid_type;</span>
+<span class="lineNum">     271 </span>            :         u64 val = 0;
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :         down_read(&amp;sinfo-&gt;groups_sem);</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :         list_for_each_entry(block_group, &amp;sinfo-&gt;block_groups[index], list) {</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :                 if (&amp;attr-&gt;attr == BTRFS_RAID_ATTR_PTR(total_bytes))</span>
+<span class="lineNum">     276 </span><span class="lineNoCov">          0 :                         val += block_group-&gt;key.offset;</span>
+<span class="lineNum">     277 </span>            :                 else
+<span class="lineNum">     278 </span><span class="lineNoCov">          0 :                         val += btrfs_block_group_used(&amp;block_group-&gt;item);</span>
+<span class="lineNum">     279 </span>            :         }
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :         up_read(&amp;sinfo-&gt;groups_sem);</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :         return snprintf(buf, PAGE_SIZE, &quot;%llu\n&quot;, val);</span>
+<span class="lineNum">     282 </span>            : }
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span>            : static struct attribute *raid_attributes[] = {
+<span class="lineNum">     285 </span>            :         BTRFS_RAID_ATTR_PTR(total_bytes),
+<span class="lineNum">     286 </span>            :         BTRFS_RAID_ATTR_PTR(used_bytes),
+<span class="lineNum">     287 </span>            :         NULL
+<a name="288"><span class="lineNum">     288 </span>            : };</a>
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineCov">       1090 : static void release_raid_kobj(struct kobject *kobj)</span>
+<span class="lineNum">     291 </span>            : {
+<span class="lineNum">     292 </span><span class="lineCov">       1090 :         kfree(to_raid_kobj(kobj));</span>
+<span class="lineNum">     293 </span><span class="lineCov">       1090 : }</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            : struct kobj_type btrfs_raid_ktype = {
+<span class="lineNum">     296 </span>            :         .sysfs_ops = &amp;kobj_sysfs_ops,
+<span class="lineNum">     297 </span>            :         .release = release_raid_kobj,
+<span class="lineNum">     298 </span>            :         .default_attrs = raid_attributes,
+<span class="lineNum">     299 </span>            : };
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            : #define SPACE_INFO_ATTR(field)                                          \
+<span class="lineNum">     302 </span>            : static ssize_t btrfs_space_info_show_##field(struct kobject *kobj,      \
+<span class="lineNum">     303 </span>            :                                              struct kobj_attribute *a,  \
+<span class="lineNum">     304 </span>            :                                              char *buf)                 \
+<span class="lineNum">     305 </span>            : {                                                                       \
+<span class="lineNum">     306 </span>            :         struct btrfs_space_info *sinfo = to_space_info(kobj);           \
+<span class="lineNum">     307 </span>            :         return btrfs_show_u64(&amp;sinfo-&gt;field, &amp;sinfo-&gt;lock, buf);  \
+<span class="lineNum">     308 </span>            : }                                                                       \
+<a name="309"><span class="lineNum">     309 </span>            : BTRFS_ATTR(field, 0444, btrfs_space_info_show_##field)</a>
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 : static ssize_t btrfs_space_info_show_total_bytes_pinned(struct kobject *kobj,</span>
+<span class="lineNum">     312 </span>            :                                                        struct kobj_attribute *a,
+<span class="lineNum">     313 </span>            :                                                        char *buf)
+<span class="lineNum">     314 </span>            : {
+<span class="lineNum">     315 </span>            :         struct btrfs_space_info *sinfo = to_space_info(kobj);
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :         s64 val = percpu_counter_sum(&amp;sinfo-&gt;total_bytes_pinned);</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :         return snprintf(buf, PAGE_SIZE, &quot;%lld\n&quot;, val);</span>
+<a name="318"><span class="lineNum">     318 </span>            : }</a>
+<a name="319"><span class="lineNum">     319 </span>            : </a>
+<a name="320"><span class="lineNum">     320 </span><span class="lineNoCov">          0 : SPACE_INFO_ATTR(flags);</span></a>
+<a name="321"><span class="lineNum">     321 </span><span class="lineNoCov">          0 : SPACE_INFO_ATTR(total_bytes);</span></a>
+<a name="322"><span class="lineNum">     322 </span><span class="lineNoCov">          0 : SPACE_INFO_ATTR(bytes_used);</span></a>
+<a name="323"><span class="lineNum">     323 </span><span class="lineNoCov">          0 : SPACE_INFO_ATTR(bytes_pinned);</span></a>
+<a name="324"><span class="lineNum">     324 </span><span class="lineNoCov">          0 : SPACE_INFO_ATTR(bytes_reserved);</span></a>
+<a name="325"><span class="lineNum">     325 </span><span class="lineNoCov">          0 : SPACE_INFO_ATTR(bytes_may_use);</span></a>
+<span class="lineNum">     326 </span><span class="lineNoCov">          0 : SPACE_INFO_ATTR(disk_used);</span>
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 : SPACE_INFO_ATTR(disk_total);</span>
+<span class="lineNum">     328 </span>            : BTRFS_ATTR(total_bytes_pinned, 0444, btrfs_space_info_show_total_bytes_pinned);
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span>            : static struct attribute *space_info_attrs[] = {
+<span class="lineNum">     331 </span>            :         BTRFS_ATTR_PTR(flags),
+<span class="lineNum">     332 </span>            :         BTRFS_ATTR_PTR(total_bytes),
+<span class="lineNum">     333 </span>            :         BTRFS_ATTR_PTR(bytes_used),
+<span class="lineNum">     334 </span>            :         BTRFS_ATTR_PTR(bytes_pinned),
+<span class="lineNum">     335 </span>            :         BTRFS_ATTR_PTR(bytes_reserved),
+<span class="lineNum">     336 </span>            :         BTRFS_ATTR_PTR(bytes_may_use),
+<span class="lineNum">     337 </span>            :         BTRFS_ATTR_PTR(disk_used),
+<span class="lineNum">     338 </span>            :         BTRFS_ATTR_PTR(disk_total),
+<span class="lineNum">     339 </span>            :         BTRFS_ATTR_PTR(total_bytes_pinned),
+<span class="lineNum">     340 </span>            :         NULL,
+<a name="341"><span class="lineNum">     341 </span>            : };</a>
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineCov">        657 : static void space_info_release(struct kobject *kobj)</span>
+<span class="lineNum">     344 </span>            : {
+<span class="lineNum">     345 </span><span class="lineCov">        657 :         struct btrfs_space_info *sinfo = to_space_info(kobj);</span>
+<span class="lineNum">     346 </span><span class="lineCov">        657 :         percpu_counter_destroy(&amp;sinfo-&gt;total_bytes_pinned);</span>
+<span class="lineNum">     347 </span><span class="lineCov">        657 :         kfree(sinfo);</span>
+<span class="lineNum">     348 </span><span class="lineCov">        657 : }</span>
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            : struct kobj_type space_info_ktype = {
+<span class="lineNum">     351 </span>            :         .sysfs_ops = &amp;kobj_sysfs_ops,
+<span class="lineNum">     352 </span>            :         .release = space_info_release,
+<span class="lineNum">     353 </span>            :         .default_attrs = space_info_attrs,
+<span class="lineNum">     354 </span>            : };
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span>            : static const struct attribute *allocation_attrs[] = {
+<span class="lineNum">     357 </span>            :         BTRFS_ATTR_PTR(global_rsv_reserved),
+<span class="lineNum">     358 </span>            :         BTRFS_ATTR_PTR(global_rsv_size),
+<span class="lineNum">     359 </span>            :         NULL,
+<a name="360"><span class="lineNum">     360 </span>            : };</a>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 : static ssize_t btrfs_label_show(struct kobject *kobj,</span>
+<span class="lineNum">     363 </span>            :                                 struct kobj_attribute *a, char *buf)
+<span class="lineNum">     364 </span>            : {
+<span class="lineNum">     365 </span>            :         struct btrfs_fs_info *fs_info = to_fs_info(kobj);
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :         return snprintf(buf, PAGE_SIZE, &quot;%s\n&quot;, fs_info-&gt;super_copy-&gt;label);</span>
+<a name="367"><span class="lineNum">     367 </span>            : }</a>
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 : static ssize_t btrfs_label_store(struct kobject *kobj,</span>
+<span class="lineNum">     370 </span>            :                                  struct kobj_attribute *a,
+<span class="lineNum">     371 </span>            :                                  const char *buf, size_t len)
+<span class="lineNum">     372 </span>            : {
+<span class="lineNum">     373 </span>            :         struct btrfs_fs_info *fs_info = to_fs_info(kobj);
+<span class="lineNum">     374 </span>            :         struct btrfs_trans_handle *trans;
+<span class="lineNum">     375 </span><span class="lineNoCov">          0 :         struct btrfs_root *root = fs_info-&gt;fs_root;</span>
+<span class="lineNum">     376 </span>            :         int ret;
+<span class="lineNum">     377 </span>            : 
+<span class="lineNum">     378 </span><span class="lineNoCov">          0 :         if (len &gt;= BTRFS_LABEL_SIZE)</span>
+<span class="lineNum">     379 </span>            :                 return -EINVAL;
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :         trans = btrfs_start_transaction(root, 0);</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         if (IS_ERR(trans))</span>
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                 return PTR_ERR(trans);</span>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span><span class="lineNoCov">          0 :         spin_lock(&amp;root-&gt;fs_info-&gt;super_lock);</span>
+<span class="lineNum">     386 </span><span class="lineNoCov">          0 :         strcpy(fs_info-&gt;super_copy-&gt;label, buf);</span>
+<span class="lineNum">     387 </span><span class="lineNoCov">          0 :         spin_unlock(&amp;root-&gt;fs_info-&gt;super_lock);</span>
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         ret = btrfs_commit_transaction(trans, root);</span>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 :         if (!ret)</span>
+<span class="lineNum">     391 </span><span class="lineNoCov">          0 :                 return len;</span>
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     394 </span>            : }
+<a name="395"><span class="lineNum">     395 </span>            : BTRFS_ATTR_RW(label, 0644, btrfs_label_show, btrfs_label_store);</a>
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span><span class="lineNoCov">          0 : static ssize_t btrfs_no_store(struct kobject *kobj,</span>
+<span class="lineNum">     398 </span>            :                                  struct kobj_attribute *a,
+<span class="lineNum">     399 </span>            :                                  const char *buf, size_t len)
+<span class="lineNum">     400 </span>            : {
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :         return -EPERM;</span>
+<a name="402"><span class="lineNum">     402 </span>            : }</a>
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 : static ssize_t btrfs_nodesize_show(struct kobject *kobj,</span>
+<span class="lineNum">     405 </span>            :                                 struct kobj_attribute *a, char *buf)
+<span class="lineNum">     406 </span>            : {
+<span class="lineNum">     407 </span>            :         struct btrfs_fs_info *fs_info = to_fs_info(kobj);
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         return snprintf(buf, PAGE_SIZE, &quot;%u\n&quot;, fs_info-&gt;super_copy-&gt;nodesize);</span>
+<span class="lineNum">     410 </span>            : }
+<span class="lineNum">     411 </span>            : 
+<a name="412"><span class="lineNum">     412 </span>            : BTRFS_ATTR_RW(nodesize, 0444, btrfs_nodesize_show, btrfs_no_store);</a>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 : static ssize_t btrfs_sectorsize_show(struct kobject *kobj,</span>
+<span class="lineNum">     415 </span>            :                                 struct kobj_attribute *a, char *buf)
+<span class="lineNum">     416 </span>            : {
+<span class="lineNum">     417 </span>            :         struct btrfs_fs_info *fs_info = to_fs_info(kobj);
+<span class="lineNum">     418 </span>            : 
+<span class="lineNum">     419 </span><span class="lineNoCov">          0 :         return snprintf(buf, PAGE_SIZE, &quot;%u\n&quot;, fs_info-&gt;super_copy-&gt;sectorsize);</span>
+<span class="lineNum">     420 </span>            : }
+<span class="lineNum">     421 </span>            : 
+<a name="422"><span class="lineNum">     422 </span>            : BTRFS_ATTR_RW(sectorsize, 0444, btrfs_sectorsize_show, btrfs_no_store);</a>
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 : static ssize_t btrfs_clone_alignment_show(struct kobject *kobj,</span>
+<span class="lineNum">     425 </span>            :                                 struct kobj_attribute *a, char *buf)
+<span class="lineNum">     426 </span>            : {
+<span class="lineNum">     427 </span>            :         struct btrfs_fs_info *fs_info = to_fs_info(kobj);
+<span class="lineNum">     428 </span>            : 
+<span class="lineNum">     429 </span><span class="lineNoCov">          0 :         return snprintf(buf, PAGE_SIZE, &quot;%u\n&quot;, fs_info-&gt;super_copy-&gt;sectorsize);</span>
+<span class="lineNum">     430 </span>            : }
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            : BTRFS_ATTR_RW(clone_alignment, 0444, btrfs_clone_alignment_show, btrfs_no_store);
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span>            : static struct attribute *btrfs_attrs[] = {
+<span class="lineNum">     435 </span>            :         BTRFS_ATTR_PTR(label),
+<span class="lineNum">     436 </span>            :         BTRFS_ATTR_PTR(nodesize),
+<span class="lineNum">     437 </span>            :         BTRFS_ATTR_PTR(sectorsize),
+<span class="lineNum">     438 </span>            :         BTRFS_ATTR_PTR(clone_alignment),
+<span class="lineNum">     439 </span>            :         NULL,
+<a name="440"><span class="lineNum">     440 </span>            : };</a>
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span><span class="lineCov">        221 : static void btrfs_release_super_kobj(struct kobject *kobj)</span>
+<span class="lineNum">     443 </span>            : {
+<span class="lineNum">     444 </span>            :         struct btrfs_fs_info *fs_info = to_fs_info(kobj);
+<span class="lineNum">     445 </span><span class="lineCov">        221 :         complete(&amp;fs_info-&gt;kobj_unregister);</span>
+<span class="lineNum">     446 </span><span class="lineCov">        221 : }</span>
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            : static struct kobj_type btrfs_ktype = {
+<span class="lineNum">     449 </span>            :         .sysfs_ops      = &amp;kobj_sysfs_ops,
+<span class="lineNum">     450 </span>            :         .release        = btrfs_release_super_kobj,
+<span class="lineNum">     451 </span>            :         .default_attrs  = btrfs_attrs,
+<span class="lineNum">     452 </span>            : };
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            : static inline struct btrfs_fs_info *to_fs_info(struct kobject *kobj)
+<span class="lineNum">     455 </span>            : {
+<span class="lineNum">     456 </span><span class="lineCov">       2210 :         if (kobj-&gt;ktype != &amp;btrfs_ktype)</span>
+<span class="lineNum">     457 </span>            :                 return NULL;
+<span class="lineNum">     458 </span><span class="lineCov">       2210 :         return container_of(kobj, struct btrfs_fs_info, super_kobj);</span>
+<span class="lineNum">     459 </span>            : }
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span>            : #define NUM_FEATURE_BITS 64
+<span class="lineNum">     462 </span>            : static char btrfs_unknown_feature_names[3][NUM_FEATURE_BITS][13];
+<span class="lineNum">     463 </span>            : static struct btrfs_feature_attr btrfs_feature_attrs[3][NUM_FEATURE_BITS];
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            : static u64 supported_feature_masks[3] = {
+<span class="lineNum">     466 </span>            :         [FEAT_COMPAT]    = BTRFS_FEATURE_COMPAT_SUPP,
+<span class="lineNum">     467 </span>            :         [FEAT_COMPAT_RO] = BTRFS_FEATURE_COMPAT_RO_SUPP,
+<span class="lineNum">     468 </span>            :         [FEAT_INCOMPAT]  = BTRFS_FEATURE_INCOMPAT_SUPP,
+<span class="lineNum">     469 </span>            : };
+<span class="lineNum">     470 </span>            : 
+<span class="lineNum">     471 </span><span class="lineCov">       1768 : static int addrm_unknown_feature_attrs(struct btrfs_fs_info *fs_info, bool add)</span>
+<span class="lineNum">     472 </span>            : {
+<span class="lineNum">     473 </span>            :         int set;
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span><span class="lineCov">       1768 :         for (set = 0; set &lt; FEAT_MAX; set++) {</span>
+<span class="lineNum">     476 </span>            :                 int i;
+<span class="lineNum">     477 </span>            :                 struct attribute *attrs[2];
+<span class="lineNum">     478 </span><span class="lineCov">       1326 :                 struct attribute_group agroup = {</span>
+<span class="lineNum">     479 </span>            :                         .name = &quot;features&quot;,
+<span class="lineNum">     480 </span>            :                         .attrs = attrs,
+<span class="lineNum">     481 </span>            :                 };
+<span class="lineNum">     482 </span><span class="lineCov">       1326 :                 u64 features = get_features(fs_info, set);</span>
+<span class="lineNum">     483 </span><span class="lineCov">       1326 :                 features &amp;= ~supported_feature_masks[set];</span>
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span><span class="lineCov">       1326 :                 if (!features)</span>
+<span class="lineNum">     486 </span><span class="lineCov">       1326 :                         continue;</span>
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :                 attrs[1] = NULL;</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :                 for (i = 0; i &lt; NUM_FEATURE_BITS; i++) {</span>
+<span class="lineNum">     490 </span>            :                         struct btrfs_feature_attr *fa;
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :                         if (!(features &amp; (1ULL &lt;&lt; i)))</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :                         fa = &amp;btrfs_feature_attrs[set][i];</span>
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :                         attrs[0] = &amp;fa-&gt;kobj_attr.attr;</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :                         if (add) {</span>
+<span class="lineNum">     498 </span>            :                                 int ret;
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :                                 ret = sysfs_merge_group(&amp;fs_info-&gt;super_kobj,</span>
+<span class="lineNum">     500 </span>            :                                                         &amp;agroup);
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :                                 if (ret)</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :                                         return ret;</span>
+<span class="lineNum">     503 </span>            :                         } else
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :                                 sysfs_unmerge_group(&amp;fs_info-&gt;super_kobj,</span>
+<span class="lineNum">     505 </span>            :                                                     &amp;agroup);
+<span class="lineNum">     506 </span>            :                 }
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span>            :         }
+<span class="lineNum">     509 </span>            :         return 0;
+<a name="510"><span class="lineNum">     510 </span>            : }</a>
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span><span class="lineCov">        221 : static void __btrfs_sysfs_remove_one(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     513 </span>            : {
+<span class="lineNum">     514 </span><span class="lineCov">        221 :         kobject_del(&amp;fs_info-&gt;super_kobj);</span>
+<span class="lineNum">     515 </span><span class="lineCov">        221 :         kobject_put(&amp;fs_info-&gt;super_kobj);</span>
+<span class="lineNum">     516 </span><span class="lineCov">        221 :         wait_for_completion(&amp;fs_info-&gt;kobj_unregister);</span>
+<a name="517"><span class="lineNum">     517 </span><span class="lineCov">        221 : }</span></a>
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span><span class="lineCov">        221 : void btrfs_sysfs_remove_one(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     520 </span>            : {
+<span class="lineNum">     521 </span><span class="lineCov">        221 :         if (fs_info-&gt;space_info_kobj) {</span>
+<span class="lineNum">     522 </span><span class="lineCov">        221 :                 sysfs_remove_files(fs_info-&gt;space_info_kobj, allocation_attrs);</span>
+<span class="lineNum">     523 </span><span class="lineCov">        221 :                 kobject_del(fs_info-&gt;space_info_kobj);</span>
+<span class="lineNum">     524 </span><span class="lineCov">        221 :                 kobject_put(fs_info-&gt;space_info_kobj);</span>
+<span class="lineNum">     525 </span>            :         }
+<span class="lineNum">     526 </span><span class="lineCov">        221 :         kobject_del(fs_info-&gt;device_dir_kobj);</span>
+<span class="lineNum">     527 </span><span class="lineCov">        221 :         kobject_put(fs_info-&gt;device_dir_kobj);</span>
+<span class="lineNum">     528 </span><span class="lineCov">        221 :         addrm_unknown_feature_attrs(fs_info, false);</span>
+<span class="lineNum">     529 </span><span class="lineCov">        221 :         sysfs_remove_group(&amp;fs_info-&gt;super_kobj, &amp;btrfs_feature_attr_group);</span>
+<span class="lineNum">     530 </span><span class="lineCov">        221 :         __btrfs_sysfs_remove_one(fs_info);</span>
+<span class="lineNum">     531 </span><span class="lineCov">        221 : }</span>
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span>            : const char * const btrfs_feature_set_names[3] = {
+<span class="lineNum">     534 </span>            :         [FEAT_COMPAT]    = &quot;compat&quot;,
+<span class="lineNum">     535 </span>            :         [FEAT_COMPAT_RO] = &quot;compat_ro&quot;,
+<span class="lineNum">     536 </span>            :         [FEAT_INCOMPAT]  = &quot;incompat&quot;,
+<a name="537"><span class="lineNum">     537 </span>            : };</a>
+<span class="lineNum">     538 </span>            : 
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 : char *btrfs_printable_features(enum btrfs_feature_set set, u64 flags)</span>
+<span class="lineNum">     540 </span>            : {
+<span class="lineNum">     541 </span>            :         size_t bufsize = 4096; /* safe max, 64 names * 64 bytes */
+<span class="lineNum">     542 </span>            :         int len = 0;
+<span class="lineNum">     543 </span>            :         int i;
+<span class="lineNum">     544 </span>            :         char *str;
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            :         str = kmalloc(bufsize, GFP_KERNEL);
+<span class="lineNum">     547 </span><span class="lineNoCov">          0 :         if (!str)</span>
+<span class="lineNum">     548 </span>            :                 return str;
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; ARRAY_SIZE(btrfs_feature_attrs[set]); i++) {</span>
+<span class="lineNum">     551 </span>            :                 const char *name;
+<span class="lineNum">     552 </span>            : 
+<span class="lineNum">     553 </span><span class="lineNoCov">          0 :                 if (!(flags &amp; (1ULL &lt;&lt; i)))</span>
+<span class="lineNum">     554 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span><span class="lineNoCov">          0 :                 name = btrfs_feature_attrs[set][i].kobj_attr.attr.name;</span>
+<span class="lineNum">     557 </span><span class="lineNoCov">          0 :                 len += snprintf(str + len, bufsize - len, &quot;%s%s&quot;,</span>
+<span class="lineNum">     558 </span>            :                                 len ? &quot;,&quot; : &quot;&quot;, name);
+<span class="lineNum">     559 </span>            :         }
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span>            :         return str;
+<a name="562"><span class="lineNum">     562 </span>            : }</a>
+<span class="lineNum">     563 </span>            : 
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 : static void init_feature_attrs(void)</span>
+<span class="lineNum">     565 </span>            : {
+<span class="lineNum">     566 </span>            :         struct btrfs_feature_attr *fa;
+<span class="lineNum">     567 </span>            :         int set, i;
+<span class="lineNum">     568 </span>            : 
+<span class="lineNum">     569 </span>            :         BUILD_BUG_ON(ARRAY_SIZE(btrfs_unknown_feature_names) !=
+<span class="lineNum">     570 </span>            :                      ARRAY_SIZE(btrfs_feature_attrs));
+<span class="lineNum">     571 </span>            :         BUILD_BUG_ON(ARRAY_SIZE(btrfs_unknown_feature_names[0]) !=
+<span class="lineNum">     572 </span>            :                      ARRAY_SIZE(btrfs_feature_attrs[0]));
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span><span class="lineNoCov">          0 :         memset(btrfs_feature_attrs, 0, sizeof(btrfs_feature_attrs));</span>
+<span class="lineNum">     575 </span><span class="lineNoCov">          0 :         memset(btrfs_unknown_feature_names, 0,</span>
+<span class="lineNum">     576 </span>            :                sizeof(btrfs_unknown_feature_names));
+<span class="lineNum">     577 </span>            : 
+<span class="lineNum">     578 </span><span class="lineNoCov">          0 :         for (i = 0; btrfs_supported_feature_attrs[i]; i++) {</span>
+<span class="lineNum">     579 </span>            :                 struct btrfs_feature_attr *sfa;
+<span class="lineNum">     580 </span>            :                 struct attribute *a = btrfs_supported_feature_attrs[i];
+<span class="lineNum">     581 </span>            :                 int bit;
+<span class="lineNum">     582 </span>            :                 sfa = attr_to_btrfs_feature_attr(a);
+<span class="lineNum">     583 </span><span class="lineNoCov">          0 :                 bit = ilog2(sfa-&gt;feature_bit);</span>
+<span class="lineNum">     584 </span><span class="lineNoCov">          0 :                 fa = &amp;btrfs_feature_attrs[sfa-&gt;feature_set][bit];</span>
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span><span class="lineNoCov">          0 :                 fa-&gt;kobj_attr.attr.name = sfa-&gt;kobj_attr.attr.name;</span>
+<span class="lineNum">     587 </span>            :         }
+<span class="lineNum">     588 </span>            : 
+<span class="lineNum">     589 </span><span class="lineNoCov">          0 :         for (set = 0; set &lt; FEAT_MAX; set++) {</span>
+<span class="lineNum">     590 </span><span class="lineNoCov">          0 :                 for (i = 0; i &lt; ARRAY_SIZE(btrfs_feature_attrs[set]); i++) {</span>
+<span class="lineNum">     591 </span><span class="lineNoCov">          0 :                         char *name = btrfs_unknown_feature_names[set][i];</span>
+<span class="lineNum">     592 </span><span class="lineNoCov">          0 :                         fa = &amp;btrfs_feature_attrs[set][i];</span>
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span><span class="lineNoCov">          0 :                         if (fa-&gt;kobj_attr.attr.name)</span>
+<span class="lineNum">     595 </span><span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span><span class="lineNoCov">          0 :                         snprintf(name, 13, &quot;%s:%u&quot;,</span>
+<span class="lineNum">     598 </span>            :                                  btrfs_feature_set_names[set], i);
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span><span class="lineNoCov">          0 :                         fa-&gt;kobj_attr.attr.name = name;</span>
+<span class="lineNum">     601 </span><span class="lineNoCov">          0 :                         fa-&gt;kobj_attr.attr.mode = S_IRUGO;</span>
+<span class="lineNum">     602 </span><span class="lineNoCov">          0 :                         fa-&gt;feature_set = set;</span>
+<span class="lineNum">     603 </span><span class="lineNoCov">          0 :                         fa-&gt;feature_bit = 1ULL &lt;&lt; i;</span>
+<span class="lineNum">     604 </span>            :                 }
+<span class="lineNum">     605 </span>            :         }
+<a name="606"><span class="lineNum">     606 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span><span class="lineCov">          7 : int btrfs_kobj_rm_device(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     609 </span>            :                 struct btrfs_device *one_device)
+<span class="lineNum">     610 </span>            : {
+<span class="lineNum">     611 </span>            :         struct hd_struct *disk;
+<span class="lineNum">     612 </span>            :         struct kobject *disk_kobj;
+<span class="lineNum">     613 </span>            : 
+<span class="lineNum">     614 </span><span class="lineCov">          7 :         if (!fs_info-&gt;device_dir_kobj)</span>
+<span class="lineNum">     615 </span>            :                 return -EINVAL;
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span><span class="lineCov">          7 :         if (one_device &amp;&amp; one_device-&gt;bdev) {</span>
+<span class="lineNum">     618 </span><span class="lineCov">          7 :                 disk = one_device-&gt;bdev-&gt;bd_part;</span>
+<span class="lineNum">     619 </span>            :                 disk_kobj = &amp;part_to_dev(disk)-&gt;kobj;
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span><span class="lineCov">          7 :                 sysfs_remove_link(fs_info-&gt;device_dir_kobj,</span>
+<span class="lineNum">     622 </span>            :                                                 disk_kobj-&gt;name);
+<span class="lineNum">     623 </span>            :         }
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span>            :         return 0;
+<a name="626"><span class="lineNum">     626 </span>            : }</a>
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span><span class="lineCov">        228 : int btrfs_kobj_add_device(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     629 </span>            :                 struct btrfs_device *one_device)
+<span class="lineNum">     630 </span>            : {
+<span class="lineNum">     631 </span>            :         int error = 0;
+<span class="lineNum">     632 </span><span class="lineCov">        228 :         struct btrfs_fs_devices *fs_devices = fs_info-&gt;fs_devices;</span>
+<span class="lineNum">     633 </span>            :         struct btrfs_device *dev;
+<span class="lineNum">     634 </span>            : 
+<span class="lineNum">     635 </span><span class="lineCov">        228 :         if (!fs_info-&gt;device_dir_kobj)</span>
+<span class="lineNum">     636 </span><span class="lineCov">        221 :                 fs_info-&gt;device_dir_kobj = kobject_create_and_add(&quot;devices&quot;,</span>
+<span class="lineNum">     637 </span>            :                                                 &amp;fs_info-&gt;super_kobj);
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span><span class="lineCov">        228 :         if (!fs_info-&gt;device_dir_kobj)</span>
+<span class="lineNum">     640 </span>            :                 return -ENOMEM;
+<span class="lineNum">     641 </span>            : 
+<span class="lineNum">     642 </span><span class="lineCov">        493 :         list_for_each_entry(dev, &amp;fs_devices-&gt;devices, dev_list) {</span>
+<span class="lineNum">     643 </span>            :                 struct hd_struct *disk;
+<span class="lineNum">     644 </span>            :                 struct kobject *disk_kobj;
+<span class="lineNum">     645 </span>            : 
+<span class="lineNum">     646 </span><span class="lineCov">        265 :                 if (!dev-&gt;bdev)</span>
+<span class="lineNum">     647 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     648 </span>            : 
+<span class="lineNum">     649 </span><span class="lineCov">        265 :                 if (one_device &amp;&amp; one_device != dev)</span>
+<span class="lineNum">     650 </span><span class="lineCov">         10 :                         continue;</span>
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span><span class="lineCov">        255 :                 disk = dev-&gt;bdev-&gt;bd_part;</span>
+<span class="lineNum">     653 </span><span class="lineCov">        255 :                 disk_kobj = &amp;part_to_dev(disk)-&gt;kobj;</span>
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span><span class="lineCov">        255 :                 error = sysfs_create_link(fs_info-&gt;device_dir_kobj,</span>
+<span class="lineNum">     656 </span>            :                                           disk_kobj, disk_kobj-&gt;name);
+<span class="lineNum">     657 </span><span class="lineCov">        255 :                 if (error)</span>
+<span class="lineNum">     658 </span>            :                         break;
+<span class="lineNum">     659 </span>            :         }
+<span class="lineNum">     660 </span>            : 
+<span class="lineNum">     661 </span><span class="lineCov">        228 :         return error;</span>
+<span class="lineNum">     662 </span>            : }
+<span class="lineNum">     663 </span>            : 
+<span class="lineNum">     664 </span>            : /* /sys/fs/btrfs/ entry */
+<span class="lineNum">     665 </span>            : static struct kset *btrfs_kset;
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span>            : /* /sys/kernel/debug/btrfs */
+<span class="lineNum">     668 </span>            : static struct dentry *btrfs_debugfs_root_dentry;
+<span class="lineNum">     669 </span>            : 
+<span class="lineNum">     670 </span>            : /* Debugging tunables and exported data */
+<a name="671"><span class="lineNum">     671 </span>            : u64 btrfs_debugfs_test;</a>
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span><span class="lineCov">        221 : int btrfs_sysfs_add_one(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     674 </span>            : {
+<span class="lineNum">     675 </span>            :         int error;
+<span class="lineNum">     676 </span>            : 
+<span class="lineNum">     677 </span>            :         init_completion(&amp;fs_info-&gt;kobj_unregister);
+<span class="lineNum">     678 </span><span class="lineCov">        221 :         fs_info-&gt;super_kobj.kset = btrfs_kset;</span>
+<span class="lineNum">     679 </span><span class="lineCov">        221 :         error = kobject_init_and_add(&amp;fs_info-&gt;super_kobj, &amp;btrfs_ktype, NULL,</span>
+<span class="lineNum">     680 </span><span class="lineCov">        221 :                                      &quot;%pU&quot;, fs_info-&gt;fsid);</span>
+<span class="lineNum">     681 </span><span class="lineCov">        221 :         if (error)</span>
+<span class="lineNum">     682 </span>            :                 return error;
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span><span class="lineCov">        221 :         error = sysfs_create_group(&amp;fs_info-&gt;super_kobj,</span>
+<span class="lineNum">     685 </span>            :                                    &amp;btrfs_feature_attr_group);
+<span class="lineNum">     686 </span><span class="lineCov">        221 :         if (error) {</span>
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :                 __btrfs_sysfs_remove_one(fs_info);</span>
+<span class="lineNum">     688 </span><span class="lineNoCov">          0 :                 return error;</span>
+<span class="lineNum">     689 </span>            :         }
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span><span class="lineCov">        221 :         error = addrm_unknown_feature_attrs(fs_info, true);</span>
+<span class="lineNum">     692 </span><span class="lineCov">        221 :         if (error)</span>
+<span class="lineNum">     693 </span>            :                 goto failure;
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span><span class="lineCov">        221 :         error = btrfs_kobj_add_device(fs_info, NULL);</span>
+<span class="lineNum">     696 </span><span class="lineCov">        221 :         if (error)</span>
+<span class="lineNum">     697 </span>            :                 goto failure;
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span><span class="lineCov">        221 :         fs_info-&gt;space_info_kobj = kobject_create_and_add(&quot;allocation&quot;,</span>
+<span class="lineNum">     700 </span>            :                                                   &amp;fs_info-&gt;super_kobj);
+<span class="lineNum">     701 </span><span class="lineCov">        221 :         if (!fs_info-&gt;space_info_kobj) {</span>
+<span class="lineNum">     702 </span>            :                 error = -ENOMEM;
+<span class="lineNum">     703 </span>            :                 goto failure;
+<span class="lineNum">     704 </span>            :         }
+<span class="lineNum">     705 </span>            : 
+<span class="lineNum">     706 </span><span class="lineCov">        221 :         error = sysfs_create_files(fs_info-&gt;space_info_kobj, allocation_attrs);</span>
+<span class="lineNum">     707 </span><span class="lineCov">        221 :         if (error)</span>
+<span class="lineNum">     708 </span>            :                 goto failure;
+<span class="lineNum">     709 </span>            : 
+<span class="lineNum">     710 </span>            :         return 0;
+<span class="lineNum">     711 </span>            : failure:
+<span class="lineNum">     712 </span><span class="lineNoCov">          0 :         btrfs_sysfs_remove_one(fs_info);</span>
+<span class="lineNum">     713 </span><span class="lineNoCov">          0 :         return error;</span>
+<a name="714"><span class="lineNum">     714 </span>            : }</a>
+<span class="lineNum">     715 </span>            : 
+<span class="lineNum">     716 </span><span class="lineNoCov">          0 : static int btrfs_init_debugfs(void)</span>
+<span class="lineNum">     717 </span>            : {
+<span class="lineNum">     718 </span>            : #ifdef CONFIG_DEBUG_FS
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :         btrfs_debugfs_root_dentry = debugfs_create_dir(&quot;btrfs&quot;, NULL);</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :         if (!btrfs_debugfs_root_dentry)</span>
+<span class="lineNum">     721 </span>            :                 return -ENOMEM;
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span><span class="lineNoCov">          0 :         debugfs_create_u64(&quot;test&quot;, S_IRUGO | S_IWUGO, btrfs_debugfs_root_dentry,</span>
+<span class="lineNum">     724 </span>            :                         &amp;btrfs_debugfs_test);
+<span class="lineNum">     725 </span>            : #endif
+<span class="lineNum">     726 </span><span class="lineNoCov">          0 :         return 0;</span>
+<a name="727"><span class="lineNum">     727 </span>            : }</a>
+<span class="lineNum">     728 </span>            : 
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 : int btrfs_init_sysfs(void)</span>
+<span class="lineNum">     730 </span>            : {
+<span class="lineNum">     731 </span>            :         int ret;
+<span class="lineNum">     732 </span>            : 
+<span class="lineNum">     733 </span><span class="lineNoCov">          0 :         btrfs_kset = kset_create_and_add(&quot;btrfs&quot;, NULL, fs_kobj);</span>
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :         if (!btrfs_kset)</span>
+<span class="lineNum">     735 </span>            :                 return -ENOMEM;
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :         ret = btrfs_init_debugfs();</span>
+<span class="lineNum">     738 </span><span class="lineNoCov">          0 :         if (ret)</span>
+<span class="lineNum">     739 </span>            :                 return ret;
+<span class="lineNum">     740 </span>            : 
+<span class="lineNum">     741 </span><span class="lineNoCov">          0 :         init_feature_attrs();</span>
+<span class="lineNum">     742 </span><span class="lineNoCov">          0 :         ret = sysfs_create_group(&amp;btrfs_kset-&gt;kobj, &amp;btrfs_feature_attr_group);</span>
+<span class="lineNum">     743 </span>            : 
+<span class="lineNum">     744 </span><span class="lineNoCov">          0 :         return ret;</span>
+<a name="745"><span class="lineNum">     745 </span>            : }</a>
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 : void btrfs_exit_sysfs(void)</span>
+<span class="lineNum">     748 </span>            : {
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :         sysfs_remove_group(&amp;btrfs_kset-&gt;kobj, &amp;btrfs_feature_attr_group);</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :         kset_unregister(btrfs_kset);</span>
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 :         debugfs_remove_recursive(btrfs_debugfs_root_dentry);</span>
+<span class="lineNum">     752 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     753 </span>            : 
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,1131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/compression.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - compression.c<span style="font-size: 80%;"> (source / <a href="compression.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">245</td>
+            <td class="headerCovTableEntry">377</td>
+            <td class="headerCovTableEntryLo">65.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryMed">76.5 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2008 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;linux/kernel.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/bio.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/buffer_head.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;linux/file.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;linux/fs.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;linux/pagemap.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;linux/highmem.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;linux/time.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;linux/init.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;linux/string.h&gt;
+<span class="lineNum">      29 </span>            : #include &lt;linux/backing-dev.h&gt;
+<span class="lineNum">      30 </span>            : #include &lt;linux/mpage.h&gt;
+<span class="lineNum">      31 </span>            : #include &lt;linux/swap.h&gt;
+<span class="lineNum">      32 </span>            : #include &lt;linux/writeback.h&gt;
+<span class="lineNum">      33 </span>            : #include &lt;linux/bit_spinlock.h&gt;
+<span class="lineNum">      34 </span>            : #include &lt;linux/slab.h&gt;
+<span class="lineNum">      35 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;disk-io.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;transaction.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;btrfs_inode.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;volumes.h&quot;
+<span class="lineNum">      40 </span>            : #include &quot;ordered-data.h&quot;
+<span class="lineNum">      41 </span>            : #include &quot;compression.h&quot;
+<span class="lineNum">      42 </span>            : #include &quot;extent_io.h&quot;
+<span class="lineNum">      43 </span>            : #include &quot;extent_map.h&quot;
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : struct compressed_bio {
+<span class="lineNum">      46 </span>            :         /* number of bios pending for this compressed extent */
+<span class="lineNum">      47 </span>            :         atomic_t pending_bios;
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            :         /* the pages with the compressed data on them */
+<span class="lineNum">      50 </span>            :         struct page **compressed_pages;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            :         /* inode that owns this data */
+<span class="lineNum">      53 </span>            :         struct inode *inode;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            :         /* starting offset in the inode for our pages */
+<span class="lineNum">      56 </span>            :         u64 start;
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :         /* number of bytes in the inode we're working on */
+<span class="lineNum">      59 </span>            :         unsigned long len;
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            :         /* number of bytes on disk */
+<span class="lineNum">      62 </span>            :         unsigned long compressed_len;
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            :         /* the compression algorithm for this bio */
+<span class="lineNum">      65 </span>            :         int compress_type;
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            :         /* number of compressed pages in the array */
+<span class="lineNum">      68 </span>            :         unsigned long nr_pages;
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            :         /* IO errors */
+<span class="lineNum">      71 </span>            :         int errors;
+<span class="lineNum">      72 </span>            :         int mirror_num;
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            :         /* for reads, this is the bio we are copying the data into */
+<span class="lineNum">      75 </span>            :         struct bio *orig_bio;
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            :         /*
+<span class="lineNum">      78 </span>            :          * the start of a variable length array of checksums only
+<span class="lineNum">      79 </span>            :          * used by reads
+<span class="lineNum">      80 </span>            :          */
+<span class="lineNum">      81 </span>            :         u32 sums;
+<span class="lineNum">      82 </span>            : };
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : static int btrfs_decompress_biovec(int type, struct page **pages_in,
+<span class="lineNum">      85 </span>            :                                    u64 disk_start, struct bio_vec *bvec,
+<span class="lineNum">      86 </span>            :                                    int vcnt, size_t srclen);
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            : static inline int compressed_bio_size(struct btrfs_root *root,
+<a name="89"><span class="lineNum">      89 </span>            :                                       unsigned long disk_size)</a>
+<span class="lineNum">      90 </span>            : {
+<span class="lineNum">      91 </span><span class="lineCov">        195 :         u16 csum_size = btrfs_super_csum_size(root-&gt;fs_info-&gt;super_copy);</span>
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span><span class="lineCov">        195 :         return sizeof(struct compressed_bio) +</span>
+<span class="lineNum">      94 </span><span class="lineCov">        195 :                 ((disk_size + root-&gt;sectorsize - 1) / root-&gt;sectorsize) *</span>
+<span class="lineNum">      95 </span>            :                 csum_size;
+<a name="96"><span class="lineNum">      96 </span>            : }</a>
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span><span class="lineCov">        195 : static struct bio *compressed_bio_alloc(struct block_device *bdev,</span>
+<span class="lineNum">      99 </span>            :                                         u64 first_byte, gfp_t gfp_flags)
+<span class="lineNum">     100 </span>            : {
+<span class="lineNum">     101 </span>            :         int nr_vecs;
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineCov">        195 :         nr_vecs = bio_get_nr_vecs(bdev);</span>
+<span class="lineNum">     104 </span><span class="lineCov">        195 :         return btrfs_bio_alloc(bdev, first_byte &gt;&gt; 9, nr_vecs, gfp_flags);</span>
+<a name="105"><span class="lineNum">     105 </span>            : }</a>
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span><span class="lineCov">         42 : static int check_compressed_csum(struct inode *inode,</span>
+<span class="lineNum">     108 </span>            :                                  struct compressed_bio *cb,
+<span class="lineNum">     109 </span>            :                                  u64 disk_start)
+<span class="lineNum">     110 </span>            : {
+<span class="lineNum">     111 </span>            :         int ret;
+<span class="lineNum">     112 </span>            :         struct page *page;
+<span class="lineNum">     113 </span>            :         unsigned long i;
+<span class="lineNum">     114 </span>            :         char *kaddr;
+<span class="lineNum">     115 </span>            :         u32 csum;
+<span class="lineNum">     116 </span><span class="lineCov">         42 :         u32 *cb_sum = &amp;cb-&gt;sums;</span>
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span><span class="lineCov">         42 :         if (BTRFS_I(inode)-&gt;flags &amp; BTRFS_INODE_NODATASUM)</span>
+<span class="lineNum">     119 </span>            :                 return 0;
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span><span class="lineCov">         42 :         for (i = 0; i &lt; cb-&gt;nr_pages; i++) {</span>
+<span class="lineNum">     122 </span><span class="lineCov">         42 :                 page = cb-&gt;compressed_pages[i];</span>
+<span class="lineNum">     123 </span><span class="lineCov">         42 :                 csum = ~(u32)0;</span>
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            :                 kaddr = kmap_atomic(page);
+<span class="lineNum">     126 </span><span class="lineCov">         42 :                 csum = btrfs_csum_data(kaddr, csum, PAGE_CACHE_SIZE);</span>
+<span class="lineNum">     127 </span><span class="lineCov">         42 :                 btrfs_csum_final(csum, (char *)&amp;csum);</span>
+<span class="lineNum">     128 </span>            :                 kunmap_atomic(kaddr);
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span><span class="lineCov">         42 :                 if (csum != *cb_sum) {</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :                         btrfs_info(BTRFS_I(inode)-&gt;root-&gt;fs_info,</span>
+<span class="lineNum">     132 </span>            :                            &quot;csum failed ino %llu extent %llu csum %u wanted %u mirror %d&quot;,
+<span class="lineNum">     133 </span>            :                            btrfs_ino(inode), disk_start, csum, *cb_sum,
+<span class="lineNum">     134 </span>            :                            cb-&gt;mirror_num);
+<span class="lineNum">     135 </span>            :                         ret = -EIO;
+<span class="lineNum">     136 </span><span class="lineNoCov">          0 :                         goto fail;</span>
+<span class="lineNum">     137 </span>            :                 }
+<span class="lineNum">     138 </span><span class="lineCov">         42 :                 cb_sum++;</span>
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            :         }
+<span class="lineNum">     141 </span>            :         ret = 0;
+<span class="lineNum">     142 </span>            : fail:
+<span class="lineNum">     143 </span><span class="lineCov">         42 :         return ret;</span>
+<span class="lineNum">     144 </span>            : }
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            : /* when we finish reading compressed pages from the disk, we
+<span class="lineNum">     147 </span>            :  * decompress them and then run the bio end_io routines on the
+<span class="lineNum">     148 </span>            :  * decompressed pages (in the inode address space).
+<span class="lineNum">     149 </span>            :  *
+<span class="lineNum">     150 </span>            :  * This allows the checksumming and other IO error handling routines
+<span class="lineNum">     151 </span>            :  * to work normally
+<span class="lineNum">     152 </span>            :  *
+<span class="lineNum">     153 </span>            :  * The compressed pages are freed here, and it must be run
+<a name="154"><span class="lineNum">     154 </span>            :  * in process context</a>
+<span class="lineNum">     155 </span>            :  */
+<span class="lineNum">     156 </span><span class="lineCov">         42 : static void end_compressed_bio_read(struct bio *bio, int err)</span>
+<span class="lineNum">     157 </span>            : {
+<span class="lineNum">     158 </span><span class="lineCov">         42 :         struct compressed_bio *cb = bio-&gt;bi_private;</span>
+<span class="lineNum">     159 </span>            :         struct inode *inode;
+<span class="lineNum">     160 </span>            :         struct page *page;
+<span class="lineNum">     161 </span>            :         unsigned long index;
+<span class="lineNum">     162 </span>            :         int ret;
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">         42 :         if (err)</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                 cb-&gt;errors = 1;</span>
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            :         /* if there are more bios still pending for this compressed
+<span class="lineNum">     168 </span>            :          * extent, just exit
+<span class="lineNum">     169 </span>            :          */
+<span class="lineNum">     170 </span><span class="lineCov">         84 :         if (!atomic_dec_and_test(&amp;cb-&gt;pending_bios))</span>
+<span class="lineNum">     171 </span>            :                 goto out;
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineCov">         42 :         inode = cb-&gt;inode;</span>
+<span class="lineNum">     174 </span><span class="lineCov">         42 :         ret = check_compressed_csum(inode, cb,</span>
+<span class="lineNum">     175 </span><span class="lineCov">         42 :                                     (u64)bio-&gt;bi_iter.bi_sector &lt;&lt; 9);</span>
+<span class="lineNum">     176 </span><span class="lineCov">         42 :         if (ret)</span>
+<span class="lineNum">     177 </span>            :                 goto csum_failed;
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            :         /* ok, we're the last bio for this extent, lets start
+<span class="lineNum">     180 </span>            :          * the decompression.
+<span class="lineNum">     181 </span>            :          */
+<span class="lineNum">     182 </span><span class="lineCov">         84 :         ret = btrfs_decompress_biovec(cb-&gt;compress_type,</span>
+<span class="lineNum">     183 </span>            :                                       cb-&gt;compressed_pages,
+<span class="lineNum">     184 </span>            :                                       cb-&gt;start,
+<span class="lineNum">     185 </span>            :                                       cb-&gt;orig_bio-&gt;bi_io_vec,
+<span class="lineNum">     186 </span><span class="lineCov">         42 :                                       cb-&gt;orig_bio-&gt;bi_vcnt,</span>
+<span class="lineNum">     187 </span>            :                                       cb-&gt;compressed_len);
+<span class="lineNum">     188 </span>            : csum_failed:
+<span class="lineNum">     189 </span><span class="lineCov">         42 :         if (ret)</span>
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                 cb-&gt;errors = 1;</span>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            :         /* release the compressed pages */
+<span class="lineNum">     193 </span>            :         index = 0;
+<span class="lineNum">     194 </span><span class="lineCov">         42 :         for (index = 0; index &lt; cb-&gt;nr_pages; index++) {</span>
+<span class="lineNum">     195 </span><span class="lineCov">         42 :                 page = cb-&gt;compressed_pages[index];</span>
+<span class="lineNum">     196 </span><span class="lineCov">         42 :                 page-&gt;mapping = NULL;</span>
+<span class="lineNum">     197 </span><span class="lineCov">         42 :                 page_cache_release(page);</span>
+<span class="lineNum">     198 </span>            :         }
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            :         /* do io completion on the original bio */
+<span class="lineNum">     201 </span><span class="lineCov">         42 :         if (cb-&gt;errors) {</span>
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :                 bio_io_error(cb-&gt;orig_bio);</span>
+<span class="lineNum">     203 </span>            :         } else {
+<span class="lineNum">     204 </span>            :                 int i;
+<span class="lineNum">     205 </span>            :                 struct bio_vec *bvec;
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            :                 /*
+<span class="lineNum">     208 </span>            :                  * we have verified the checksum already, set page
+<span class="lineNum">     209 </span>            :                  * checked so the end_io handlers know about it
+<span class="lineNum">     210 </span>            :                  */
+<span class="lineNum">     211 </span><span class="lineCov">        374 :                 bio_for_each_segment_all(bvec, cb-&gt;orig_bio, i)</span>
+<span class="lineNum">     212 </span><span class="lineCov">        332 :                         SetPageChecked(bvec-&gt;bv_page);</span>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineCov">         42 :                 bio_endio(cb-&gt;orig_bio, 0);</span>
+<span class="lineNum">     215 </span>            :         }
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :         /* finally free the cb struct */
+<span class="lineNum">     218 </span><span class="lineCov">         42 :         kfree(cb-&gt;compressed_pages);</span>
+<span class="lineNum">     219 </span><span class="lineCov">         42 :         kfree(cb);</span>
+<span class="lineNum">     220 </span>            : out:
+<span class="lineNum">     221 </span><span class="lineCov">         42 :         bio_put(bio);</span>
+<span class="lineNum">     222 </span><span class="lineCov">         42 : }</span>
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            : /*
+<span class="lineNum">     225 </span>            :  * Clear the writeback bits on all of the file
+<a name="226"><span class="lineNum">     226 </span>            :  * pages for a compressed write</a>
+<span class="lineNum">     227 </span>            :  */
+<span class="lineNum">     228 </span><span class="lineCov">        153 : static noinline void end_compressed_writeback(struct inode *inode, u64 start,</span>
+<span class="lineNum">     229 </span>            :                                               unsigned long ram_size)
+<span class="lineNum">     230 </span>            : {
+<span class="lineNum">     231 </span><span class="lineCov">        153 :         unsigned long index = start &gt;&gt; PAGE_CACHE_SHIFT;</span>
+<span class="lineNum">     232 </span><span class="lineCov">        153 :         unsigned long end_index = (start + ram_size - 1) &gt;&gt; PAGE_CACHE_SHIFT;</span>
+<span class="lineNum">     233 </span>            :         struct page *pages[16];
+<span class="lineNum">     234 </span><span class="lineCov">        153 :         unsigned long nr_pages = end_index - index + 1;</span>
+<span class="lineNum">     235 </span>            :         int i;
+<span class="lineNum">     236 </span>            :         int ret;
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span><span class="lineCov">        392 :         while (nr_pages &gt; 0) {</span>
+<span class="lineNum">     239 </span><span class="lineCov">        239 :                 ret = find_get_pages_contig(inode-&gt;i_mapping, index,</span>
+<span class="lineNum">     240 </span><span class="lineCov">        239 :                                      min_t(unsigned long,</span>
+<span class="lineNum">     241 </span>            :                                      nr_pages, ARRAY_SIZE(pages)), pages);
+<span class="lineNum">     242 </span><span class="lineCov">        238 :                 if (ret == 0) {</span>
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :                         nr_pages -= 1;</span>
+<span class="lineNum">     244 </span><span class="lineNoCov">          0 :                         index += 1;</span>
+<span class="lineNum">     245 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     246 </span>            :                 }
+<span class="lineNum">     247 </span><span class="lineCov">       2942 :                 for (i = 0; i &lt; ret; i++) {</span>
+<span class="lineNum">     248 </span><span class="lineCov">       2941 :                         end_page_writeback(pages[i]);</span>
+<span class="lineNum">     249 </span><span class="lineCov">       2940 :                         page_cache_release(pages[i]);</span>
+<span class="lineNum">     250 </span>            :                 }
+<span class="lineNum">     251 </span><span class="lineCov">        239 :                 nr_pages -= ret;</span>
+<span class="lineNum">     252 </span><span class="lineCov">        239 :                 index += ret;</span>
+<span class="lineNum">     253 </span>            :         }
+<span class="lineNum">     254 </span>            :         /* the inode may be gone now */
+<span class="lineNum">     255 </span><span class="lineCov">        153 : }</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            : /*
+<span class="lineNum">     258 </span>            :  * do the cleanup once all the compressed pages hit the disk.
+<span class="lineNum">     259 </span>            :  * This will clear writeback on the file pages and free the compressed
+<span class="lineNum">     260 </span>            :  * pages.
+<span class="lineNum">     261 </span>            :  *
+<span class="lineNum">     262 </span>            :  * This also calls the writeback end hooks for the file pages so that
+<a name="263"><span class="lineNum">     263 </span>            :  * metadata and checksums can be updated in the file.</a>
+<span class="lineNum">     264 </span>            :  */
+<span class="lineNum">     265 </span><span class="lineCov">        153 : static void end_compressed_bio_write(struct bio *bio, int err)</span>
+<span class="lineNum">     266 </span>            : {
+<span class="lineNum">     267 </span>            :         struct extent_io_tree *tree;
+<span class="lineNum">     268 </span><span class="lineCov">        153 :         struct compressed_bio *cb = bio-&gt;bi_private;</span>
+<span class="lineNum">     269 </span>            :         struct inode *inode;
+<span class="lineNum">     270 </span>            :         struct page *page;
+<span class="lineNum">     271 </span>            :         unsigned long index;
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span><span class="lineCov">        153 :         if (err)</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :                 cb-&gt;errors = 1;</span>
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span>            :         /* if there are more bios still pending for this compressed
+<span class="lineNum">     277 </span>            :          * extent, just exit
+<span class="lineNum">     278 </span>            :          */
+<span class="lineNum">     279 </span><span class="lineCov">        306 :         if (!atomic_dec_and_test(&amp;cb-&gt;pending_bios))</span>
+<span class="lineNum">     280 </span>            :                 goto out;
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            :         /* ok, we're the last bio for this extent, step one is to
+<span class="lineNum">     283 </span>            :          * call back into the FS and do all the end_io operations
+<span class="lineNum">     284 </span>            :          */
+<span class="lineNum">     285 </span><span class="lineCov">        153 :         inode = cb-&gt;inode;</span>
+<span class="lineNum">     286 </span>            :         tree = &amp;BTRFS_I(inode)-&gt;io_tree;
+<span class="lineNum">     287 </span><span class="lineCov">        153 :         cb-&gt;compressed_pages[0]-&gt;mapping = cb-&gt;inode-&gt;i_mapping;</span>
+<span class="lineNum">     288 </span><span class="lineCov">        306 :         tree-&gt;ops-&gt;writepage_end_io_hook(cb-&gt;compressed_pages[0],</span>
+<span class="lineNum">     289 </span>            :                                          cb-&gt;start,
+<span class="lineNum">     290 </span><span class="lineCov">        153 :                                          cb-&gt;start + cb-&gt;len - 1,</span>
+<span class="lineNum">     291 </span>            :                                          NULL, 1);
+<span class="lineNum">     292 </span><span class="lineCov">        153 :         cb-&gt;compressed_pages[0]-&gt;mapping = NULL;</span>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineCov">        153 :         end_compressed_writeback(inode, cb-&gt;start, cb-&gt;len);</span>
+<span class="lineNum">     295 </span>            :         /* note, our inode could be gone now */
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            :         /*
+<span class="lineNum">     298 </span>            :          * release the compressed pages, these came from alloc_page and
+<span class="lineNum">     299 </span>            :          * are not attached to the inode at all
+<span class="lineNum">     300 </span>            :          */
+<span class="lineNum">     301 </span>            :         index = 0;
+<span class="lineNum">     302 </span><span class="lineCov">        306 :         for (index = 0; index &lt; cb-&gt;nr_pages; index++) {</span>
+<span class="lineNum">     303 </span><span class="lineCov">        153 :                 page = cb-&gt;compressed_pages[index];</span>
+<span class="lineNum">     304 </span><span class="lineCov">        153 :                 page-&gt;mapping = NULL;</span>
+<span class="lineNum">     305 </span><span class="lineCov">        153 :                 page_cache_release(page);</span>
+<span class="lineNum">     306 </span>            :         }
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span>            :         /* finally free the cb struct */
+<span class="lineNum">     309 </span><span class="lineCov">        153 :         kfree(cb-&gt;compressed_pages);</span>
+<span class="lineNum">     310 </span><span class="lineCov">        152 :         kfree(cb);</span>
+<span class="lineNum">     311 </span>            : out:
+<span class="lineNum">     312 </span><span class="lineCov">        152 :         bio_put(bio);</span>
+<span class="lineNum">     313 </span><span class="lineCov">        153 : }</span>
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            : /*
+<span class="lineNum">     316 </span>            :  * worker function to build and submit bios for previously compressed pages.
+<span class="lineNum">     317 </span>            :  * The corresponding pages in the inode should be marked for writeback
+<span class="lineNum">     318 </span>            :  * and the compressed pages should have a reference on them for dropping
+<span class="lineNum">     319 </span>            :  * when the IO is complete.
+<span class="lineNum">     320 </span>            :  *
+<span class="lineNum">     321 </span>            :  * This also checksums the file bytes and gets things ready for
+<span class="lineNum">     322 </span>            :  * the end io hooks.
+<span class="lineNum">     323 </span>            :  */
+<span class="lineNum">     324 </span><span class="lineCov">        153 : int btrfs_submit_compressed_write(struct inode *inode, u64 start,</span>
+<span class="lineNum">     325 </span>            :                                  unsigned long len, u64 disk_start,
+<span class="lineNum">     326 </span>            :                                  unsigned long compressed_len,
+<span class="lineNum">     327 </span>            :                                  struct page **compressed_pages,
+<span class="lineNum">     328 </span>            :                                  unsigned long nr_pages)
+<span class="lineNum">     329 </span>            : {
+<span class="lineNum">     330 </span>            :         struct bio *bio = NULL;
+<span class="lineNum">     331 </span><span class="lineCov">        306 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     332 </span>            :         struct compressed_bio *cb;
+<span class="lineNum">     333 </span>            :         unsigned long bytes_left;
+<span class="lineNum">     334 </span>            :         struct extent_io_tree *io_tree = &amp;BTRFS_I(inode)-&gt;io_tree;
+<span class="lineNum">     335 </span>            :         int pg_index = 0;
+<span class="lineNum">     336 </span>            :         struct page *page;
+<span class="lineNum">     337 </span>            :         u64 first_byte = disk_start;
+<span class="lineNum">     338 </span>            :         struct block_device *bdev;
+<span class="lineNum">     339 </span>            :         int ret;
+<span class="lineNum">     340 </span><span class="lineCov">        153 :         int skip_sum = BTRFS_I(inode)-&gt;flags &amp; BTRFS_INODE_NODATASUM;</span>
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineCov">        153 :         WARN_ON(start &amp; ((u64)PAGE_CACHE_SIZE - 1));</span>
+<span class="lineNum">     343 </span><span class="lineCov">        153 :         cb = kmalloc(compressed_bio_size(root, compressed_len), GFP_NOFS);</span>
+<span class="lineNum">     344 </span><span class="lineCov">        153 :         if (!cb)</span>
+<span class="lineNum">     345 </span>            :                 return -ENOMEM;
+<span class="lineNum">     346 </span>            :         atomic_set(&amp;cb-&gt;pending_bios, 0);
+<span class="lineNum">     347 </span><span class="lineCov">        153 :         cb-&gt;errors = 0;</span>
+<span class="lineNum">     348 </span><span class="lineCov">        153 :         cb-&gt;inode = inode;</span>
+<span class="lineNum">     349 </span><span class="lineCov">        153 :         cb-&gt;start = start;</span>
+<span class="lineNum">     350 </span><span class="lineCov">        153 :         cb-&gt;len = len;</span>
+<span class="lineNum">     351 </span><span class="lineCov">        153 :         cb-&gt;mirror_num = 0;</span>
+<span class="lineNum">     352 </span><span class="lineCov">        153 :         cb-&gt;compressed_pages = compressed_pages;</span>
+<span class="lineNum">     353 </span><span class="lineCov">        153 :         cb-&gt;compressed_len = compressed_len;</span>
+<span class="lineNum">     354 </span><span class="lineCov">        153 :         cb-&gt;orig_bio = NULL;</span>
+<span class="lineNum">     355 </span><span class="lineCov">        153 :         cb-&gt;nr_pages = nr_pages;</span>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineCov">        153 :         bdev = BTRFS_I(inode)-&gt;root-&gt;fs_info-&gt;fs_devices-&gt;latest_bdev;</span>
+<span class="lineNum">     358 </span>            : 
+<span class="lineNum">     359 </span><span class="lineCov">        153 :         bio = compressed_bio_alloc(bdev, first_byte, GFP_NOFS);</span>
+<span class="lineNum">     360 </span><span class="lineCov">        153 :         if (!bio) {</span>
+<span class="lineNum">     361 </span><span class="lineNoCov">          0 :                 kfree(cb);</span>
+<span class="lineNum">     362 </span><span class="lineNoCov">          0 :                 return -ENOMEM;</span>
+<span class="lineNum">     363 </span>            :         }
+<span class="lineNum">     364 </span><span class="lineCov">        153 :         bio-&gt;bi_private = cb;</span>
+<span class="lineNum">     365 </span><span class="lineCov">        153 :         bio-&gt;bi_end_io = end_compressed_bio_write;</span>
+<span class="lineNum">     366 </span><span class="lineCov">        153 :         atomic_inc(&amp;cb-&gt;pending_bios);</span>
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            :         /* create and submit bios for the compressed pages */
+<span class="lineNum">     369 </span>            :         bytes_left = compressed_len;
+<span class="lineNum">     370 </span><span class="lineCov">        306 :         for (pg_index = 0; pg_index &lt; cb-&gt;nr_pages; pg_index++) {</span>
+<span class="lineNum">     371 </span><span class="lineCov">        153 :                 page = compressed_pages[pg_index];</span>
+<span class="lineNum">     372 </span><span class="lineCov">        153 :                 page-&gt;mapping = inode-&gt;i_mapping;</span>
+<span class="lineNum">     373 </span><span class="lineCov">        153 :                 if (bio-&gt;bi_iter.bi_size)</span>
+<span class="lineNum">     374 </span><span class="lineNoCov">          0 :                         ret = io_tree-&gt;ops-&gt;merge_bio_hook(WRITE, page, 0,</span>
+<span class="lineNum">     375 </span>            :                                                            PAGE_CACHE_SIZE,
+<span class="lineNum">     376 </span>            :                                                            bio, 0);
+<span class="lineNum">     377 </span>            :                 else
+<span class="lineNum">     378 </span>            :                         ret = 0;
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span><span class="lineCov">        153 :                 page-&gt;mapping = NULL;</span>
+<span class="lineNum">     381 </span><span class="lineCov">        153 :                 if (ret || bio_add_page(bio, page, PAGE_CACHE_SIZE, 0) &lt;</span>
+<span class="lineNum">     382 </span>            :                     PAGE_CACHE_SIZE) {
+<span class="lineNum">     383 </span><span class="lineNoCov">          0 :                         bio_get(bio);</span>
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span>            :                         /*
+<span class="lineNum">     386 </span>            :                          * inc the count before we submit the bio so
+<span class="lineNum">     387 </span>            :                          * we know the end IO handler won't happen before
+<span class="lineNum">     388 </span>            :                          * we inc the count.  Otherwise, the cb might get
+<span class="lineNum">     389 </span>            :                          * freed before we're done setting it up
+<span class="lineNum">     390 </span>            :                          */
+<span class="lineNum">     391 </span>            :                         atomic_inc(&amp;cb-&gt;pending_bios);
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :                         ret = btrfs_bio_wq_end_io(root-&gt;fs_info, bio, 0);</span>
+<span class="lineNum">     393 </span><span class="lineNoCov">          0 :                         BUG_ON(ret); /* -ENOMEM */</span>
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineNoCov">          0 :                         if (!skip_sum) {</span>
+<span class="lineNum">     396 </span><span class="lineNoCov">          0 :                                 ret = btrfs_csum_one_bio(root, inode, bio,</span>
+<span class="lineNum">     397 </span>            :                                                          start, 1);
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :                                 BUG_ON(ret); /* -ENOMEM */</span>
+<span class="lineNum">     399 </span>            :                         }
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span><span class="lineNoCov">          0 :                         ret = btrfs_map_bio(root, WRITE, bio, 0, 1);</span>
+<span class="lineNum">     402 </span><span class="lineNoCov">          0 :                         BUG_ON(ret); /* -ENOMEM */</span>
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :                         bio_put(bio);</span>
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :                         bio = compressed_bio_alloc(bdev, first_byte, GFP_NOFS);</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :                         BUG_ON(!bio);</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :                         bio-&gt;bi_private = cb;</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :                         bio-&gt;bi_end_io = end_compressed_bio_write;</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :                         bio_add_page(bio, page, PAGE_CACHE_SIZE, 0);</span>
+<span class="lineNum">     411 </span>            :                 }
+<span class="lineNum">     412 </span><span class="lineCov">        153 :                 if (bytes_left &lt; PAGE_CACHE_SIZE) {</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :                         btrfs_info(BTRFS_I(inode)-&gt;root-&gt;fs_info,</span>
+<span class="lineNum">     414 </span>            :                                         &quot;bytes left %lu compress len %lu nr %lu&quot;,
+<span class="lineNum">     415 </span>            :                                bytes_left, cb-&gt;compressed_len, cb-&gt;nr_pages);
+<span class="lineNum">     416 </span>            :                 }
+<span class="lineNum">     417 </span><span class="lineCov">        153 :                 bytes_left -= PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     418 </span><span class="lineCov">        153 :                 first_byte += PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     419 </span><span class="lineCov">        153 :                 cond_resched();</span>
+<span class="lineNum">     420 </span>            :         }
+<span class="lineNum">     421 </span><span class="lineCov">        153 :         bio_get(bio);</span>
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span><span class="lineCov">        153 :         ret = btrfs_bio_wq_end_io(root-&gt;fs_info, bio, 0);</span>
+<span class="lineNum">     424 </span><span class="lineCov">        153 :         BUG_ON(ret); /* -ENOMEM */</span>
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineCov">        153 :         if (!skip_sum) {</span>
+<span class="lineNum">     427 </span><span class="lineCov">        153 :                 ret = btrfs_csum_one_bio(root, inode, bio, start, 1);</span>
+<span class="lineNum">     428 </span><span class="lineCov">        153 :                 BUG_ON(ret); /* -ENOMEM */</span>
+<span class="lineNum">     429 </span>            :         }
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span><span class="lineCov">        153 :         ret = btrfs_map_bio(root, WRITE, bio, 0, 1);</span>
+<span class="lineNum">     432 </span><span class="lineCov">        153 :         BUG_ON(ret); /* -ENOMEM */</span>
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span><span class="lineCov">        153 :         bio_put(bio);</span>
+<span class="lineNum">     435 </span><span class="lineCov">        153 :         return 0;</span>
+<a name="436"><span class="lineNum">     436 </span>            : }</a>
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span><span class="lineCov">         42 : static noinline int add_ra_bio_pages(struct inode *inode,</span>
+<span class="lineNum">     439 </span>            :                                      u64 compressed_end,
+<span class="lineNum">     440 </span>            :                                      struct compressed_bio *cb)
+<span class="lineNum">     441 </span>            : {
+<span class="lineNum">     442 </span>            :         unsigned long end_index;
+<span class="lineNum">     443 </span>            :         unsigned long pg_index;
+<span class="lineNum">     444 </span>            :         u64 last_offset;
+<span class="lineNum">     445 </span><span class="lineCov">         42 :         u64 isize = i_size_read(inode);</span>
+<span class="lineNum">     446 </span>            :         int ret;
+<span class="lineNum">     447 </span><span class="lineCov">         42 :         struct page *page;</span>
+<span class="lineNum">     448 </span>            :         unsigned long nr_pages = 0;
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :         struct extent_map *em;</span>
+<span class="lineNum">     450 </span><span class="lineCov">         42 :         struct address_space *mapping = inode-&gt;i_mapping;</span>
+<span class="lineNum">     451 </span>            :         struct extent_map_tree *em_tree;
+<span class="lineNum">     452 </span>            :         struct extent_io_tree *tree;
+<span class="lineNum">     453 </span>            :         u64 end;
+<span class="lineNum">     454 </span>            :         int misses = 0;
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineCov">         42 :         page = cb-&gt;orig_bio-&gt;bi_io_vec[cb-&gt;orig_bio-&gt;bi_vcnt - 1].bv_page;</span>
+<span class="lineNum">     457 </span><span class="lineCov">         42 :         last_offset = (page_offset(page) + PAGE_CACHE_SIZE);</span>
+<span class="lineNum">     458 </span><span class="lineCov">         42 :         em_tree = &amp;BTRFS_I(inode)-&gt;extent_tree;</span>
+<span class="lineNum">     459 </span><span class="lineCov">         42 :         tree = &amp;BTRFS_I(inode)-&gt;io_tree;</span>
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span><span class="lineCov">         42 :         if (isize == 0)</span>
+<span class="lineNum">     462 </span>            :                 return 0;
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span><span class="lineCov">         42 :         end_index = (i_size_read(inode) - 1) &gt;&gt; PAGE_CACHE_SHIFT;</span>
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span><span class="lineCov">         42 :         while (last_offset &lt; compressed_end) {</span>
+<span class="lineNum">     467 </span><span class="lineNoCov">          0 :                 pg_index = last_offset &gt;&gt; PAGE_CACHE_SHIFT;</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span><span class="lineNoCov">          0 :                 if (pg_index &gt; end_index)</span>
+<span class="lineNum">     470 </span>            :                         break;
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span>            :                 rcu_read_lock();
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :                 page = radix_tree_lookup(&amp;mapping-&gt;page_tree, pg_index);</span>
+<span class="lineNum">     474 </span>            :                 rcu_read_unlock();
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                 if (page &amp;&amp; !radix_tree_exceptional_entry(page)) {</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :                         misses++;</span>
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :                         if (misses &gt; 4)</span>
+<span class="lineNum">     478 </span>            :                                 break;
+<span class="lineNum">     479 </span>            :                         goto next;
+<span class="lineNum">     480 </span>            :                 }
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :                 page = __page_cache_alloc(mapping_gfp_mask(mapping) &amp;</span>
+<span class="lineNum">     483 </span>            :                                                                 ~__GFP_FS);
+<span class="lineNum">     484 </span><span class="lineNoCov">          0 :                 if (!page)</span>
+<span class="lineNum">     485 </span>            :                         break;
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineNoCov">          0 :                 if (add_to_page_cache_lru(page, mapping, pg_index,</span>
+<span class="lineNum">     488 </span>            :                                                                 GFP_NOFS)) {
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :                         page_cache_release(page);</span>
+<span class="lineNum">     490 </span>            :                         goto next;
+<span class="lineNum">     491 </span>            :                 }
+<span class="lineNum">     492 </span>            : 
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :                 end = last_offset + PAGE_CACHE_SIZE - 1;</span>
+<span class="lineNum">     494 </span>            :                 /*
+<span class="lineNum">     495 </span>            :                  * at this point, we have a locked page in the page cache
+<span class="lineNum">     496 </span>            :                  * for these bytes in the file.  But, we have to make
+<span class="lineNum">     497 </span>            :                  * sure they map to this compressed extent on disk.
+<span class="lineNum">     498 </span>            :                  */
+<span class="lineNum">     499 </span><span class="lineNoCov">          0 :                 set_page_extent_mapped(page);</span>
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :                 lock_extent(tree, last_offset, end);</span>
+<span class="lineNum">     501 </span><span class="lineNoCov">          0 :                 read_lock(&amp;em_tree-&gt;lock);</span>
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :                 em = lookup_extent_mapping(em_tree, last_offset,</span>
+<span class="lineNum">     503 </span>            :                                            PAGE_CACHE_SIZE);
+<span class="lineNum">     504 </span>            :                 read_unlock(&amp;em_tree-&gt;lock);
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :                 if (!em || last_offset &lt; em-&gt;start ||</span>
+<span class="lineNum">     507 </span><span class="lineNoCov">          0 :                     (last_offset + PAGE_CACHE_SIZE &gt; extent_map_end(em)) ||</span>
+<span class="lineNum">     508 </span><span class="lineNoCov">          0 :                     (em-&gt;block_start &gt;&gt; 9) != cb-&gt;orig_bio-&gt;bi_iter.bi_sector) {</span>
+<span class="lineNum">     509 </span><span class="lineNoCov">          0 :                         free_extent_map(em);</span>
+<span class="lineNum">     510 </span><span class="lineNoCov">          0 :                         unlock_extent(tree, last_offset, end);</span>
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :                         unlock_page(page);</span>
+<span class="lineNum">     512 </span><span class="lineNoCov">          0 :                         page_cache_release(page);</span>
+<span class="lineNum">     513 </span>            :                         break;
+<span class="lineNum">     514 </span>            :                 }
+<span class="lineNum">     515 </span><span class="lineNoCov">          0 :                 free_extent_map(em);</span>
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :                 if (page-&gt;index == end_index) {</span>
+<span class="lineNum">     518 </span>            :                         char *userpage;
+<span class="lineNum">     519 </span><span class="lineNoCov">          0 :                         size_t zero_offset = isize &amp; (PAGE_CACHE_SIZE - 1);</span>
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span><span class="lineNoCov">          0 :                         if (zero_offset) {</span>
+<span class="lineNum">     522 </span>            :                                 int zeros;
+<span class="lineNum">     523 </span><span class="lineNoCov">          0 :                                 zeros = PAGE_CACHE_SIZE - zero_offset;</span>
+<span class="lineNum">     524 </span>            :                                 userpage = kmap_atomic(page);
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :                                 memset(userpage + zero_offset, 0, zeros);</span>
+<span class="lineNum">     526 </span>            :                                 flush_dcache_page(page);
+<span class="lineNum">     527 </span>            :                                 kunmap_atomic(userpage);
+<span class="lineNum">     528 </span>            :                         }
+<span class="lineNum">     529 </span>            :                 }
+<span class="lineNum">     530 </span>            : 
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :                 ret = bio_add_page(cb-&gt;orig_bio, page,</span>
+<span class="lineNum">     532 </span>            :                                    PAGE_CACHE_SIZE, 0);
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :                 if (ret == PAGE_CACHE_SIZE) {</span>
+<span class="lineNum">     535 </span>            :                         nr_pages++;
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :                         page_cache_release(page);</span>
+<span class="lineNum">     537 </span>            :                 } else {
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :                         unlock_extent(tree, last_offset, end);</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :                         unlock_page(page);</span>
+<span class="lineNum">     540 </span><span class="lineNoCov">          0 :                         page_cache_release(page);</span>
+<span class="lineNum">     541 </span>            :                         break;
+<span class="lineNum">     542 </span>            :                 }
+<span class="lineNum">     543 </span>            : next:
+<span class="lineNum">     544 </span><span class="lineNoCov">          0 :                 last_offset += PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     545 </span>            :         }
+<span class="lineNum">     546 </span>            :         return 0;
+<span class="lineNum">     547 </span>            : }
+<span class="lineNum">     548 </span>            : 
+<span class="lineNum">     549 </span>            : /*
+<span class="lineNum">     550 </span>            :  * for a compressed read, the bio we get passed has all the inode pages
+<span class="lineNum">     551 </span>            :  * in it.  We don't actually do IO on those pages but allocate new ones
+<span class="lineNum">     552 </span>            :  * to hold the compressed pages on disk.
+<span class="lineNum">     553 </span>            :  *
+<span class="lineNum">     554 </span>            :  * bio-&gt;bi_iter.bi_sector points to the compressed extent on disk
+<span class="lineNum">     555 </span>            :  * bio-&gt;bi_io_vec points to all of the inode pages
+<span class="lineNum">     556 </span>            :  * bio-&gt;bi_vcnt is a count of pages
+<span class="lineNum">     557 </span>            :  *
+<span class="lineNum">     558 </span>            :  * After the compressed pages are read, we copy the bytes into the
+<span class="lineNum">     559 </span>            :  * bio we were passed and then call the bio end_io calls
+<span class="lineNum">     560 </span>            :  */
+<span class="lineNum">     561 </span><span class="lineCov">         42 : int btrfs_submit_compressed_read(struct inode *inode, struct bio *bio,</span>
+<span class="lineNum">     562 </span>            :                                  int mirror_num, unsigned long bio_flags)
+<span class="lineNum">     563 </span>            : {
+<span class="lineNum">     564 </span>            :         struct extent_io_tree *tree;
+<span class="lineNum">     565 </span>            :         struct extent_map_tree *em_tree;
+<span class="lineNum">     566 </span>            :         struct compressed_bio *cb;
+<span class="lineNum">     567 </span><span class="lineCov">         84 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     568 </span><span class="lineCov">         42 :         unsigned long uncompressed_len = bio-&gt;bi_vcnt * PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     569 </span>            :         unsigned long compressed_len;
+<span class="lineNum">     570 </span>            :         unsigned long nr_pages;
+<span class="lineNum">     571 </span>            :         unsigned long pg_index;
+<span class="lineNum">     572 </span>            :         struct page *page;
+<span class="lineNum">     573 </span>            :         struct block_device *bdev;
+<span class="lineNum">     574 </span>            :         struct bio *comp_bio;
+<span class="lineNum">     575 </span><span class="lineCov">         42 :         u64 cur_disk_byte = (u64)bio-&gt;bi_iter.bi_sector &lt;&lt; 9;</span>
+<span class="lineNum">     576 </span>            :         u64 em_len;
+<span class="lineNum">     577 </span>            :         u64 em_start;
+<span class="lineNum">     578 </span>            :         struct extent_map *em;
+<span class="lineNum">     579 </span>            :         int ret = -ENOMEM;
+<span class="lineNum">     580 </span>            :         int faili = 0;
+<span class="lineNum">     581 </span>            :         u32 *sums;
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span>            :         tree = &amp;BTRFS_I(inode)-&gt;io_tree;
+<span class="lineNum">     584 </span><span class="lineCov">         42 :         em_tree = &amp;BTRFS_I(inode)-&gt;extent_tree;</span>
+<span class="lineNum">     585 </span>            : 
+<span class="lineNum">     586 </span>            :         /* we need the actual starting offset of this extent in the file */
+<span class="lineNum">     587 </span><span class="lineCov">         42 :         read_lock(&amp;em_tree-&gt;lock);</span>
+<span class="lineNum">     588 </span><span class="lineCov">         42 :         em = lookup_extent_mapping(em_tree,</span>
+<span class="lineNum">     589 </span><span class="lineCov">         42 :                                    page_offset(bio-&gt;bi_io_vec-&gt;bv_page),</span>
+<span class="lineNum">     590 </span>            :                                    PAGE_CACHE_SIZE);
+<span class="lineNum">     591 </span>            :         read_unlock(&amp;em_tree-&gt;lock);
+<span class="lineNum">     592 </span><span class="lineCov">         42 :         if (!em)</span>
+<span class="lineNum">     593 </span>            :                 return -EIO;
+<span class="lineNum">     594 </span>            : 
+<span class="lineNum">     595 </span><span class="lineCov">         42 :         compressed_len = em-&gt;block_len;</span>
+<span class="lineNum">     596 </span><span class="lineCov">         42 :         cb = kmalloc(compressed_bio_size(root, compressed_len), GFP_NOFS);</span>
+<span class="lineNum">     597 </span><span class="lineCov">         42 :         if (!cb)</span>
+<span class="lineNum">     598 </span>            :                 goto out;
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span>            :         atomic_set(&amp;cb-&gt;pending_bios, 0);
+<span class="lineNum">     601 </span><span class="lineCov">         42 :         cb-&gt;errors = 0;</span>
+<span class="lineNum">     602 </span><span class="lineCov">         42 :         cb-&gt;inode = inode;</span>
+<span class="lineNum">     603 </span><span class="lineCov">         42 :         cb-&gt;mirror_num = mirror_num;</span>
+<span class="lineNum">     604 </span><span class="lineCov">         42 :         sums = &amp;cb-&gt;sums;</span>
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span><span class="lineCov">         42 :         cb-&gt;start = em-&gt;orig_start;</span>
+<span class="lineNum">     607 </span><span class="lineCov">         42 :         em_len = em-&gt;len;</span>
+<span class="lineNum">     608 </span><span class="lineCov">         42 :         em_start = em-&gt;start;</span>
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span><span class="lineCov">         42 :         free_extent_map(em);</span>
+<span class="lineNum">     611 </span>            :         em = NULL;
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span><span class="lineCov">         42 :         cb-&gt;len = uncompressed_len;</span>
+<span class="lineNum">     614 </span><span class="lineCov">         42 :         cb-&gt;compressed_len = compressed_len;</span>
+<span class="lineNum">     615 </span><span class="lineCov">         42 :         cb-&gt;compress_type = extent_compress_type(bio_flags);</span>
+<span class="lineNum">     616 </span><span class="lineCov">         42 :         cb-&gt;orig_bio = bio;</span>
+<span class="lineNum">     617 </span>            : 
+<span class="lineNum">     618 </span><span class="lineCov">         42 :         nr_pages = (compressed_len + PAGE_CACHE_SIZE - 1) /</span>
+<span class="lineNum">     619 </span>            :                                  PAGE_CACHE_SIZE;
+<span class="lineNum">     620 </span><span class="lineCov">         42 :         cb-&gt;compressed_pages = kzalloc(sizeof(struct page *) * nr_pages,</span>
+<span class="lineNum">     621 </span>            :                                        GFP_NOFS);
+<span class="lineNum">     622 </span><span class="lineCov">         42 :         if (!cb-&gt;compressed_pages)</span>
+<span class="lineNum">     623 </span>            :                 goto fail1;
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span><span class="lineCov">         42 :         bdev = BTRFS_I(inode)-&gt;root-&gt;fs_info-&gt;fs_devices-&gt;latest_bdev;</span>
+<span class="lineNum">     626 </span>            : 
+<span class="lineNum">     627 </span><span class="lineCov">         84 :         for (pg_index = 0; pg_index &lt; nr_pages; pg_index++) {</span>
+<span class="lineNum">     628 </span><span class="lineCov">         84 :                 cb-&gt;compressed_pages[pg_index] = alloc_page(GFP_NOFS |</span>
+<span class="lineNum">     629 </span>            :                                                               __GFP_HIGHMEM);
+<span class="lineNum">     630 </span><span class="lineCov">         42 :                 if (!cb-&gt;compressed_pages[pg_index]) {</span>
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :                         faili = pg_index - 1;</span>
+<span class="lineNum">     632 </span>            :                         ret = -ENOMEM;
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :                         goto fail2;</span>
+<span class="lineNum">     634 </span>            :                 }
+<span class="lineNum">     635 </span>            :         }
+<span class="lineNum">     636 </span><span class="lineCov">         42 :         faili = nr_pages - 1;</span>
+<span class="lineNum">     637 </span><span class="lineCov">         42 :         cb-&gt;nr_pages = nr_pages;</span>
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span>            :         /* In the parent-locked case, we only locked the range we are
+<span class="lineNum">     640 </span>            :          * interested in.  In all other cases, we can opportunistically
+<span class="lineNum">     641 </span>            :          * cache decompressed data that goes beyond the requested range. */
+<span class="lineNum">     642 </span><span class="lineCov">         42 :         if (!(bio_flags &amp; EXTENT_BIO_PARENT_LOCKED))</span>
+<span class="lineNum">     643 </span><span class="lineCov">         42 :                 add_ra_bio_pages(inode, em_start + em_len, cb);</span>
+<span class="lineNum">     644 </span>            : 
+<span class="lineNum">     645 </span>            :         /* include any pages we added in add_ra-bio_pages */
+<span class="lineNum">     646 </span><span class="lineCov">         42 :         uncompressed_len = bio-&gt;bi_vcnt * PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     647 </span><span class="lineCov">         42 :         cb-&gt;len = uncompressed_len;</span>
+<span class="lineNum">     648 </span>            : 
+<span class="lineNum">     649 </span><span class="lineCov">         42 :         comp_bio = compressed_bio_alloc(bdev, cur_disk_byte, GFP_NOFS);</span>
+<span class="lineNum">     650 </span><span class="lineCov">         42 :         if (!comp_bio)</span>
+<span class="lineNum">     651 </span>            :                 goto fail2;
+<span class="lineNum">     652 </span><span class="lineCov">         42 :         comp_bio-&gt;bi_private = cb;</span>
+<span class="lineNum">     653 </span><span class="lineCov">         42 :         comp_bio-&gt;bi_end_io = end_compressed_bio_read;</span>
+<span class="lineNum">     654 </span><span class="lineCov">         42 :         atomic_inc(&amp;cb-&gt;pending_bios);</span>
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span><span class="lineCov">         84 :         for (pg_index = 0; pg_index &lt; nr_pages; pg_index++) {</span>
+<span class="lineNum">     657 </span><span class="lineCov">         42 :                 page = cb-&gt;compressed_pages[pg_index];</span>
+<span class="lineNum">     658 </span><span class="lineCov">         42 :                 page-&gt;mapping = inode-&gt;i_mapping;</span>
+<span class="lineNum">     659 </span><span class="lineCov">         42 :                 page-&gt;index = em_start &gt;&gt; PAGE_CACHE_SHIFT;</span>
+<span class="lineNum">     660 </span>            : 
+<span class="lineNum">     661 </span><span class="lineCov">         42 :                 if (comp_bio-&gt;bi_iter.bi_size)</span>
+<span class="lineNum">     662 </span><span class="lineNoCov">          0 :                         ret = tree-&gt;ops-&gt;merge_bio_hook(READ, page, 0,</span>
+<span class="lineNum">     663 </span>            :                                                         PAGE_CACHE_SIZE,
+<span class="lineNum">     664 </span>            :                                                         comp_bio, 0);
+<span class="lineNum">     665 </span>            :                 else
+<span class="lineNum">     666 </span>            :                         ret = 0;
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span><span class="lineCov">         42 :                 page-&gt;mapping = NULL;</span>
+<span class="lineNum">     669 </span><span class="lineCov">         42 :                 if (ret || bio_add_page(comp_bio, page, PAGE_CACHE_SIZE, 0) &lt;</span>
+<span class="lineNum">     670 </span>            :                     PAGE_CACHE_SIZE) {
+<span class="lineNum">     671 </span><span class="lineNoCov">          0 :                         bio_get(comp_bio);</span>
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span><span class="lineNoCov">          0 :                         ret = btrfs_bio_wq_end_io(root-&gt;fs_info, comp_bio, 0);</span>
+<span class="lineNum">     674 </span><span class="lineNoCov">          0 :                         BUG_ON(ret); /* -ENOMEM */</span>
+<span class="lineNum">     675 </span>            : 
+<span class="lineNum">     676 </span>            :                         /*
+<span class="lineNum">     677 </span>            :                          * inc the count before we submit the bio so
+<span class="lineNum">     678 </span>            :                          * we know the end IO handler won't happen before
+<span class="lineNum">     679 </span>            :                          * we inc the count.  Otherwise, the cb might get
+<span class="lineNum">     680 </span>            :                          * freed before we're done setting it up
+<span class="lineNum">     681 </span>            :                          */
+<span class="lineNum">     682 </span>            :                         atomic_inc(&amp;cb-&gt;pending_bios);
+<span class="lineNum">     683 </span>            : 
+<span class="lineNum">     684 </span><span class="lineNoCov">          0 :                         if (!(BTRFS_I(inode)-&gt;flags &amp; BTRFS_INODE_NODATASUM)) {</span>
+<span class="lineNum">     685 </span><span class="lineNoCov">          0 :                                 ret = btrfs_lookup_bio_sums(root, inode,</span>
+<span class="lineNum">     686 </span>            :                                                         comp_bio, sums);
+<span class="lineNum">     687 </span><span class="lineNoCov">          0 :                                 BUG_ON(ret); /* -ENOMEM */</span>
+<span class="lineNum">     688 </span>            :                         }
+<span class="lineNum">     689 </span><span class="lineNoCov">          0 :                         sums += (comp_bio-&gt;bi_iter.bi_size +</span>
+<span class="lineNum">     690 </span><span class="lineNoCov">          0 :                                  root-&gt;sectorsize - 1) / root-&gt;sectorsize;</span>
+<span class="lineNum">     691 </span>            : 
+<span class="lineNum">     692 </span><span class="lineNoCov">          0 :                         ret = btrfs_map_bio(root, READ, comp_bio,</span>
+<span class="lineNum">     693 </span>            :                                             mirror_num, 0);
+<span class="lineNum">     694 </span><span class="lineNoCov">          0 :                         if (ret)</span>
+<span class="lineNum">     695 </span><span class="lineNoCov">          0 :                                 bio_endio(comp_bio, ret);</span>
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span><span class="lineNoCov">          0 :                         bio_put(comp_bio);</span>
+<span class="lineNum">     698 </span>            : 
+<span class="lineNum">     699 </span><span class="lineNoCov">          0 :                         comp_bio = compressed_bio_alloc(bdev, cur_disk_byte,</span>
+<span class="lineNum">     700 </span>            :                                                         GFP_NOFS);
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :                         BUG_ON(!comp_bio);</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :                         comp_bio-&gt;bi_private = cb;</span>
+<span class="lineNum">     703 </span><span class="lineNoCov">          0 :                         comp_bio-&gt;bi_end_io = end_compressed_bio_read;</span>
+<span class="lineNum">     704 </span>            : 
+<span class="lineNum">     705 </span><span class="lineNoCov">          0 :                         bio_add_page(comp_bio, page, PAGE_CACHE_SIZE, 0);</span>
+<span class="lineNum">     706 </span>            :                 }
+<span class="lineNum">     707 </span><span class="lineCov">         42 :                 cur_disk_byte += PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     708 </span>            :         }
+<span class="lineNum">     709 </span><span class="lineCov">         42 :         bio_get(comp_bio);</span>
+<span class="lineNum">     710 </span>            : 
+<span class="lineNum">     711 </span><span class="lineCov">         42 :         ret = btrfs_bio_wq_end_io(root-&gt;fs_info, comp_bio, 0);</span>
+<span class="lineNum">     712 </span><span class="lineCov">         42 :         BUG_ON(ret); /* -ENOMEM */</span>
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span><span class="lineCov">         42 :         if (!(BTRFS_I(inode)-&gt;flags &amp; BTRFS_INODE_NODATASUM)) {</span>
+<span class="lineNum">     715 </span><span class="lineCov">         42 :                 ret = btrfs_lookup_bio_sums(root, inode, comp_bio, sums);</span>
+<span class="lineNum">     716 </span><span class="lineCov">         42 :                 BUG_ON(ret); /* -ENOMEM */</span>
+<span class="lineNum">     717 </span>            :         }
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span><span class="lineCov">         42 :         ret = btrfs_map_bio(root, READ, comp_bio, mirror_num, 0);</span>
+<span class="lineNum">     720 </span><span class="lineCov">         42 :         if (ret)</span>
+<span class="lineNum">     721 </span><span class="lineNoCov">          0 :                 bio_endio(comp_bio, ret);</span>
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span><span class="lineCov">         42 :         bio_put(comp_bio);</span>
+<span class="lineNum">     724 </span><span class="lineCov">         42 :         return 0;</span>
+<span class="lineNum">     725 </span>            : 
+<span class="lineNum">     726 </span>            : fail2:
+<span class="lineNum">     727 </span><span class="lineNoCov">          0 :         while (faili &gt;= 0) {</span>
+<span class="lineNum">     728 </span><span class="lineNoCov">          0 :                 __free_page(cb-&gt;compressed_pages[faili]);</span>
+<span class="lineNum">     729 </span><span class="lineNoCov">          0 :                 faili--;</span>
+<span class="lineNum">     730 </span>            :         }
+<span class="lineNum">     731 </span>            : 
+<span class="lineNum">     732 </span><span class="lineNoCov">          0 :         kfree(cb-&gt;compressed_pages);</span>
+<span class="lineNum">     733 </span>            : fail1:
+<span class="lineNum">     734 </span><span class="lineNoCov">          0 :         kfree(cb);</span>
+<span class="lineNum">     735 </span>            : out:
+<span class="lineNum">     736 </span><span class="lineNoCov">          0 :         free_extent_map(em);</span>
+<span class="lineNum">     737 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     738 </span>            : }
+<span class="lineNum">     739 </span>            : 
+<span class="lineNum">     740 </span>            : static struct list_head comp_idle_workspace[BTRFS_COMPRESS_TYPES];
+<span class="lineNum">     741 </span>            : static spinlock_t comp_workspace_lock[BTRFS_COMPRESS_TYPES];
+<span class="lineNum">     742 </span>            : static int comp_num_workspace[BTRFS_COMPRESS_TYPES];
+<span class="lineNum">     743 </span>            : static atomic_t comp_alloc_workspace[BTRFS_COMPRESS_TYPES];
+<span class="lineNum">     744 </span>            : static wait_queue_head_t comp_workspace_wait[BTRFS_COMPRESS_TYPES];
+<span class="lineNum">     745 </span>            : 
+<span class="lineNum">     746 </span>            : static struct btrfs_compress_op *btrfs_compress_op[] = {
+<span class="lineNum">     747 </span>            :         &amp;btrfs_zlib_compress,
+<span class="lineNum">     748 </span>            :         &amp;btrfs_lzo_compress,
+<a name="749"><span class="lineNum">     749 </span>            : };</a>
+<span class="lineNum">     750 </span>            : 
+<span class="lineNum">     751 </span><span class="lineNoCov">          0 : void __init btrfs_init_compress(void)</span>
+<span class="lineNum">     752 </span>            : {
+<span class="lineNum">     753 </span>            :         int i;
+<span class="lineNum">     754 </span>            : 
+<span class="lineNum">     755 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; BTRFS_COMPRESS_TYPES; i++) {</span>
+<span class="lineNum">     756 </span><span class="lineNoCov">          0 :                 INIT_LIST_HEAD(&amp;comp_idle_workspace[i]);</span>
+<span class="lineNum">     757 </span><span class="lineNoCov">          0 :                 spin_lock_init(&amp;comp_workspace_lock[i]);</span>
+<span class="lineNum">     758 </span><span class="lineNoCov">          0 :                 atomic_set(&amp;comp_alloc_workspace[i], 0);</span>
+<span class="lineNum">     759 </span><span class="lineNoCov">          0 :                 init_waitqueue_head(&amp;comp_workspace_wait[i]);</span>
+<span class="lineNum">     760 </span>            :         }
+<span class="lineNum">     761 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span>            : /*
+<span class="lineNum">     764 </span>            :  * this finds an available workspace or allocates a new one
+<a name="765"><span class="lineNum">     765 </span>            :  * ERR_PTR is returned if things go bad.</a>
+<span class="lineNum">     766 </span>            :  */
+<span class="lineNum">     767 </span><span class="lineCov">        197 : static struct list_head *find_workspace(int type)</span>
+<span class="lineNum">     768 </span>            : {
+<span class="lineNum">     769 </span>            :         struct list_head *workspace;
+<span class="lineNum">     770 </span><span class="lineCov">        197 :         int cpus = num_online_cpus();</span>
+<span class="lineNum">     771 </span><span class="lineCov">        197 :         int idx = type - 1;</span>
+<span class="lineNum">     772 </span>            : 
+<span class="lineNum">     773 </span><span class="lineCov">        197 :         struct list_head *idle_workspace        = &amp;comp_idle_workspace[idx];</span>
+<span class="lineNum">     774 </span><span class="lineCov">        197 :         spinlock_t *workspace_lock              = &amp;comp_workspace_lock[idx];</span>
+<span class="lineNum">     775 </span><span class="lineCov">        197 :         atomic_t *alloc_workspace               = &amp;comp_alloc_workspace[idx];</span>
+<span class="lineNum">     776 </span><span class="lineCov">        197 :         wait_queue_head_t *workspace_wait       = &amp;comp_workspace_wait[idx];</span>
+<span class="lineNum">     777 </span>            :         int *num_workspace                      = &amp;comp_num_workspace[idx];
+<span class="lineNum">     778 </span>            : again:
+<span class="lineNum">     779 </span>            :         spin_lock(workspace_lock);
+<span class="lineNum">     780 </span><span class="lineCov">        197 :         if (!list_empty(idle_workspace)) {</span>
+<span class="lineNum">     781 </span>            :                 workspace = idle_workspace-&gt;next;
+<span class="lineNum">     782 </span><span class="lineCov">        196 :                 list_del(workspace);</span>
+<span class="lineNum">     783 </span><span class="lineCov">        196 :                 (*num_workspace)--;</span>
+<span class="lineNum">     784 </span>            :                 spin_unlock(workspace_lock);
+<span class="lineNum">     785 </span><span class="lineCov">        196 :                 return workspace;</span>
+<span class="lineNum">     786 </span>            : 
+<span class="lineNum">     787 </span>            :         }
+<span class="lineNum">     788 </span><span class="lineCov">          1 :         if (atomic_read(alloc_workspace) &gt; cpus) {</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :                 DEFINE_WAIT(wait);</span>
+<span class="lineNum">     790 </span>            : 
+<span class="lineNum">     791 </span>            :                 spin_unlock(workspace_lock);
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 :                 prepare_to_wait(workspace_wait, &amp;wait, TASK_UNINTERRUPTIBLE);</span>
+<span class="lineNum">     793 </span><span class="lineNoCov">          0 :                 if (atomic_read(alloc_workspace) &gt; cpus &amp;&amp; !*num_workspace)</span>
+<span class="lineNum">     794 </span><span class="lineNoCov">          0 :                         schedule();</span>
+<span class="lineNum">     795 </span><span class="lineNoCov">          0 :                 finish_wait(workspace_wait, &amp;wait);</span>
+<span class="lineNum">     796 </span>            :                 goto again;
+<span class="lineNum">     797 </span>            :         }
+<span class="lineNum">     798 </span>            :         atomic_inc(alloc_workspace);
+<span class="lineNum">     799 </span>            :         spin_unlock(workspace_lock);
+<span class="lineNum">     800 </span>            : 
+<span class="lineNum">     801 </span><span class="lineCov">          1 :         workspace = btrfs_compress_op[idx]-&gt;alloc_workspace();</span>
+<span class="lineNum">     802 </span><span class="lineCov">          1 :         if (IS_ERR(workspace)) {</span>
+<span class="lineNum">     803 </span>            :                 atomic_dec(alloc_workspace);
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :                 wake_up(workspace_wait);</span>
+<span class="lineNum">     805 </span>            :         }
+<span class="lineNum">     806 </span><span class="lineCov">          1 :         return workspace;</span>
+<span class="lineNum">     807 </span>            : }
+<span class="lineNum">     808 </span>            : 
+<span class="lineNum">     809 </span>            : /*
+<span class="lineNum">     810 </span>            :  * put a workspace struct back on the list or free it if we have enough
+<a name="811"><span class="lineNum">     811 </span>            :  * idle ones sitting around</a>
+<span class="lineNum">     812 </span>            :  */
+<span class="lineNum">     813 </span><span class="lineCov">        197 : static void free_workspace(int type, struct list_head *workspace)</span>
+<span class="lineNum">     814 </span>            : {
+<span class="lineNum">     815 </span><span class="lineCov">        197 :         int idx = type - 1;</span>
+<span class="lineNum">     816 </span><span class="lineCov">        197 :         struct list_head *idle_workspace        = &amp;comp_idle_workspace[idx];</span>
+<span class="lineNum">     817 </span><span class="lineCov">        197 :         spinlock_t *workspace_lock              = &amp;comp_workspace_lock[idx];</span>
+<span class="lineNum">     818 </span><span class="lineCov">        197 :         atomic_t *alloc_workspace               = &amp;comp_alloc_workspace[idx];</span>
+<span class="lineNum">     819 </span><span class="lineCov">        197 :         wait_queue_head_t *workspace_wait       = &amp;comp_workspace_wait[idx];</span>
+<span class="lineNum">     820 </span>            :         int *num_workspace                      = &amp;comp_num_workspace[idx];
+<span class="lineNum">     821 </span>            : 
+<span class="lineNum">     822 </span>            :         spin_lock(workspace_lock);
+<span class="lineNum">     823 </span><span class="lineCov">        394 :         if (*num_workspace &lt; num_online_cpus()) {</span>
+<span class="lineNum">     824 </span>            :                 list_add(workspace, idle_workspace);
+<span class="lineNum">     825 </span><span class="lineCov">        197 :                 (*num_workspace)++;</span>
+<span class="lineNum">     826 </span>            :                 spin_unlock(workspace_lock);
+<span class="lineNum">     827 </span>            :                 goto wake;
+<span class="lineNum">     828 </span>            :         }
+<span class="lineNum">     829 </span>            :         spin_unlock(workspace_lock);
+<span class="lineNum">     830 </span>            : 
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :         btrfs_compress_op[idx]-&gt;free_workspace(workspace);</span>
+<span class="lineNum">     832 </span>            :         atomic_dec(alloc_workspace);
+<span class="lineNum">     833 </span>            : wake:
+<span class="lineNum">     834 </span><span class="lineCov">        197 :         smp_mb();</span>
+<span class="lineNum">     835 </span><span class="lineCov">        197 :         if (waitqueue_active(workspace_wait))</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :                 wake_up(workspace_wait);</span>
+<span class="lineNum">     837 </span><span class="lineCov">        197 : }</span>
+<span class="lineNum">     838 </span>            : 
+<span class="lineNum">     839 </span>            : /*
+<a name="840"><span class="lineNum">     840 </span>            :  * cleanup function for module exit</a>
+<span class="lineNum">     841 </span>            :  */
+<span class="lineNum">     842 </span><span class="lineNoCov">          0 : static void free_workspaces(void)</span>
+<span class="lineNum">     843 </span>            : {
+<span class="lineNum">     844 </span>            :         struct list_head *workspace;
+<span class="lineNum">     845 </span>            :         int i;
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; BTRFS_COMPRESS_TYPES; i++) {</span>
+<span class="lineNum">     848 </span><span class="lineNoCov">          0 :                 while (!list_empty(&amp;comp_idle_workspace[i])) {</span>
+<span class="lineNum">     849 </span><span class="lineNoCov">          0 :                         workspace = comp_idle_workspace[i].next;</span>
+<span class="lineNum">     850 </span><span class="lineNoCov">          0 :                         list_del(workspace);</span>
+<span class="lineNum">     851 </span><span class="lineNoCov">          0 :                         btrfs_compress_op[i]-&gt;free_workspace(workspace);</span>
+<span class="lineNum">     852 </span><span class="lineNoCov">          0 :                         atomic_dec(&amp;comp_alloc_workspace[i]);</span>
+<span class="lineNum">     853 </span>            :                 }
+<span class="lineNum">     854 </span>            :         }
+<span class="lineNum">     855 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     856 </span>            : 
+<span class="lineNum">     857 </span>            : /*
+<span class="lineNum">     858 </span>            :  * given an address space and start/len, compress the bytes.
+<span class="lineNum">     859 </span>            :  *
+<span class="lineNum">     860 </span>            :  * pages are allocated to hold the compressed result and stored
+<span class="lineNum">     861 </span>            :  * in 'pages'
+<span class="lineNum">     862 </span>            :  *
+<span class="lineNum">     863 </span>            :  * out_pages is used to return the number of pages allocated.  There
+<span class="lineNum">     864 </span>            :  * may be pages allocated even if we return an error
+<span class="lineNum">     865 </span>            :  *
+<span class="lineNum">     866 </span>            :  * total_in is used to return the number of bytes actually read.  It
+<span class="lineNum">     867 </span>            :  * may be smaller then len if we had to exit early because we
+<span class="lineNum">     868 </span>            :  * ran out of room in the pages array or because we cross the
+<span class="lineNum">     869 </span>            :  * max_out threshold.
+<span class="lineNum">     870 </span>            :  *
+<span class="lineNum">     871 </span>            :  * total_out is used to return the total number of compressed bytes
+<span class="lineNum">     872 </span>            :  *
+<span class="lineNum">     873 </span>            :  * max_out tells us the max number of bytes that we're allowed to
+<a name="874"><span class="lineNum">     874 </span>            :  * stuff into pages</a>
+<span class="lineNum">     875 </span>            :  */
+<span class="lineNum">     876 </span><span class="lineCov">        155 : int btrfs_compress_pages(int type, struct address_space *mapping,</span>
+<span class="lineNum">     877 </span>            :                          u64 start, unsigned long len,
+<span class="lineNum">     878 </span>            :                          struct page **pages,
+<span class="lineNum">     879 </span>            :                          unsigned long nr_dest_pages,
+<span class="lineNum">     880 </span>            :                          unsigned long *out_pages,
+<span class="lineNum">     881 </span>            :                          unsigned long *total_in,
+<span class="lineNum">     882 </span>            :                          unsigned long *total_out,
+<span class="lineNum">     883 </span>            :                          unsigned long max_out)
+<span class="lineNum">     884 </span>            : {
+<span class="lineNum">     885 </span>            :         struct list_head *workspace;
+<span class="lineNum">     886 </span>            :         int ret;
+<span class="lineNum">     887 </span>            : 
+<span class="lineNum">     888 </span><span class="lineCov">        155 :         workspace = find_workspace(type);</span>
+<span class="lineNum">     889 </span><span class="lineCov">        155 :         if (IS_ERR(workspace))</span>
+<span class="lineNum">     890 </span><span class="lineNoCov">          0 :                 return PTR_ERR(workspace);</span>
+<span class="lineNum">     891 </span>            : 
+<span class="lineNum">     892 </span><span class="lineCov">        155 :         ret = btrfs_compress_op[type-1]-&gt;compress_pages(workspace, mapping,</span>
+<span class="lineNum">     893 </span>            :                                                       start, len, pages,
+<span class="lineNum">     894 </span>            :                                                       nr_dest_pages, out_pages,
+<span class="lineNum">     895 </span>            :                                                       total_in, total_out,
+<span class="lineNum">     896 </span>            :                                                       max_out);
+<span class="lineNum">     897 </span><span class="lineCov">        155 :         free_workspace(type, workspace);</span>
+<span class="lineNum">     898 </span><span class="lineCov">        155 :         return ret;</span>
+<span class="lineNum">     899 </span>            : }
+<span class="lineNum">     900 </span>            : 
+<span class="lineNum">     901 </span>            : /*
+<span class="lineNum">     902 </span>            :  * pages_in is an array of pages with compressed data.
+<span class="lineNum">     903 </span>            :  *
+<span class="lineNum">     904 </span>            :  * disk_start is the starting logical offset of this array in the file
+<span class="lineNum">     905 </span>            :  *
+<span class="lineNum">     906 </span>            :  * bvec is a bio_vec of pages from the file that we want to decompress into
+<span class="lineNum">     907 </span>            :  *
+<span class="lineNum">     908 </span>            :  * vcnt is the count of pages in the biovec
+<span class="lineNum">     909 </span>            :  *
+<span class="lineNum">     910 </span>            :  * srclen is the number of bytes in pages_in
+<span class="lineNum">     911 </span>            :  *
+<span class="lineNum">     912 </span>            :  * The basic idea is that we have a bio that was created by readpages.
+<span class="lineNum">     913 </span>            :  * The pages in the bio are for the uncompressed data, and they may not
+<span class="lineNum">     914 </span>            :  * be contiguous.  They all correspond to the range of bytes covered by
+<a name="915"><span class="lineNum">     915 </span>            :  * the compressed extent.</a>
+<span class="lineNum">     916 </span>            :  */
+<span class="lineNum">     917 </span><span class="lineCov">         42 : static int btrfs_decompress_biovec(int type, struct page **pages_in,</span>
+<span class="lineNum">     918 </span>            :                                    u64 disk_start, struct bio_vec *bvec,
+<span class="lineNum">     919 </span>            :                                    int vcnt, size_t srclen)
+<span class="lineNum">     920 </span>            : {
+<span class="lineNum">     921 </span>            :         struct list_head *workspace;
+<span class="lineNum">     922 </span>            :         int ret;
+<span class="lineNum">     923 </span>            : 
+<span class="lineNum">     924 </span><span class="lineCov">         42 :         workspace = find_workspace(type);</span>
+<span class="lineNum">     925 </span><span class="lineCov">         42 :         if (IS_ERR(workspace))</span>
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :                 return PTR_ERR(workspace);</span>
+<span class="lineNum">     927 </span>            : 
+<span class="lineNum">     928 </span><span class="lineCov">         42 :         ret = btrfs_compress_op[type-1]-&gt;decompress_biovec(workspace, pages_in,</span>
+<span class="lineNum">     929 </span>            :                                                          disk_start,
+<span class="lineNum">     930 </span>            :                                                          bvec, vcnt, srclen);
+<span class="lineNum">     931 </span><span class="lineCov">         42 :         free_workspace(type, workspace);</span>
+<span class="lineNum">     932 </span><span class="lineCov">         42 :         return ret;</span>
+<span class="lineNum">     933 </span>            : }
+<span class="lineNum">     934 </span>            : 
+<span class="lineNum">     935 </span>            : /*
+<span class="lineNum">     936 </span>            :  * a less complex decompression routine.  Our compressed data fits in a
+<span class="lineNum">     937 </span>            :  * single page, and we want to read a single page out of it.
+<a name="938"><span class="lineNum">     938 </span>            :  * start_byte tells us the offset into the compressed data we're interested in</a>
+<span class="lineNum">     939 </span>            :  */
+<span class="lineNum">     940 </span><span class="lineNoCov">          0 : int btrfs_decompress(int type, unsigned char *data_in, struct page *dest_page,</span>
+<span class="lineNum">     941 </span>            :                      unsigned long start_byte, size_t srclen, size_t destlen)
+<span class="lineNum">     942 </span>            : {
+<span class="lineNum">     943 </span>            :         struct list_head *workspace;
+<span class="lineNum">     944 </span>            :         int ret;
+<span class="lineNum">     945 </span>            : 
+<span class="lineNum">     946 </span><span class="lineNoCov">          0 :         workspace = find_workspace(type);</span>
+<span class="lineNum">     947 </span><span class="lineNoCov">          0 :         if (IS_ERR(workspace))</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :                 return PTR_ERR(workspace);</span>
+<span class="lineNum">     949 </span>            : 
+<span class="lineNum">     950 </span><span class="lineNoCov">          0 :         ret = btrfs_compress_op[type-1]-&gt;decompress(workspace, data_in,</span>
+<span class="lineNum">     951 </span>            :                                                   dest_page, start_byte,
+<span class="lineNum">     952 </span>            :                                                   srclen, destlen);
+<span class="lineNum">     953 </span>            : 
+<span class="lineNum">     954 </span><span class="lineNoCov">          0 :         free_workspace(type, workspace);</span>
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :         return ret;</span>
+<a name="956"><span class="lineNum">     956 </span>            : }</a>
+<span class="lineNum">     957 </span>            : 
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 : void btrfs_exit_compress(void)</span>
+<span class="lineNum">     959 </span>            : {
+<span class="lineNum">     960 </span><span class="lineNoCov">          0 :         free_workspaces();</span>
+<span class="lineNum">     961 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">     962 </span>            : 
+<span class="lineNum">     963 </span>            : /*
+<span class="lineNum">     964 </span>            :  * Copy uncompressed data from working buffer to pages.
+<span class="lineNum">     965 </span>            :  *
+<span class="lineNum">     966 </span>            :  * buf_start is the byte offset we're of the start of our workspace buffer.
+<span class="lineNum">     967 </span>            :  *
+<a name="968"><span class="lineNum">     968 </span>            :  * total_out is the last byte of the buffer</a>
+<span class="lineNum">     969 </span>            :  */
+<span class="lineNum">     970 </span><span class="lineCov">        364 : int btrfs_decompress_buf2page(char *buf, unsigned long buf_start,</span>
+<span class="lineNum">     971 </span>            :                               unsigned long total_out, u64 disk_start,
+<span class="lineNum">     972 </span>            :                               struct bio_vec *bvec, int vcnt,
+<span class="lineNum">     973 </span>            :                               unsigned long *pg_index,
+<span class="lineNum">     974 </span>            :                               unsigned long *pg_offset)
+<span class="lineNum">     975 </span>            : {
+<span class="lineNum">     976 </span>            :         unsigned long buf_offset;
+<span class="lineNum">     977 </span>            :         unsigned long current_buf_start;
+<span class="lineNum">     978 </span>            :         unsigned long start_byte;
+<span class="lineNum">     979 </span><span class="lineCov">        364 :         unsigned long working_bytes = total_out - buf_start;</span>
+<span class="lineNum">     980 </span>            :         unsigned long bytes;
+<span class="lineNum">     981 </span>            :         char *kaddr;
+<span class="lineNum">     982 </span><span class="lineCov">        654 :         struct page *page_out = bvec[*pg_index].bv_page;</span>
+<span class="lineNum">     983 </span>            : 
+<span class="lineNum">     984 </span>            :         /*
+<span class="lineNum">     985 </span>            :          * start byte is the first byte of the page we're currently
+<span class="lineNum">     986 </span>            :          * copying into relative to the start of the compressed data.
+<span class="lineNum">     987 </span>            :          */
+<span class="lineNum">     988 </span><span class="lineCov">        364 :         start_byte = page_offset(page_out) - disk_start;</span>
+<span class="lineNum">     989 </span>            : 
+<span class="lineNum">     990 </span>            :         /* we haven't yet hit data corresponding to this page */
+<span class="lineNum">     991 </span><span class="lineCov">        364 :         if (total_out &lt;= start_byte)</span>
+<span class="lineNum">     992 </span>            :                 return 1;
+<span class="lineNum">     993 </span>            : 
+<span class="lineNum">     994 </span>            :         /*
+<span class="lineNum">     995 </span>            :          * the start of the data we care about is offset into
+<span class="lineNum">     996 </span>            :          * the middle of our working buffer
+<span class="lineNum">     997 </span>            :          */
+<span class="lineNum">     998 </span><span class="lineCov">        332 :         if (total_out &gt; start_byte &amp;&amp; buf_start &lt; start_byte) {</span>
+<span class="lineNum">     999 </span><span class="lineNoCov">          0 :                 buf_offset = start_byte - buf_start;</span>
+<span class="lineNum">    1000 </span><span class="lineNoCov">          0 :                 working_bytes -= buf_offset;</span>
+<span class="lineNum">    1001 </span>            :         } else {
+<span class="lineNum">    1002 </span>            :                 buf_offset = 0;
+<span class="lineNum">    1003 </span>            :         }
+<span class="lineNum">    1004 </span>            :         current_buf_start = buf_start;
+<span class="lineNum">    1005 </span>            : 
+<span class="lineNum">    1006 </span>            :         /* copy bytes from the working buffer into the pages */
+<span class="lineNum">    1007 </span><span class="lineCov">        694 :         while (working_bytes &gt; 0) {</span>
+<span class="lineNum">    1008 </span><span class="lineCov">        332 :                 bytes = min(PAGE_CACHE_SIZE - *pg_offset,</span>
+<span class="lineNum">    1009 </span>            :                             PAGE_CACHE_SIZE - buf_offset);
+<span class="lineNum">    1010 </span><span class="lineCov">        332 :                 bytes = min(bytes, working_bytes);</span>
+<span class="lineNum">    1011 </span>            :                 kaddr = kmap_atomic(page_out);
+<span class="lineNum">    1012 </span><span class="lineCov">        332 :                 memcpy(kaddr + *pg_offset, buf + buf_offset, bytes);</span>
+<span class="lineNum">    1013 </span><span class="lineCov">        332 :                 if (*pg_index == (vcnt - 1) &amp;&amp; *pg_offset == 0)</span>
+<span class="lineNum">    1014 </span><span class="lineCov">         42 :                         memset(kaddr + bytes, 0, PAGE_CACHE_SIZE - bytes);</span>
+<span class="lineNum">    1015 </span>            :                 kunmap_atomic(kaddr);
+<span class="lineNum">    1016 </span>            :                 flush_dcache_page(page_out);
+<span class="lineNum">    1017 </span>            : 
+<span class="lineNum">    1018 </span><span class="lineCov">        332 :                 *pg_offset += bytes;</span>
+<span class="lineNum">    1019 </span><span class="lineCov">        332 :                 buf_offset += bytes;</span>
+<span class="lineNum">    1020 </span><span class="lineCov">        332 :                 working_bytes -= bytes;</span>
+<span class="lineNum">    1021 </span><span class="lineCov">        332 :                 current_buf_start += bytes;</span>
+<span class="lineNum">    1022 </span>            : 
+<span class="lineNum">    1023 </span>            :                 /* check if we need to pick another page */
+<span class="lineNum">    1024 </span><span class="lineCov">        332 :                 if (*pg_offset == PAGE_CACHE_SIZE) {</span>
+<span class="lineNum">    1025 </span><span class="lineCov">        302 :                         (*pg_index)++;</span>
+<span class="lineNum">    1026 </span><span class="lineCov">        302 :                         if (*pg_index &gt;= vcnt)</span>
+<span class="lineNum">    1027 </span>            :                                 return 0;
+<span class="lineNum">    1028 </span>            : 
+<span class="lineNum">    1029 </span><span class="lineCov">        290 :                         page_out = bvec[*pg_index].bv_page;</span>
+<span class="lineNum">    1030 </span><span class="lineCov">        290 :                         *pg_offset = 0;</span>
+<span class="lineNum">    1031 </span><span class="lineCov">        290 :                         start_byte = page_offset(page_out) - disk_start;</span>
+<span class="lineNum">    1032 </span>            : 
+<span class="lineNum">    1033 </span>            :                         /*
+<span class="lineNum">    1034 </span>            :                          * make sure our new page is covered by this
+<span class="lineNum">    1035 </span>            :                          * working buffer
+<span class="lineNum">    1036 </span>            :                          */
+<span class="lineNum">    1037 </span><span class="lineCov">        290 :                         if (total_out &lt;= start_byte)</span>
+<span class="lineNum">    1038 </span>            :                                 return 1;
+<span class="lineNum">    1039 </span>            : 
+<span class="lineNum">    1040 </span>            :                         /*
+<span class="lineNum">    1041 </span>            :                          * the next page in the biovec might not be adjacent
+<span class="lineNum">    1042 </span>            :                          * to the last page, but it might still be found
+<span class="lineNum">    1043 </span>            :                          * inside this working buffer. bump our offset pointer
+<span class="lineNum">    1044 </span>            :                          */
+<span class="lineNum">    1045 </span><span class="lineNoCov">          0 :                         if (total_out &gt; start_byte &amp;&amp;</span>
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :                             current_buf_start &lt; start_byte) {</span>
+<span class="lineNum">    1047 </span><span class="lineNoCov">          0 :                                 buf_offset = start_byte - buf_start;</span>
+<span class="lineNum">    1048 </span><span class="lineNoCov">          0 :                                 working_bytes = total_out - start_byte;</span>
+<span class="lineNum">    1049 </span>            :                                 current_buf_start = buf_start + buf_offset;
+<span class="lineNum">    1050 </span>            :                         }
+<span class="lineNum">    1051 </span>            :                 }
+<span class="lineNum">    1052 </span>            :         }
+<span class="lineNum">    1053 </span>            : 
+<span class="lineNum">    1054 </span>            :         return 1;
+<span class="lineNum">    1055 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

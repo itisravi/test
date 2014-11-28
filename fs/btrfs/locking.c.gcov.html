@@ -1,0 +1,358 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/locking.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - locking.c<span style="font-size: 80%;"> (source / <a href="locking.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">99</td>
+            <td class="headerCovTableEntry">100</td>
+            <td class="headerCovTableEntryHi">99.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2008 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : #include &lt;linux/sched.h&gt;
+<span class="lineNum">      19 </span>            : #include &lt;linux/pagemap.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/spinlock.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/page-flags.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;asm/bug.h&gt;
+<span class="lineNum">      23 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;extent_io.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;locking.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : static void btrfs_assert_tree_read_locked(struct extent_buffer *eb);
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : /*
+<span class="lineNum">      30 </span>            :  * if we currently have a spinning reader or writer lock
+<span class="lineNum">      31 </span>            :  * (indicated by the rw flag) this will bump the count
+<a name="32"><span class="lineNum">      32 </span>            :  * of blocking holders and drop the spinlock.</a>
+<span class="lineNum">      33 </span>            :  */
+<span class="lineNum">      34 </span><span class="lineCov">    1327290 : void btrfs_set_lock_blocking_rw(struct extent_buffer *eb, int rw)</span>
+<span class="lineNum">      35 </span>            : {
+<span class="lineNum">      36 </span>            :         /*
+<span class="lineNum">      37 </span>            :          * no lock is required.  The lock owner may change if
+<span class="lineNum">      38 </span>            :          * we have a read lock, but it won't change to or away
+<span class="lineNum">      39 </span>            :          * from us.  If we have the write lock, we are the owner
+<span class="lineNum">      40 </span>            :          * and it'll never change.
+<span class="lineNum">      41 </span>            :          */
+<span class="lineNum">      42 </span><span class="lineCov">    1327430 :         if (eb-&gt;lock_nested &amp;&amp; current-&gt;pid == eb-&gt;lock_owner)</span>
+<span class="lineNum">      43 </span>            :                 return;
+<span class="lineNum">      44 </span><span class="lineCov">    1327651 :         if (rw == BTRFS_WRITE_LOCK) {</span>
+<span class="lineNum">      45 </span><span class="lineCov">     886641 :                 if (atomic_read(&amp;eb-&gt;blocking_writers) == 0) {</span>
+<span class="lineNum">      46 </span><span class="lineCov">     794490 :                         WARN_ON(atomic_read(&amp;eb-&gt;spinning_writers) != 1);</span>
+<span class="lineNum">      47 </span><span class="lineCov">     794490 :                         atomic_dec(&amp;eb-&gt;spinning_writers);</span>
+<span class="lineNum">      48 </span>            :                         btrfs_assert_tree_locked(eb);
+<span class="lineNum">      49 </span><span class="lineCov">     794852 :                         atomic_inc(&amp;eb-&gt;blocking_writers);</span>
+<span class="lineNum">      50 </span>            :                         write_unlock(&amp;eb-&gt;lock);
+<span class="lineNum">      51 </span>            :                 }
+<span class="lineNum">      52 </span><span class="lineCov">     441010 :         } else if (rw == BTRFS_READ_LOCK) {</span>
+<span class="lineNum">      53 </span>            :                 btrfs_assert_tree_read_locked(eb);
+<span class="lineNum">      54 </span><span class="lineCov">     420455 :                 atomic_inc(&amp;eb-&gt;blocking_readers);</span>
+<span class="lineNum">      55 </span><span class="lineCov">     420572 :                 WARN_ON(atomic_read(&amp;eb-&gt;spinning_readers) == 0);</span>
+<span class="lineNum">      56 </span><span class="lineCov">     420572 :                 atomic_dec(&amp;eb-&gt;spinning_readers);</span>
+<span class="lineNum">      57 </span>            :                 read_unlock(&amp;eb-&gt;lock);
+<span class="lineNum">      58 </span>            :         }
+<span class="lineNum">      59 </span>            :         return;
+<span class="lineNum">      60 </span>            : }
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : /*
+<span class="lineNum">      63 </span>            :  * if we currently have a blocking lock, take the spinlock
+<a name="64"><span class="lineNum">      64 </span>            :  * and drop our blocking count</a>
+<span class="lineNum">      65 </span>            :  */
+<span class="lineNum">      66 </span><span class="lineCov">    3781402 : void btrfs_clear_lock_blocking_rw(struct extent_buffer *eb, int rw)</span>
+<span class="lineNum">      67 </span>            : {
+<span class="lineNum">      68 </span>            :         /*
+<span class="lineNum">      69 </span>            :          * no lock is required.  The lock owner may change if
+<span class="lineNum">      70 </span>            :          * we have a read lock, but it won't change to or away
+<span class="lineNum">      71 </span>            :          * from us.  If we have the write lock, we are the owner
+<span class="lineNum">      72 </span>            :          * and it'll never change.
+<span class="lineNum">      73 </span>            :          */
+<span class="lineNum">      74 </span><span class="lineCov">    3781546 :         if (eb-&gt;lock_nested &amp;&amp; current-&gt;pid == eb-&gt;lock_owner)</span>
+<span class="lineNum">      75 </span>            :                 return;
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineCov">    3782361 :         if (rw == BTRFS_WRITE_LOCK_BLOCKING) {</span>
+<span class="lineNum">      78 </span><span class="lineCov">     326578 :                 BUG_ON(atomic_read(&amp;eb-&gt;blocking_writers) != 1);</span>
+<span class="lineNum">      79 </span><span class="lineCov">     326578 :                 write_lock(&amp;eb-&gt;lock);</span>
+<span class="lineNum">      80 </span><span class="lineCov">     326604 :                 WARN_ON(atomic_read(&amp;eb-&gt;spinning_writers));</span>
+<span class="lineNum">      81 </span><span class="lineCov">     326604 :                 atomic_inc(&amp;eb-&gt;spinning_writers);</span>
+<span class="lineNum">      82 </span><span class="lineCov">     979821 :                 if (atomic_dec_and_test(&amp;eb-&gt;blocking_writers) &amp;&amp;</span>
+<span class="lineNum">      83 </span>            :                     waitqueue_active(&amp;eb-&gt;write_lock_wq))
+<span class="lineNum">      84 </span><span class="lineCov">       8238 :                         wake_up(&amp;eb-&gt;write_lock_wq);</span>
+<span class="lineNum">      85 </span><span class="lineCov">    3455783 :         } else if (rw == BTRFS_READ_LOCK_BLOCKING) {</span>
+<span class="lineNum">      86 </span><span class="lineCov">       5404 :                 BUG_ON(atomic_read(&amp;eb-&gt;blocking_readers) == 0);</span>
+<span class="lineNum">      87 </span><span class="lineCov">       5404 :                 read_lock(&amp;eb-&gt;lock);</span>
+<span class="lineNum">      88 </span><span class="lineCov">       5404 :                 atomic_inc(&amp;eb-&gt;spinning_readers);</span>
+<span class="lineNum">      89 </span><span class="lineCov">      15725 :                 if (atomic_dec_and_test(&amp;eb-&gt;blocking_readers) &amp;&amp;</span>
+<span class="lineNum">      90 </span>            :                     waitqueue_active(&amp;eb-&gt;read_lock_wq))
+<span class="lineNum">      91 </span><span class="lineCov">       1859 :                         wake_up(&amp;eb-&gt;read_lock_wq);</span>
+<span class="lineNum">      92 </span>            :         }
+<span class="lineNum">      93 </span>            :         return;
+<span class="lineNum">      94 </span>            : }
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            : /*
+<span class="lineNum">      97 </span>            :  * take a spinning read lock.  This will wait for any blocking
+<a name="98"><span class="lineNum">      98 </span>            :  * writers</a>
+<span class="lineNum">      99 </span>            :  */
+<span class="lineNum">     100 </span><span class="lineCov">    2386077 : void btrfs_tree_read_lock(struct extent_buffer *eb)</span>
+<span class="lineNum">     101 </span>            : {
+<span class="lineNum">     102 </span>            : again:
+<span class="lineNum">     103 </span><span class="lineCov">    4785382 :         BUG_ON(!atomic_read(&amp;eb-&gt;blocking_writers) &amp;&amp;</span>
+<span class="lineNum">     104 </span>            :                current-&gt;pid == eb-&gt;lock_owner);
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineCov">    2396216 :         read_lock(&amp;eb-&gt;lock);</span>
+<span class="lineNum">     107 </span><span class="lineCov">    2406670 :         if (atomic_read(&amp;eb-&gt;blocking_writers) &amp;&amp;</span>
+<span class="lineNum">     108 </span><span class="lineCov">      10297 :             current-&gt;pid == eb-&gt;lock_owner) {</span>
+<span class="lineNum">     109 </span>            :                 /*
+<span class="lineNum">     110 </span>            :                  * This extent is already write-locked by our thread. We allow
+<span class="lineNum">     111 </span>            :                  * an additional read lock to be added because it's for the same
+<span class="lineNum">     112 </span>            :                  * thread. btrfs_find_all_roots() depends on this as it may be
+<span class="lineNum">     113 </span>            :                  * called on a partly (write-)locked tree.
+<span class="lineNum">     114 </span>            :                  */
+<span class="lineNum">     115 </span><span class="lineCov">        142 :                 BUG_ON(eb-&gt;lock_nested);</span>
+<span class="lineNum">     116 </span><span class="lineCov">        142 :                 eb-&gt;lock_nested = 1;</span>
+<span class="lineNum">     117 </span>            :                 read_unlock(&amp;eb-&gt;lock);
+<span class="lineNum">     118 </span><span class="lineCov">    2386309 :                 return;</span>
+<span class="lineNum">     119 </span>            :         }
+<span class="lineNum">     120 </span><span class="lineCov">    2396231 :         if (atomic_read(&amp;eb-&gt;blocking_writers)) {</span>
+<span class="lineNum">     121 </span>            :                 read_unlock(&amp;eb-&gt;lock);
+<span class="lineNum">     122 </span><span class="lineCov">      44983 :                 wait_event(eb-&gt;write_lock_wq,</span>
+<span class="lineNum">     123 </span>            :                            atomic_read(&amp;eb-&gt;blocking_writers) == 0);
+<span class="lineNum">     124 </span>            :                 goto again;
+<span class="lineNum">     125 </span>            :         }
+<span class="lineNum">     126 </span><span class="lineCov">    2386102 :         atomic_inc(&amp;eb-&gt;read_locks);</span>
+<span class="lineNum">     127 </span><span class="lineCov">    2386157 :         atomic_inc(&amp;eb-&gt;spinning_readers);</span>
+<span class="lineNum">     128 </span>            : }
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : /*
+<span class="lineNum">     131 </span>            :  * returns 1 if we get the read lock and 0 if we don't
+<a name="132"><span class="lineNum">     132 </span>            :  * this won't wait for blocking writers</a>
+<span class="lineNum">     133 </span>            :  */
+<span class="lineNum">     134 </span><span class="lineCov">     453366 : int btrfs_try_tree_read_lock(struct extent_buffer *eb)</span>
+<span class="lineNum">     135 </span>            : {
+<span class="lineNum">     136 </span><span class="lineCov">     453366 :         if (atomic_read(&amp;eb-&gt;blocking_writers))</span>
+<span class="lineNum">     137 </span>            :                 return 0;
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineCov">     452663 :         if (!read_trylock(&amp;eb-&gt;lock))</span>
+<span class="lineNum">     140 </span>            :                 return 0;
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span><span class="lineCov">     452278 :         if (atomic_read(&amp;eb-&gt;blocking_writers)) {</span>
+<span class="lineNum">     143 </span>            :                 read_unlock(&amp;eb-&gt;lock);
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     145 </span>            :         }
+<span class="lineNum">     146 </span><span class="lineCov">     452278 :         atomic_inc(&amp;eb-&gt;read_locks);</span>
+<span class="lineNum">     147 </span><span class="lineCov">     452311 :         atomic_inc(&amp;eb-&gt;spinning_readers);</span>
+<span class="lineNum">     148 </span><span class="lineCov">     452304 :         return 1;</span>
+<span class="lineNum">     149 </span>            : }
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            : /*
+<span class="lineNum">     152 </span>            :  * returns 1 if we get the read lock and 0 if we don't
+<a name="153"><span class="lineNum">     153 </span>            :  * this won't wait for blocking writers or readers</a>
+<span class="lineNum">     154 </span>            :  */
+<span class="lineNum">     155 </span><span class="lineCov">     758239 : int btrfs_try_tree_write_lock(struct extent_buffer *eb)</span>
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span><span class="lineCov">    1511855 :         if (atomic_read(&amp;eb-&gt;blocking_writers) ||</span>
+<span class="lineNum">     158 </span>            :             atomic_read(&amp;eb-&gt;blocking_readers))
+<span class="lineNum">     159 </span>            :                 return 0;
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineCov">     753328 :         if (!write_trylock(&amp;eb-&gt;lock))</span>
+<span class="lineNum">     162 </span>            :                 return 0;
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">    1499373 :         if (atomic_read(&amp;eb-&gt;blocking_writers) ||</span>
+<span class="lineNum">     165 </span>            :             atomic_read(&amp;eb-&gt;blocking_readers)) {
+<span class="lineNum">     166 </span>            :                 write_unlock(&amp;eb-&gt;lock);
+<span class="lineNum">     167 </span><span class="lineCov">          1 :                 return 0;</span>
+<span class="lineNum">     168 </span>            :         }
+<span class="lineNum">     169 </span><span class="lineCov">     749684 :         atomic_inc(&amp;eb-&gt;write_locks);</span>
+<span class="lineNum">     170 </span><span class="lineCov">     749696 :         atomic_inc(&amp;eb-&gt;spinning_writers);</span>
+<span class="lineNum">     171 </span><span class="lineCov">     749709 :         eb-&gt;lock_owner = current-&gt;pid;</span>
+<span class="lineNum">     172 </span><span class="lineCov">     749709 :         return 1;</span>
+<span class="lineNum">     173 </span>            : }
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            : /*
+<a name="176"><span class="lineNum">     176 </span>            :  * drop a spinning read lock</a>
+<span class="lineNum">     177 </span>            :  */
+<span class="lineNum">     178 </span><span class="lineCov">    2422736 : void btrfs_tree_read_unlock(struct extent_buffer *eb)</span>
+<span class="lineNum">     179 </span>            : {
+<span class="lineNum">     180 </span>            :         /*
+<span class="lineNum">     181 </span>            :          * if we're nested, we have the write lock.  No new locking
+<span class="lineNum">     182 </span>            :          * is needed as long as we are the lock owner.
+<span class="lineNum">     183 </span>            :          * The write unlock will do a barrier for us, and the lock_nested
+<span class="lineNum">     184 </span>            :          * field only matters to the lock owner.
+<span class="lineNum">     185 </span>            :          */
+<span class="lineNum">     186 </span><span class="lineCov">    2422738 :         if (eb-&gt;lock_nested &amp;&amp; current-&gt;pid == eb-&gt;lock_owner) {</span>
+<span class="lineNum">     187 </span><span class="lineCov">          2 :                 eb-&gt;lock_nested = 0;</span>
+<span class="lineNum">     188 </span><span class="lineCov">    2423236 :                 return;</span>
+<span class="lineNum">     189 </span>            :         }
+<span class="lineNum">     190 </span>            :         btrfs_assert_tree_read_locked(eb);
+<span class="lineNum">     191 </span><span class="lineCov">    2422734 :         WARN_ON(atomic_read(&amp;eb-&gt;spinning_readers) == 0);</span>
+<span class="lineNum">     192 </span><span class="lineCov">    2422734 :         atomic_dec(&amp;eb-&gt;spinning_readers);</span>
+<span class="lineNum">     193 </span><span class="lineCov">    2423212 :         atomic_dec(&amp;eb-&gt;read_locks);</span>
+<span class="lineNum">     194 </span>            :         read_unlock(&amp;eb-&gt;lock);
+<span class="lineNum">     195 </span>            : }
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            : /*
+<a name="198"><span class="lineNum">     198 </span>            :  * drop a blocking read lock</a>
+<span class="lineNum">     199 </span>            :  */
+<span class="lineNum">     200 </span><span class="lineCov">     415251 : void btrfs_tree_read_unlock_blocking(struct extent_buffer *eb)</span>
+<span class="lineNum">     201 </span>            : {
+<span class="lineNum">     202 </span>            :         /*
+<span class="lineNum">     203 </span>            :          * if we're nested, we have the write lock.  No new locking
+<span class="lineNum">     204 </span>            :          * is needed as long as we are the lock owner.
+<span class="lineNum">     205 </span>            :          * The write unlock will do a barrier for us, and the lock_nested
+<span class="lineNum">     206 </span>            :          * field only matters to the lock owner.
+<span class="lineNum">     207 </span>            :          */
+<span class="lineNum">     208 </span><span class="lineCov">     415391 :         if (eb-&gt;lock_nested &amp;&amp; current-&gt;pid == eb-&gt;lock_owner) {</span>
+<span class="lineNum">     209 </span><span class="lineCov">        140 :                 eb-&gt;lock_nested = 0;</span>
+<span class="lineNum">     210 </span><span class="lineCov">     415461 :                 return;</span>
+<span class="lineNum">     211 </span>            :         }
+<span class="lineNum">     212 </span>            :         btrfs_assert_tree_read_locked(eb);
+<span class="lineNum">     213 </span><span class="lineCov">     415111 :         WARN_ON(atomic_read(&amp;eb-&gt;blocking_readers) == 0);</span>
+<span class="lineNum">     214 </span><span class="lineCov">    1245323 :         if (atomic_dec_and_test(&amp;eb-&gt;blocking_readers) &amp;&amp;</span>
+<span class="lineNum">     215 </span>            :             waitqueue_active(&amp;eb-&gt;read_lock_wq))
+<span class="lineNum">     216 </span><span class="lineCov">        479 :                 wake_up(&amp;eb-&gt;read_lock_wq);</span>
+<span class="lineNum">     217 </span><span class="lineCov">     415176 :         atomic_dec(&amp;eb-&gt;read_locks);</span>
+<span class="lineNum">     218 </span>            : }
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span>            : /*
+<span class="lineNum">     221 </span>            :  * take a spinning write lock.  This will wait for both
+<a name="222"><span class="lineNum">     222 </span>            :  * blocking readers or writers</a>
+<span class="lineNum">     223 </span>            :  */
+<span class="lineNum">     224 </span><span class="lineCov">     724348 : void btrfs_tree_lock(struct extent_buffer *eb)</span>
+<span class="lineNum">     225 </span>            : {
+<span class="lineNum">     226 </span>            : again:
+<span class="lineNum">     227 </span><span class="lineCov">     734598 :         wait_event(eb-&gt;read_lock_wq, atomic_read(&amp;eb-&gt;blocking_readers) == 0);</span>
+<span class="lineNum">     228 </span><span class="lineCov">     742206 :         wait_event(eb-&gt;write_lock_wq, atomic_read(&amp;eb-&gt;blocking_writers) == 0);</span>
+<span class="lineNum">     229 </span><span class="lineCov">     726622 :         write_lock(&amp;eb-&gt;lock);</span>
+<span class="lineNum">     230 </span><span class="lineCov">     726722 :         if (atomic_read(&amp;eb-&gt;blocking_readers)) {</span>
+<span class="lineNum">     231 </span>            :                 write_unlock(&amp;eb-&gt;lock);
+<span class="lineNum">     232 </span><span class="lineCov">       2538 :                 wait_event(eb-&gt;read_lock_wq,</span>
+<span class="lineNum">     233 </span>            :                            atomic_read(&amp;eb-&gt;blocking_readers) == 0);
+<span class="lineNum">     234 </span>            :                 goto again;
+<span class="lineNum">     235 </span>            :         }
+<span class="lineNum">     236 </span><span class="lineCov">     726093 :         if (atomic_read(&amp;eb-&gt;blocking_writers)) {</span>
+<span class="lineNum">     237 </span>            :                 write_unlock(&amp;eb-&gt;lock);
+<span class="lineNum">     238 </span><span class="lineCov">       6802 :                 wait_event(eb-&gt;write_lock_wq,</span>
+<span class="lineNum">     239 </span>            :                            atomic_read(&amp;eb-&gt;blocking_writers) == 0);
+<span class="lineNum">     240 </span>            :                 goto again;
+<span class="lineNum">     241 </span>            :         }
+<span class="lineNum">     242 </span><span class="lineCov">     724450 :         WARN_ON(atomic_read(&amp;eb-&gt;spinning_writers));</span>
+<span class="lineNum">     243 </span><span class="lineCov">     724450 :         atomic_inc(&amp;eb-&gt;spinning_writers);</span>
+<span class="lineNum">     244 </span><span class="lineCov">     724484 :         atomic_inc(&amp;eb-&gt;write_locks);</span>
+<span class="lineNum">     245 </span><span class="lineCov">     724492 :         eb-&gt;lock_owner = current-&gt;pid;</span>
+<span class="lineNum">     246 </span><span class="lineCov">     724492 : }</span>
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            : /*
+<a name="249"><span class="lineNum">     249 </span>            :  * drop a spinning or a blocking write lock.</a>
+<span class="lineNum">     250 </span>            :  */
+<span class="lineNum">     251 </span><span class="lineCov">    1473386 : void btrfs_tree_unlock(struct extent_buffer *eb)</span>
+<span class="lineNum">     252 </span>            : {
+<span class="lineNum">     253 </span>            :         int blockers = atomic_read(&amp;eb-&gt;blocking_writers);
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span><span class="lineCov">    1473386 :         BUG_ON(blockers &gt; 1);</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :         btrfs_assert_tree_locked(eb);
+<span class="lineNum">     258 </span><span class="lineCov">    1473386 :         eb-&gt;lock_owner = 0;</span>
+<span class="lineNum">     259 </span><span class="lineCov">    1473386 :         atomic_dec(&amp;eb-&gt;write_locks);</span>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineCov">    1474199 :         if (blockers) {</span>
+<span class="lineNum">     262 </span><span class="lineCov">     468321 :                 WARN_ON(atomic_read(&amp;eb-&gt;spinning_writers));</span>
+<span class="lineNum">     263 </span><span class="lineCov">     468321 :                 atomic_dec(&amp;eb-&gt;blocking_writers);</span>
+<span class="lineNum">     264 </span><span class="lineCov">     468309 :                 smp_mb();</span>
+<span class="lineNum">     265 </span><span class="lineCov">     468323 :                 if (waitqueue_active(&amp;eb-&gt;write_lock_wq))</span>
+<span class="lineNum">     266 </span><span class="lineCov">       8274 :                         wake_up(&amp;eb-&gt;write_lock_wq);</span>
+<span class="lineNum">     267 </span>            :         } else {
+<span class="lineNum">     268 </span><span class="lineCov">    1005878 :                 WARN_ON(atomic_read(&amp;eb-&gt;spinning_writers) != 1);</span>
+<span class="lineNum">     269 </span><span class="lineCov">    1005878 :                 atomic_dec(&amp;eb-&gt;spinning_writers);</span>
+<span class="lineNum">     270 </span>            :                 write_unlock(&amp;eb-&gt;lock);
+<span class="lineNum">     271 </span>            :         }
+<a name="272"><span class="lineNum">     272 </span><span class="lineCov">    1474177 : }</span></a>
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span><span class="lineCov">    1317377 : void btrfs_assert_tree_locked(struct extent_buffer *eb)</span>
+<span class="lineNum">     275 </span>            : {
+<span class="lineNum">     276 </span><span class="lineCov">    3585615 :         BUG_ON(!atomic_read(&amp;eb-&gt;write_locks));</span>
+<span class="lineNum">     277 </span><span class="lineCov">    1317377 : }</span>
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span>            : static void btrfs_assert_tree_read_locked(struct extent_buffer *eb)
+<span class="lineNum">     280 </span>            : {
+<span class="lineNum">     281 </span><span class="lineCov">    3258300 :         BUG_ON(!atomic_read(&amp;eb-&gt;read_locks));</span>
+<span class="lineNum">     282 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/transaction.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - transaction.h<span style="font-size: 80%;"> (source / <a href="transaction.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2007 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #ifndef __BTRFS_TRANSACTION__
+<span class="lineNum">      20 </span>            : #define __BTRFS_TRANSACTION__
+<span class="lineNum">      21 </span>            : #include &quot;btrfs_inode.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;delayed-ref.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : enum btrfs_trans_state {
+<span class="lineNum">      26 </span>            :         TRANS_STATE_RUNNING             = 0,
+<span class="lineNum">      27 </span>            :         TRANS_STATE_BLOCKED             = 1,
+<span class="lineNum">      28 </span>            :         TRANS_STATE_COMMIT_START        = 2,
+<span class="lineNum">      29 </span>            :         TRANS_STATE_COMMIT_DOING        = 3,
+<span class="lineNum">      30 </span>            :         TRANS_STATE_UNBLOCKED           = 4,
+<span class="lineNum">      31 </span>            :         TRANS_STATE_COMPLETED           = 5,
+<span class="lineNum">      32 </span>            :         TRANS_STATE_MAX                 = 6,
+<span class="lineNum">      33 </span>            : };
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : struct btrfs_transaction {
+<span class="lineNum">      36 </span>            :         u64 transid;
+<span class="lineNum">      37 </span>            :         /*
+<span class="lineNum">      38 </span>            :          * total external writers(USERSPACE/START/ATTACH) in this
+<span class="lineNum">      39 </span>            :          * transaction, it must be zero before the transaction is
+<span class="lineNum">      40 </span>            :          * being committed
+<span class="lineNum">      41 </span>            :          */
+<span class="lineNum">      42 </span>            :         atomic_t num_extwriters;
+<span class="lineNum">      43 </span>            :         /*
+<span class="lineNum">      44 </span>            :          * total writers in this transaction, it must be zero before the
+<span class="lineNum">      45 </span>            :          * transaction can end
+<span class="lineNum">      46 </span>            :          */
+<span class="lineNum">      47 </span>            :         atomic_t num_writers;
+<span class="lineNum">      48 </span>            :         atomic_t use_count;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            :         /* Be protected by fs_info-&gt;trans_lock when we want to change it. */
+<span class="lineNum">      51 </span>            :         enum btrfs_trans_state state;
+<span class="lineNum">      52 </span>            :         struct list_head list;
+<span class="lineNum">      53 </span>            :         struct extent_io_tree dirty_pages;
+<span class="lineNum">      54 </span>            :         unsigned long start_time;
+<span class="lineNum">      55 </span>            :         wait_queue_head_t writer_wait;
+<span class="lineNum">      56 </span>            :         wait_queue_head_t commit_wait;
+<span class="lineNum">      57 </span>            :         struct list_head pending_snapshots;
+<span class="lineNum">      58 </span>            :         struct list_head pending_chunks;
+<span class="lineNum">      59 </span>            :         struct list_head switch_commits;
+<span class="lineNum">      60 </span>            :         struct btrfs_delayed_ref_root delayed_refs;
+<span class="lineNum">      61 </span>            :         int aborted;
+<span class="lineNum">      62 </span>            : };
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : #define __TRANS_FREEZABLE       (1U &lt;&lt; 0)
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : #define __TRANS_USERSPACE       (1U &lt;&lt; 8)
+<span class="lineNum">      67 </span>            : #define __TRANS_START           (1U &lt;&lt; 9)
+<span class="lineNum">      68 </span>            : #define __TRANS_ATTACH          (1U &lt;&lt; 10)
+<span class="lineNum">      69 </span>            : #define __TRANS_JOIN            (1U &lt;&lt; 11)
+<span class="lineNum">      70 </span>            : #define __TRANS_JOIN_NOLOCK     (1U &lt;&lt; 12)
+<span class="lineNum">      71 </span>            : #define __TRANS_DUMMY           (1U &lt;&lt; 13)
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : #define TRANS_USERSPACE         (__TRANS_USERSPACE | __TRANS_FREEZABLE)
+<span class="lineNum">      74 </span>            : #define TRANS_START             (__TRANS_START | __TRANS_FREEZABLE)
+<span class="lineNum">      75 </span>            : #define TRANS_ATTACH            (__TRANS_ATTACH)
+<span class="lineNum">      76 </span>            : #define TRANS_JOIN              (__TRANS_JOIN | __TRANS_FREEZABLE)
+<span class="lineNum">      77 </span>            : #define TRANS_JOIN_NOLOCK       (__TRANS_JOIN_NOLOCK)
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : #define TRANS_EXTWRITERS        (__TRANS_USERSPACE | __TRANS_START |    \
+<span class="lineNum">      80 </span>            :                                  __TRANS_ATTACH)
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : #define BTRFS_SEND_TRANS_STUB   1
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : struct btrfs_trans_handle {
+<span class="lineNum">      85 </span>            :         u64 transid;
+<span class="lineNum">      86 </span>            :         u64 bytes_reserved;
+<span class="lineNum">      87 </span>            :         u64 qgroup_reserved;
+<span class="lineNum">      88 </span>            :         unsigned long use_count;
+<span class="lineNum">      89 </span>            :         unsigned long blocks_reserved;
+<span class="lineNum">      90 </span>            :         unsigned long blocks_used;
+<span class="lineNum">      91 </span>            :         unsigned long delayed_ref_updates;
+<span class="lineNum">      92 </span>            :         struct btrfs_transaction *transaction;
+<span class="lineNum">      93 </span>            :         struct btrfs_block_rsv *block_rsv;
+<span class="lineNum">      94 </span>            :         struct btrfs_block_rsv *orig_rsv;
+<span class="lineNum">      95 </span>            :         short aborted;
+<span class="lineNum">      96 </span>            :         short adding_csums;
+<span class="lineNum">      97 </span>            :         bool allocating_chunk;
+<span class="lineNum">      98 </span>            :         bool reloc_reserved;
+<span class="lineNum">      99 </span>            :         bool sync;
+<span class="lineNum">     100 </span>            :         unsigned int type;
+<span class="lineNum">     101 </span>            :         /*
+<span class="lineNum">     102 </span>            :          * this root is only needed to validate that the root passed to
+<span class="lineNum">     103 </span>            :          * start_transaction is the same as the one passed to end_transaction.
+<span class="lineNum">     104 </span>            :          * Subvolume quota depends on this
+<span class="lineNum">     105 </span>            :          */
+<span class="lineNum">     106 </span>            :         struct btrfs_root *root;
+<span class="lineNum">     107 </span>            :         struct seq_list delayed_ref_elem;
+<span class="lineNum">     108 </span>            :         struct list_head qgroup_ref_list;
+<span class="lineNum">     109 </span>            :         struct list_head new_bgs;
+<span class="lineNum">     110 </span>            : };
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            : struct btrfs_pending_snapshot {
+<span class="lineNum">     113 </span>            :         struct dentry *dentry;
+<span class="lineNum">     114 </span>            :         struct inode *dir;
+<span class="lineNum">     115 </span>            :         struct btrfs_root *root;
+<span class="lineNum">     116 </span>            :         struct btrfs_root *snap;
+<span class="lineNum">     117 </span>            :         struct btrfs_qgroup_inherit *inherit;
+<span class="lineNum">     118 </span>            :         /* block reservation for the operation */
+<span class="lineNum">     119 </span>            :         struct btrfs_block_rsv block_rsv;
+<span class="lineNum">     120 </span>            :         u64 qgroup_reserved;
+<span class="lineNum">     121 </span>            :         /* extra metadata reseration for relocation */
+<span class="lineNum">     122 </span>            :         int error;
+<span class="lineNum">     123 </span>            :         bool readonly;
+<span class="lineNum">     124 </span>            :         struct list_head list;
+<span class="lineNum">     125 </span>            : };
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            : static inline void btrfs_set_inode_last_trans(struct btrfs_trans_handle *trans,
+<span class="lineNum">     128 </span>            :                                               struct inode *inode)
+<span class="lineNum">     129 </span>            : {
+<span class="lineNum">     130 </span><span class="lineCov">     192614 :         BTRFS_I(inode)-&gt;last_trans = trans-&gt;transaction-&gt;transid;</span>
+<span class="lineNum">     131 </span><span class="lineCov">     192614 :         BTRFS_I(inode)-&gt;last_sub_trans = BTRFS_I(inode)-&gt;root-&gt;log_transid;</span>
+<span class="lineNum">     132 </span><span class="lineCov">     192614 :         BTRFS_I(inode)-&gt;last_log_commit = BTRFS_I(inode)-&gt;root-&gt;last_log_commit;</span>
+<span class="lineNum">     133 </span>            : }
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            : int btrfs_end_transaction(struct btrfs_trans_handle *trans,
+<span class="lineNum">     136 </span>            :                           struct btrfs_root *root);
+<span class="lineNum">     137 </span>            : struct btrfs_trans_handle *btrfs_start_transaction(struct btrfs_root *root,
+<span class="lineNum">     138 </span>            :                                                    int num_items);
+<span class="lineNum">     139 </span>            : struct btrfs_trans_handle *btrfs_start_transaction_lflush(
+<span class="lineNum">     140 </span>            :                                         struct btrfs_root *root, int num_items);
+<span class="lineNum">     141 </span>            : struct btrfs_trans_handle *btrfs_join_transaction(struct btrfs_root *root);
+<span class="lineNum">     142 </span>            : struct btrfs_trans_handle *btrfs_join_transaction_nolock(struct btrfs_root *root);
+<span class="lineNum">     143 </span>            : struct btrfs_trans_handle *btrfs_attach_transaction(struct btrfs_root *root);
+<span class="lineNum">     144 </span>            : struct btrfs_trans_handle *btrfs_attach_transaction_barrier(
+<span class="lineNum">     145 </span>            :                                         struct btrfs_root *root);
+<span class="lineNum">     146 </span>            : struct btrfs_trans_handle *btrfs_start_ioctl_transaction(struct btrfs_root *root);
+<span class="lineNum">     147 </span>            : int btrfs_wait_for_commit(struct btrfs_root *root, u64 transid);
+<span class="lineNum">     148 </span>            : int btrfs_write_and_wait_transaction(struct btrfs_trans_handle *trans,
+<span class="lineNum">     149 </span>            :                                      struct btrfs_root *root);
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            : void btrfs_add_dead_root(struct btrfs_root *root);
+<span class="lineNum">     152 </span>            : int btrfs_defrag_root(struct btrfs_root *root);
+<span class="lineNum">     153 </span>            : int btrfs_clean_one_deleted_snapshot(struct btrfs_root *root);
+<span class="lineNum">     154 </span>            : int btrfs_commit_transaction(struct btrfs_trans_handle *trans,
+<span class="lineNum">     155 </span>            :                              struct btrfs_root *root);
+<span class="lineNum">     156 </span>            : int btrfs_commit_transaction_async(struct btrfs_trans_handle *trans,
+<span class="lineNum">     157 </span>            :                                    struct btrfs_root *root,
+<span class="lineNum">     158 </span>            :                                    int wait_for_unblock);
+<span class="lineNum">     159 </span>            : int btrfs_end_transaction_throttle(struct btrfs_trans_handle *trans,
+<span class="lineNum">     160 </span>            :                                    struct btrfs_root *root);
+<span class="lineNum">     161 </span>            : int btrfs_should_end_transaction(struct btrfs_trans_handle *trans,
+<span class="lineNum">     162 </span>            :                                  struct btrfs_root *root);
+<span class="lineNum">     163 </span>            : void btrfs_throttle(struct btrfs_root *root);
+<span class="lineNum">     164 </span>            : int btrfs_record_root_in_trans(struct btrfs_trans_handle *trans,
+<span class="lineNum">     165 </span>            :                                 struct btrfs_root *root);
+<span class="lineNum">     166 </span>            : int btrfs_write_marked_extents(struct btrfs_root *root,
+<span class="lineNum">     167 </span>            :                                 struct extent_io_tree *dirty_pages, int mark);
+<span class="lineNum">     168 </span>            : int btrfs_wait_marked_extents(struct btrfs_root *root,
+<span class="lineNum">     169 </span>            :                                 struct extent_io_tree *dirty_pages, int mark);
+<span class="lineNum">     170 </span>            : int btrfs_transaction_blocked(struct btrfs_fs_info *info);
+<span class="lineNum">     171 </span>            : int btrfs_transaction_in_commit(struct btrfs_fs_info *info);
+<span class="lineNum">     172 </span>            : void btrfs_put_transaction(struct btrfs_transaction *transaction);
+<span class="lineNum">     173 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/buffer_head.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - buffer_head.h<span style="font-size: 80%;"> (source / <a href="buffer_head.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">15</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryHi">93.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * include/linux/buffer_head.h
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * Everything to do with buffer_heads.
+<span class="lineNum">       5 </span>            :  */
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : #ifndef _LINUX_BUFFER_HEAD_H
+<span class="lineNum">       8 </span>            : #define _LINUX_BUFFER_HEAD_H
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">      11 </span>            : #include &lt;linux/fs.h&gt;
+<span class="lineNum">      12 </span>            : #include &lt;linux/linkage.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;linux/pagemap.h&gt;
+<span class="lineNum">      14 </span>            : #include &lt;linux/wait.h&gt;
+<span class="lineNum">      15 </span>            : #include &lt;linux/atomic.h&gt;
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : #ifdef CONFIG_BLOCK
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : enum bh_state_bits {
+<span class="lineNum">      20 </span>            :         BH_Uptodate,    /* Contains valid data */
+<span class="lineNum">      21 </span>            :         BH_Dirty,       /* Is dirty */
+<span class="lineNum">      22 </span>            :         BH_Lock,        /* Is locked */
+<span class="lineNum">      23 </span>            :         BH_Req,         /* Has been submitted for I/O */
+<span class="lineNum">      24 </span>            :         BH_Uptodate_Lock,/* Used by the first bh in a page, to serialise
+<span class="lineNum">      25 </span>            :                           * IO completion of other buffers in the page
+<span class="lineNum">      26 </span>            :                           */
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            :         BH_Mapped,      /* Has a disk mapping */
+<span class="lineNum">      29 </span>            :         BH_New,         /* Disk mapping was newly created by get_block */
+<span class="lineNum">      30 </span>            :         BH_Async_Read,  /* Is under end_buffer_async_read I/O */
+<span class="lineNum">      31 </span>            :         BH_Async_Write, /* Is under end_buffer_async_write I/O */
+<span class="lineNum">      32 </span>            :         BH_Delay,       /* Buffer is not yet allocated on disk */
+<span class="lineNum">      33 </span>            :         BH_Boundary,    /* Block is followed by a discontiguity */
+<span class="lineNum">      34 </span>            :         BH_Write_EIO,   /* I/O error on write */
+<span class="lineNum">      35 </span>            :         BH_Unwritten,   /* Buffer is allocated on disk but not written */
+<span class="lineNum">      36 </span>            :         BH_Quiet,       /* Buffer Error Prinks to be quiet */
+<span class="lineNum">      37 </span>            :         BH_Meta,        /* Buffer contains metadata */
+<span class="lineNum">      38 </span>            :         BH_Prio,        /* Buffer should be submitted with REQ_PRIO */
+<span class="lineNum">      39 </span>            :         BH_Defer_Completion, /* Defer AIO completion to workqueue */
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            :         BH_PrivateStart,/* not a state bit, but the first bit available
+<span class="lineNum">      42 </span>            :                          * for private allocation by other entities
+<span class="lineNum">      43 </span>            :                          */
+<span class="lineNum">      44 </span>            : };
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : #define MAX_BUF_PER_PAGE (PAGE_CACHE_SIZE / 512)
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : struct page;
+<span class="lineNum">      49 </span>            : struct buffer_head;
+<span class="lineNum">      50 </span>            : struct address_space;
+<span class="lineNum">      51 </span>            : typedef void (bh_end_io_t)(struct buffer_head *bh, int uptodate);
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : /*
+<span class="lineNum">      54 </span>            :  * Historically, a buffer_head was used to map a single block
+<span class="lineNum">      55 </span>            :  * within a page, and of course as the unit of I/O through the
+<span class="lineNum">      56 </span>            :  * filesystem and block layers.  Nowadays the basic I/O unit
+<span class="lineNum">      57 </span>            :  * is the bio, and buffer_heads are used for extracting block
+<span class="lineNum">      58 </span>            :  * mappings (via a get_block_t call), for tracking state within
+<span class="lineNum">      59 </span>            :  * a page (via a page_mapping) and for wrapping bio submission
+<span class="lineNum">      60 </span>            :  * for backward compatibility reasons (e.g. submit_bh).
+<span class="lineNum">      61 </span>            :  */
+<span class="lineNum">      62 </span>            : struct buffer_head {
+<span class="lineNum">      63 </span>            :         unsigned long b_state;          /* buffer state bitmap (see above) */
+<span class="lineNum">      64 </span>            :         struct buffer_head *b_this_page;/* circular list of page's buffers */
+<span class="lineNum">      65 </span>            :         struct page *b_page;            /* the page this bh is mapped to */
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            :         sector_t b_blocknr;             /* start block number */
+<span class="lineNum">      68 </span>            :         size_t b_size;                  /* size of mapping */
+<span class="lineNum">      69 </span>            :         char *b_data;                   /* pointer to data within the page */
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            :         struct block_device *b_bdev;
+<span class="lineNum">      72 </span>            :         bh_end_io_t *b_end_io;          /* I/O completion */
+<span class="lineNum">      73 </span>            :         void *b_private;                /* reserved for b_end_io */
+<span class="lineNum">      74 </span>            :         struct list_head b_assoc_buffers; /* associated with another mapping */
+<span class="lineNum">      75 </span>            :         struct address_space *b_assoc_map;      /* mapping this buffer is
+<span class="lineNum">      76 </span>            :                                                    associated with */
+<span class="lineNum">      77 </span>            :         atomic_t b_count;               /* users using this buffer_head */
+<span class="lineNum">      78 </span>            : };
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            : /*
+<span class="lineNum">      81 </span>            :  * macro tricks to expand the set_buffer_foo(), clear_buffer_foo()
+<span class="lineNum">      82 </span>            :  * and buffer_foo() functions.
+<span class="lineNum">      83 </span>            :  */
+<span class="lineNum">      84 </span>            : #define BUFFER_FNS(bit, name)                                           \
+<span class="lineNum">      85 </span>            : static inline void set_buffer_##name(struct buffer_head *bh)            \
+<span class="lineNum">      86 </span>            : {                                                                       \
+<span class="lineNum">      87 </span>            :         set_bit(BH_##bit, &amp;(bh)-&gt;b_state);                               \
+<span class="lineNum">      88 </span>            : }                                                                       \
+<span class="lineNum">      89 </span>            : static inline void clear_buffer_##name(struct buffer_head *bh)          \
+<span class="lineNum">      90 </span>            : {                                                                       \
+<span class="lineNum">      91 </span>            :         clear_bit(BH_##bit, &amp;(bh)-&gt;b_state);                             \
+<span class="lineNum">      92 </span>            : }                                                                       \
+<span class="lineNum">      93 </span>            : static inline int buffer_##name(const struct buffer_head *bh)           \
+<span class="lineNum">      94 </span>            : {                                                                       \
+<span class="lineNum">      95 </span>            :         return test_bit(BH_##bit, &amp;(bh)-&gt;b_state);                       \
+<span class="lineNum">      96 </span>            : }
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            : /*
+<span class="lineNum">      99 </span>            :  * test_set_buffer_foo() and test_clear_buffer_foo()
+<span class="lineNum">     100 </span>            :  */
+<span class="lineNum">     101 </span>            : #define TAS_BUFFER_FNS(bit, name)                                       \
+<span class="lineNum">     102 </span>            : static inline int test_set_buffer_##name(struct buffer_head *bh)        \
+<span class="lineNum">     103 </span>            : {                                                                       \
+<span class="lineNum">     104 </span>            :         return test_and_set_bit(BH_##bit, &amp;(bh)-&gt;b_state);               \
+<span class="lineNum">     105 </span>            : }                                                                       \
+<span class="lineNum">     106 </span>            : static inline int test_clear_buffer_##name(struct buffer_head *bh)      \
+<span class="lineNum">     107 </span>            : {                                                                       \
+<span class="lineNum">     108 </span>            :         return test_and_clear_bit(BH_##bit, &amp;(bh)-&gt;b_state);             \
+<span class="lineNum">     109 </span>            : }                                                                       \
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            : /*
+<span class="lineNum">     112 </span>            :  * Emit the buffer bitops functions.   Note that there are also functions
+<span class="lineNum">     113 </span>            :  * of the form &quot;mark_buffer_foo()&quot;.  These are higher-level functions which
+<span class="lineNum">     114 </span>            :  * do something in addition to setting a b_state bit.
+<span class="lineNum">     115 </span>            :  */
+<span class="lineNum">     116 </span>            : BUFFER_FNS(Uptodate, uptodate)
+<span class="lineNum">     117 </span>            : BUFFER_FNS(Dirty, dirty)
+<span class="lineNum">     118 </span>            : TAS_BUFFER_FNS(Dirty, dirty)
+<span class="lineNum">     119 </span>            : BUFFER_FNS(Lock, locked)
+<span class="lineNum">     120 </span>            : BUFFER_FNS(Req, req)
+<span class="lineNum">     121 </span>            : TAS_BUFFER_FNS(Req, req)
+<span class="lineNum">     122 </span>            : BUFFER_FNS(Mapped, mapped)
+<span class="lineNum">     123 </span>            : BUFFER_FNS(New, new)
+<span class="lineNum">     124 </span>            : BUFFER_FNS(Async_Read, async_read)
+<span class="lineNum">     125 </span>            : BUFFER_FNS(Async_Write, async_write)
+<span class="lineNum">     126 </span>            : BUFFER_FNS(Delay, delay)
+<span class="lineNum">     127 </span>            : BUFFER_FNS(Boundary, boundary)
+<span class="lineNum">     128 </span>            : BUFFER_FNS(Write_EIO, write_io_error)
+<span class="lineNum">     129 </span>            : BUFFER_FNS(Unwritten, unwritten)
+<span class="lineNum">     130 </span>            : BUFFER_FNS(Meta, meta)
+<span class="lineNum">     131 </span>            : BUFFER_FNS(Prio, prio)
+<span class="lineNum">     132 </span>            : BUFFER_FNS(Defer_Completion, defer_completion)
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            : #define bh_offset(bh)           ((unsigned long)(bh)-&gt;b_data &amp; ~PAGE_MASK)
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            : /* If we *know* page-&gt;private refers to buffer_heads */
+<span class="lineNum">     137 </span>            : #define page_buffers(page)                                      \
+<span class="lineNum">     138 </span>            :         ({                                                      \
+<span class="lineNum">     139 </span>            :                 BUG_ON(!PagePrivate(page));                     \
+<span class="lineNum">     140 </span>            :                 ((struct buffer_head *)page_private(page));     \
+<span class="lineNum">     141 </span>            :         })
+<span class="lineNum">     142 </span>            : #define page_has_buffers(page)  PagePrivate(page)
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            : void buffer_check_dirty_writeback(struct page *page,
+<span class="lineNum">     145 </span>            :                                      bool *dirty, bool *writeback);
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            : /*
+<span class="lineNum">     148 </span>            :  * Declarations
+<span class="lineNum">     149 </span>            :  */
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            : void mark_buffer_dirty(struct buffer_head *bh);
+<span class="lineNum">     152 </span>            : void init_buffer(struct buffer_head *, bh_end_io_t *, void *);
+<span class="lineNum">     153 </span>            : void touch_buffer(struct buffer_head *bh);
+<span class="lineNum">     154 </span>            : void set_bh_page(struct buffer_head *bh,
+<span class="lineNum">     155 </span>            :                 struct page *page, unsigned long offset);
+<span class="lineNum">     156 </span>            : int try_to_free_buffers(struct page *);
+<span class="lineNum">     157 </span>            : struct buffer_head *alloc_page_buffers(struct page *page, unsigned long size,
+<span class="lineNum">     158 </span>            :                 int retry);
+<span class="lineNum">     159 </span>            : void create_empty_buffers(struct page *, unsigned long,
+<span class="lineNum">     160 </span>            :                         unsigned long b_state);
+<span class="lineNum">     161 </span>            : void end_buffer_read_sync(struct buffer_head *bh, int uptodate);
+<span class="lineNum">     162 </span>            : void end_buffer_write_sync(struct buffer_head *bh, int uptodate);
+<span class="lineNum">     163 </span>            : void end_buffer_async_write(struct buffer_head *bh, int uptodate);
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            : /* Things to do with buffers at mapping-&gt;private_list */
+<span class="lineNum">     166 </span>            : void mark_buffer_dirty_inode(struct buffer_head *bh, struct inode *inode);
+<span class="lineNum">     167 </span>            : int inode_has_buffers(struct inode *);
+<span class="lineNum">     168 </span>            : void invalidate_inode_buffers(struct inode *);
+<span class="lineNum">     169 </span>            : int remove_inode_buffers(struct inode *inode);
+<span class="lineNum">     170 </span>            : int sync_mapping_buffers(struct address_space *mapping);
+<span class="lineNum">     171 </span>            : void unmap_underlying_metadata(struct block_device *bdev, sector_t block);
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            : void mark_buffer_async_write(struct buffer_head *bh);
+<span class="lineNum">     174 </span>            : void __wait_on_buffer(struct buffer_head *);
+<span class="lineNum">     175 </span>            : wait_queue_head_t *bh_waitq_head(struct buffer_head *bh);
+<span class="lineNum">     176 </span>            : struct buffer_head *__find_get_block(struct block_device *bdev, sector_t block,
+<span class="lineNum">     177 </span>            :                         unsigned size);
+<span class="lineNum">     178 </span>            : struct buffer_head *__getblk(struct block_device *bdev, sector_t block,
+<span class="lineNum">     179 </span>            :                         unsigned size);
+<span class="lineNum">     180 </span>            : void __brelse(struct buffer_head *);
+<span class="lineNum">     181 </span>            : void __bforget(struct buffer_head *);
+<span class="lineNum">     182 </span>            : void __breadahead(struct block_device *, sector_t block, unsigned int size);
+<span class="lineNum">     183 </span>            : struct buffer_head *__bread(struct block_device *, sector_t block, unsigned size);
+<span class="lineNum">     184 </span>            : void invalidate_bh_lrus(void);
+<span class="lineNum">     185 </span>            : struct buffer_head *alloc_buffer_head(gfp_t gfp_flags);
+<span class="lineNum">     186 </span>            : void free_buffer_head(struct buffer_head * bh);
+<span class="lineNum">     187 </span>            : void unlock_buffer(struct buffer_head *bh);
+<span class="lineNum">     188 </span>            : void __lock_buffer(struct buffer_head *bh);
+<span class="lineNum">     189 </span>            : void ll_rw_block(int, int, struct buffer_head * bh[]);
+<span class="lineNum">     190 </span>            : int sync_dirty_buffer(struct buffer_head *bh);
+<span class="lineNum">     191 </span>            : int __sync_dirty_buffer(struct buffer_head *bh, int rw);
+<span class="lineNum">     192 </span>            : void write_dirty_buffer(struct buffer_head *bh, int rw);
+<span class="lineNum">     193 </span>            : int _submit_bh(int rw, struct buffer_head *bh, unsigned long bio_flags);
+<span class="lineNum">     194 </span>            : int submit_bh(int, struct buffer_head *);
+<span class="lineNum">     195 </span>            : void write_boundary_block(struct block_device *bdev,
+<span class="lineNum">     196 </span>            :                         sector_t bblock, unsigned blocksize);
+<span class="lineNum">     197 </span>            : int bh_uptodate_or_lock(struct buffer_head *bh);
+<span class="lineNum">     198 </span>            : int bh_submit_read(struct buffer_head *bh);
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            : extern int buffer_heads_over_limit;
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span>            : /*
+<span class="lineNum">     203 </span>            :  * Generic address_space_operations implementations for buffer_head-backed
+<span class="lineNum">     204 </span>            :  * address_spaces.
+<span class="lineNum">     205 </span>            :  */
+<span class="lineNum">     206 </span>            : void block_invalidatepage(struct page *page, unsigned int offset,
+<span class="lineNum">     207 </span>            :                           unsigned int length);
+<span class="lineNum">     208 </span>            : int block_write_full_page(struct page *page, get_block_t *get_block,
+<span class="lineNum">     209 </span>            :                                 struct writeback_control *wbc);
+<span class="lineNum">     210 </span>            : int block_read_full_page(struct page*, get_block_t*);
+<span class="lineNum">     211 </span>            : int block_is_partially_uptodate(struct page *page, unsigned long from,
+<span class="lineNum">     212 </span>            :                                 unsigned long count);
+<span class="lineNum">     213 </span>            : int block_write_begin(struct address_space *mapping, loff_t pos, unsigned len,
+<span class="lineNum">     214 </span>            :                 unsigned flags, struct page **pagep, get_block_t *get_block);
+<span class="lineNum">     215 </span>            : int __block_write_begin(struct page *page, loff_t pos, unsigned len,
+<span class="lineNum">     216 </span>            :                 get_block_t *get_block);
+<span class="lineNum">     217 </span>            : int block_write_end(struct file *, struct address_space *,
+<span class="lineNum">     218 </span>            :                                 loff_t, unsigned, unsigned,
+<span class="lineNum">     219 </span>            :                                 struct page *, void *);
+<span class="lineNum">     220 </span>            : int generic_write_end(struct file *, struct address_space *,
+<span class="lineNum">     221 </span>            :                                 loff_t, unsigned, unsigned,
+<span class="lineNum">     222 </span>            :                                 struct page *, void *);
+<span class="lineNum">     223 </span>            : void page_zero_new_buffers(struct page *page, unsigned from, unsigned to);
+<span class="lineNum">     224 </span>            : int cont_write_begin(struct file *, struct address_space *, loff_t,
+<span class="lineNum">     225 </span>            :                         unsigned, unsigned, struct page **, void **,
+<span class="lineNum">     226 </span>            :                         get_block_t *, loff_t *);
+<span class="lineNum">     227 </span>            : int generic_cont_expand_simple(struct inode *inode, loff_t size);
+<span class="lineNum">     228 </span>            : int block_commit_write(struct page *page, unsigned from, unsigned to);
+<span class="lineNum">     229 </span>            : int __block_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf,
+<span class="lineNum">     230 </span>            :                                 get_block_t get_block);
+<span class="lineNum">     231 </span>            : int block_page_mkwrite(struct vm_area_struct *vma, struct vm_fault *vmf,
+<span class="lineNum">     232 </span>            :                                 get_block_t get_block);
+<span class="lineNum">     233 </span>            : /* Convert errno to return value from -&gt;page_mkwrite() call */
+<span class="lineNum">     234 </span>            : static inline int block_page_mkwrite_return(int err)
+<span class="lineNum">     235 </span>            : {
+<span class="lineNum">     236 </span>            :         if (err == 0)
+<span class="lineNum">     237 </span>            :                 return VM_FAULT_LOCKED;
+<span class="lineNum">     238 </span>            :         if (err == -EFAULT)
+<span class="lineNum">     239 </span>            :                 return VM_FAULT_NOPAGE;
+<span class="lineNum">     240 </span>            :         if (err == -ENOMEM)
+<span class="lineNum">     241 </span>            :                 return VM_FAULT_OOM;
+<span class="lineNum">     242 </span>            :         if (err == -EAGAIN)
+<span class="lineNum">     243 </span>            :                 return VM_FAULT_RETRY;
+<span class="lineNum">     244 </span>            :         /* -ENOSPC, -EDQUOT, -EIO ... */
+<span class="lineNum">     245 </span>            :         return VM_FAULT_SIGBUS;
+<span class="lineNum">     246 </span>            : }
+<span class="lineNum">     247 </span>            : sector_t generic_block_bmap(struct address_space *, sector_t, get_block_t *);
+<span class="lineNum">     248 </span>            : int block_truncate_page(struct address_space *, loff_t, get_block_t *);
+<span class="lineNum">     249 </span>            : int nobh_write_begin(struct address_space *, loff_t, unsigned, unsigned,
+<span class="lineNum">     250 </span>            :                                 struct page **, void **, get_block_t*);
+<span class="lineNum">     251 </span>            : int nobh_write_end(struct file *, struct address_space *,
+<span class="lineNum">     252 </span>            :                                 loff_t, unsigned, unsigned,
+<span class="lineNum">     253 </span>            :                                 struct page *, void *);
+<span class="lineNum">     254 </span>            : int nobh_truncate_page(struct address_space *, loff_t, get_block_t *);
+<span class="lineNum">     255 </span>            : int nobh_writepage(struct page *page, get_block_t *get_block,
+<span class="lineNum">     256 </span>            :                         struct writeback_control *wbc);
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            : void buffer_init(void);
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            : /*
+<span class="lineNum">     261 </span>            :  * inline definitions
+<span class="lineNum">     262 </span>            :  */
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            : static inline void attach_page_buffers(struct page *page,
+<span class="lineNum">     265 </span>            :                 struct buffer_head *head)
+<span class="lineNum">     266 </span>            : {
+<span class="lineNum">     267 </span>            :         page_cache_get(page);
+<span class="lineNum">     268 </span>            :         SetPagePrivate(page);
+<span class="lineNum">     269 </span>            :         set_page_private(page, (unsigned long)head);
+<span class="lineNum">     270 </span>            : }
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            : static inline void get_bh(struct buffer_head *bh)
+<span class="lineNum">     273 </span>            : {
+<span class="lineNum">     274 </span><span class="lineCov">       5835 :         atomic_inc(&amp;bh-&gt;b_count);</span>
+<span class="lineNum">     275 </span>            : }
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : static inline void put_bh(struct buffer_head *bh)
+<span class="lineNum">     278 </span>            : {
+<span class="lineNum">     279 </span><span class="lineCov">       5835 :         smp_mb__before_atomic();</span>
+<span class="lineNum">     280 </span><span class="lineCov">       5835 :         atomic_dec(&amp;bh-&gt;b_count);</span>
+<span class="lineNum">     281 </span>            : }
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            : static inline void brelse(struct buffer_head *bh)
+<span class="lineNum">     284 </span>            : {
+<span class="lineNum">     285 </span><span class="lineCov">      12640 :         if (bh)</span>
+<span class="lineNum">     286 </span><span class="lineCov">      12155 :                 __brelse(bh);</span>
+<span class="lineNum">     287 </span>            : }
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            : static inline void bforget(struct buffer_head *bh)
+<span class="lineNum">     290 </span>            : {
+<span class="lineNum">     291 </span>            :         if (bh)
+<span class="lineNum">     292 </span>            :                 __bforget(bh);
+<span class="lineNum">     293 </span>            : }
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            : static inline struct buffer_head *
+<span class="lineNum">     296 </span>            : sb_bread(struct super_block *sb, sector_t block)
+<span class="lineNum">     297 </span>            : {
+<span class="lineNum">     298 </span>            :         return __bread(sb-&gt;s_bdev, block, sb-&gt;s_blocksize);
+<span class="lineNum">     299 </span>            : }
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span>            : static inline void
+<span class="lineNum">     302 </span>            : sb_breadahead(struct super_block *sb, sector_t block)
+<span class="lineNum">     303 </span>            : {
+<span class="lineNum">     304 </span>            :         __breadahead(sb-&gt;s_bdev, block, sb-&gt;s_blocksize);
+<span class="lineNum">     305 </span>            : }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            : static inline struct buffer_head *
+<span class="lineNum">     308 </span>            : sb_getblk(struct super_block *sb, sector_t block)
+<span class="lineNum">     309 </span>            : {
+<span class="lineNum">     310 </span>            :         return __getblk(sb-&gt;s_bdev, block, sb-&gt;s_blocksize);
+<span class="lineNum">     311 </span>            : }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            : static inline struct buffer_head *
+<span class="lineNum">     314 </span>            : sb_find_get_block(struct super_block *sb, sector_t block)
+<span class="lineNum">     315 </span>            : {
+<span class="lineNum">     316 </span>            :         return __find_get_block(sb-&gt;s_bdev, block, sb-&gt;s_blocksize);
+<span class="lineNum">     317 </span>            : }
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span>            : static inline void
+<span class="lineNum">     320 </span>            : map_bh(struct buffer_head *bh, struct super_block *sb, sector_t block)
+<span class="lineNum">     321 </span>            : {
+<span class="lineNum">     322 </span>            :         set_buffer_mapped(bh);
+<span class="lineNum">     323 </span>            :         bh-&gt;b_bdev = sb-&gt;s_bdev;
+<span class="lineNum">     324 </span>            :         bh-&gt;b_blocknr = block;
+<span class="lineNum">     325 </span>            :         bh-&gt;b_size = sb-&gt;s_blocksize;
+<a name="326"><span class="lineNum">     326 </span>            : }</a>
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineCov">       5835 : static inline void wait_on_buffer(struct buffer_head *bh)</span>
+<span class="lineNum">     329 </span>            : {
+<span class="lineNum">     330 </span><span class="lineCov">       5835 :         might_sleep();</span>
+<span class="lineNum">     331 </span><span class="lineCov">       5835 :         if (buffer_locked(bh))</span>
+<span class="lineNum">     332 </span><span class="lineCov">       3612 :                 __wait_on_buffer(bh);</span>
+<span class="lineNum">     333 </span><span class="lineCov">       5835 : }</span>
+<span class="lineNum">     334 </span>            : 
+<a name="335"><span class="lineNum">     335 </span>            : static inline int trylock_buffer(struct buffer_head *bh)</a>
+<span class="lineNum">     336 </span>            : {
+<span class="lineNum">     337 </span><span class="lineCov">      11670 :         return likely(!test_and_set_bit_lock(BH_Lock, &amp;bh-&gt;b_state));</span>
+<span class="lineNum">     338 </span>            : }
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineCov">       5835 : static inline void lock_buffer(struct buffer_head *bh)</span>
+<span class="lineNum">     341 </span>            : {
+<span class="lineNum">     342 </span><span class="lineCov">       5835 :         might_sleep();</span>
+<span class="lineNum">     343 </span><span class="lineCov">       5835 :         if (!trylock_buffer(bh))</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                 __lock_buffer(bh);</span>
+<span class="lineNum">     345 </span><span class="lineCov">       5835 : }</span>
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span>            : extern int __set_page_dirty_buffers(struct page *page);
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            : #else /* CONFIG_BLOCK */
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            : static inline void buffer_init(void) {}
+<span class="lineNum">     352 </span>            : static inline int try_to_free_buffers(struct page *page) { return 1; }
+<span class="lineNum">     353 </span>            : static inline int inode_has_buffers(struct inode *inode) { return 0; }
+<span class="lineNum">     354 </span>            : static inline void invalidate_inode_buffers(struct inode *inode) {}
+<span class="lineNum">     355 </span>            : static inline int remove_inode_buffers(struct inode *inode) { return 1; }
+<span class="lineNum">     356 </span>            : static inline int sync_mapping_buffers(struct address_space *mapping) { return 0; }
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            : #endif /* CONFIG_BLOCK */
+<span class="lineNum">     359 </span>            : #endif /* _LINUX_BUFFER_HEAD_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

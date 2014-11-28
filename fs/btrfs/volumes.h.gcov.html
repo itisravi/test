@@ -1,0 +1,474 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/volumes.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - volumes.h<span style="font-size: 80%;"> (source / <a href="volumes.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">42.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2007 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #ifndef __BTRFS_VOLUMES_
+<span class="lineNum">      20 </span>            : #define __BTRFS_VOLUMES_
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &lt;linux/bio.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;linux/sort.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;linux/btrfs.h&gt;
+<span class="lineNum">      25 </span>            : #include &quot;async-thread.h&quot;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : #define BTRFS_STRIPE_LEN        (64 * 1024)
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : struct buffer_head;
+<span class="lineNum">      30 </span>            : struct btrfs_pending_bios {
+<span class="lineNum">      31 </span>            :         struct bio *head;
+<span class="lineNum">      32 </span>            :         struct bio *tail;
+<span class="lineNum">      33 </span>            : };
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : struct btrfs_device {
+<span class="lineNum">      36 </span>            :         struct list_head dev_list;
+<span class="lineNum">      37 </span>            :         struct list_head dev_alloc_list;
+<span class="lineNum">      38 </span>            :         struct btrfs_fs_devices *fs_devices;
+<span class="lineNum">      39 </span>            :         struct btrfs_root *dev_root;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            :         /* regular prio bios */
+<span class="lineNum">      42 </span>            :         struct btrfs_pending_bios pending_bios;
+<span class="lineNum">      43 </span>            :         /* WRITE_SYNC bios */
+<span class="lineNum">      44 </span>            :         struct btrfs_pending_bios pending_sync_bios;
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            :         u64 generation;
+<span class="lineNum">      47 </span>            :         int running_pending;
+<span class="lineNum">      48 </span>            :         int writeable;
+<span class="lineNum">      49 </span>            :         int in_fs_metadata;
+<span class="lineNum">      50 </span>            :         int missing;
+<span class="lineNum">      51 </span>            :         int can_discard;
+<span class="lineNum">      52 </span>            :         int is_tgtdev_for_dev_replace;
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            :         spinlock_t io_lock;
+<span class="lineNum">      55 </span>            :         /* the mode sent to blkdev_get */
+<span class="lineNum">      56 </span>            :         fmode_t mode;
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :         struct block_device *bdev;
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            :         struct rcu_string *name;
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            :         /* the internal btrfs device id */
+<span class="lineNum">      64 </span>            :         u64 devid;
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            :         /* size of the device */
+<span class="lineNum">      67 </span>            :         u64 total_bytes;
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            :         /* size of the disk */
+<span class="lineNum">      70 </span>            :         u64 disk_total_bytes;
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :         /* bytes used */
+<span class="lineNum">      73 </span>            :         u64 bytes_used;
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :         /* optimal io alignment for this device */
+<span class="lineNum">      76 </span>            :         u32 io_align;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            :         /* optimal io width for this device */
+<span class="lineNum">      79 </span>            :         u32 io_width;
+<span class="lineNum">      80 </span>            :         /* type and info about this device */
+<span class="lineNum">      81 </span>            :         u64 type;
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            :         /* minimal io size for this device */
+<span class="lineNum">      84 </span>            :         u32 sector_size;
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            :         /* physical drive uuid (or lvm uuid) */
+<span class="lineNum">      88 </span>            :         u8 uuid[BTRFS_UUID_SIZE];
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :         /* for sending down flush barriers */
+<span class="lineNum">      91 </span>            :         int nobarriers;
+<span class="lineNum">      92 </span>            :         struct bio *flush_bio;
+<span class="lineNum">      93 </span>            :         struct completion flush_wait;
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :         /* per-device scrub information */
+<span class="lineNum">      96 </span>            :         struct scrub_ctx *scrub_device;
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            :         struct btrfs_work work;
+<span class="lineNum">      99 </span>            :         struct rcu_head rcu;
+<span class="lineNum">     100 </span>            :         struct work_struct rcu_work;
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :         /* readahead state */
+<span class="lineNum">     103 </span>            :         spinlock_t reada_lock;
+<span class="lineNum">     104 </span>            :         atomic_t reada_in_flight;
+<span class="lineNum">     105 </span>            :         u64 reada_next;
+<span class="lineNum">     106 </span>            :         struct reada_zone *reada_curr_zone;
+<span class="lineNum">     107 </span>            :         struct radix_tree_root reada_zones;
+<span class="lineNum">     108 </span>            :         struct radix_tree_root reada_extents;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :         /* disk I/O failure stats. For detailed description refer to
+<span class="lineNum">     112 </span>            :          * enum btrfs_dev_stat_values in ioctl.h */
+<span class="lineNum">     113 </span>            :         int dev_stats_valid;
+<span class="lineNum">     114 </span>            :         int dev_stats_dirty; /* counters need to be written to disk */
+<span class="lineNum">     115 </span>            :         atomic_t dev_stat_values[BTRFS_DEV_STAT_VALUES_MAX];
+<span class="lineNum">     116 </span>            : };
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : struct btrfs_fs_devices {
+<span class="lineNum">     119 </span>            :         u8 fsid[BTRFS_FSID_SIZE]; /* FS specific uuid */
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :         /* the device with this id has the most recent copy of the super */
+<span class="lineNum">     122 </span>            :         u64 latest_devid;
+<span class="lineNum">     123 </span>            :         u64 latest_trans;
+<span class="lineNum">     124 </span>            :         u64 num_devices;
+<span class="lineNum">     125 </span>            :         u64 open_devices;
+<span class="lineNum">     126 </span>            :         u64 rw_devices;
+<span class="lineNum">     127 </span>            :         u64 missing_devices;
+<span class="lineNum">     128 </span>            :         u64 total_rw_bytes;
+<span class="lineNum">     129 </span>            :         u64 num_can_discard;
+<span class="lineNum">     130 </span>            :         u64 total_devices;
+<span class="lineNum">     131 </span>            :         struct block_device *latest_bdev;
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            :         /* all of the devices in the FS, protected by a mutex
+<span class="lineNum">     134 </span>            :          * so we can safely walk it to write out the supers without
+<span class="lineNum">     135 </span>            :          * worrying about add/remove by the multi-device code.
+<span class="lineNum">     136 </span>            :          * Scrubbing super can kick off supers writing by holding
+<span class="lineNum">     137 </span>            :          * this mutex lock.
+<span class="lineNum">     138 </span>            :          */
+<span class="lineNum">     139 </span>            :         struct mutex device_list_mutex;
+<span class="lineNum">     140 </span>            :         struct list_head devices;
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            :         /* devices not currently being allocated */
+<span class="lineNum">     143 </span>            :         struct list_head alloc_list;
+<span class="lineNum">     144 </span>            :         struct list_head list;
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            :         struct btrfs_fs_devices *seed;
+<span class="lineNum">     147 </span>            :         int seeding;
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            :         int opened;
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            :         /* set when we find or add a device that doesn't have the
+<span class="lineNum">     152 </span>            :          * nonrot flag set
+<span class="lineNum">     153 </span>            :          */
+<span class="lineNum">     154 </span>            :         int rotating;
+<span class="lineNum">     155 </span>            : };
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            : #define BTRFS_BIO_INLINE_CSUM_SIZE      64
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            : /*
+<span class="lineNum">     160 </span>            :  * we need the mirror number and stripe index to be passed around
+<span class="lineNum">     161 </span>            :  * the call chain while we are processing end_io (especially errors).
+<span class="lineNum">     162 </span>            :  * Really, what we need is a btrfs_bio structure that has this info
+<span class="lineNum">     163 </span>            :  * and is properly sized with its stripe array, but we're not there
+<span class="lineNum">     164 </span>            :  * quite yet.  We have our own btrfs bioset, and all of the bios
+<span class="lineNum">     165 </span>            :  * we allocate are actually btrfs_io_bios.  We'll cram as much of
+<span class="lineNum">     166 </span>            :  * struct btrfs_bio as we can into this over time.
+<span class="lineNum">     167 </span>            :  */
+<span class="lineNum">     168 </span>            : typedef void (btrfs_io_bio_end_io_t) (struct btrfs_io_bio *bio, int err);
+<span class="lineNum">     169 </span>            : struct btrfs_io_bio {
+<span class="lineNum">     170 </span>            :         unsigned long mirror_num;
+<span class="lineNum">     171 </span>            :         unsigned long stripe_index;
+<span class="lineNum">     172 </span>            :         u8 *csum;
+<span class="lineNum">     173 </span>            :         u8 csum_inline[BTRFS_BIO_INLINE_CSUM_SIZE];
+<span class="lineNum">     174 </span>            :         u8 *csum_allocated;
+<span class="lineNum">     175 </span>            :         btrfs_io_bio_end_io_t *end_io;
+<span class="lineNum">     176 </span>            :         struct bio bio;
+<span class="lineNum">     177 </span>            : };
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            : static inline struct btrfs_io_bio *btrfs_io_bio(struct bio *bio)
+<span class="lineNum">     180 </span>            : {
+<span class="lineNum">     181 </span>            :         return container_of(bio, struct btrfs_io_bio, bio);
+<span class="lineNum">     182 </span>            : }
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            : struct btrfs_bio_stripe {
+<span class="lineNum">     185 </span>            :         struct btrfs_device *dev;
+<span class="lineNum">     186 </span>            :         u64 physical;
+<span class="lineNum">     187 </span>            :         u64 length; /* only used for discard mappings */
+<span class="lineNum">     188 </span>            : };
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : struct btrfs_bio;
+<span class="lineNum">     191 </span>            : typedef void (btrfs_bio_end_io_t) (struct btrfs_bio *bio, int err);
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : #define BTRFS_BIO_ORIG_BIO_SUBMITTED    0x1
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            : struct btrfs_bio {
+<span class="lineNum">     196 </span>            :         atomic_t stripes_pending;
+<span class="lineNum">     197 </span>            :         struct btrfs_fs_info *fs_info;
+<span class="lineNum">     198 </span>            :         bio_end_io_t *end_io;
+<span class="lineNum">     199 </span>            :         struct bio *orig_bio;
+<span class="lineNum">     200 </span>            :         unsigned long flags;
+<span class="lineNum">     201 </span>            :         void *private;
+<span class="lineNum">     202 </span>            :         atomic_t error;
+<span class="lineNum">     203 </span>            :         int max_errors;
+<span class="lineNum">     204 </span>            :         int num_stripes;
+<span class="lineNum">     205 </span>            :         int mirror_num;
+<span class="lineNum">     206 </span>            :         struct btrfs_bio_stripe stripes[];
+<span class="lineNum">     207 </span>            : };
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            : struct btrfs_device_info {
+<span class="lineNum">     210 </span>            :         struct btrfs_device *dev;
+<span class="lineNum">     211 </span>            :         u64 dev_offset;
+<span class="lineNum">     212 </span>            :         u64 max_avail;
+<span class="lineNum">     213 </span>            :         u64 total_avail;
+<span class="lineNum">     214 </span>            : };
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            : struct btrfs_raid_attr {
+<span class="lineNum">     217 </span>            :         int sub_stripes;        /* sub_stripes info for map */
+<span class="lineNum">     218 </span>            :         int dev_stripes;        /* stripes per dev */
+<span class="lineNum">     219 </span>            :         int devs_max;           /* max devs to use */
+<span class="lineNum">     220 </span>            :         int devs_min;           /* min devs needed */
+<span class="lineNum">     221 </span>            :         int devs_increment;     /* ndevs has to be a multiple of this */
+<span class="lineNum">     222 </span>            :         int ncopies;            /* how many copies to data has */
+<span class="lineNum">     223 </span>            : };
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span>            : struct map_lookup {
+<span class="lineNum">     226 </span>            :         u64 type;
+<span class="lineNum">     227 </span>            :         int io_align;
+<span class="lineNum">     228 </span>            :         int io_width;
+<span class="lineNum">     229 </span>            :         int stripe_len;
+<span class="lineNum">     230 </span>            :         int sector_size;
+<span class="lineNum">     231 </span>            :         int num_stripes;
+<span class="lineNum">     232 </span>            :         int sub_stripes;
+<span class="lineNum">     233 </span>            :         struct btrfs_bio_stripe stripes[];
+<span class="lineNum">     234 </span>            : };
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            : #define map_lookup_size(n) (sizeof(struct map_lookup) + \
+<span class="lineNum">     237 </span>            :                             (sizeof(struct btrfs_bio_stripe) * (n)))
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            : /*
+<span class="lineNum">     240 </span>            :  * Restriper's general type filter
+<span class="lineNum">     241 </span>            :  */
+<span class="lineNum">     242 </span>            : #define BTRFS_BALANCE_DATA              (1ULL &lt;&lt; 0)
+<span class="lineNum">     243 </span>            : #define BTRFS_BALANCE_SYSTEM            (1ULL &lt;&lt; 1)
+<span class="lineNum">     244 </span>            : #define BTRFS_BALANCE_METADATA          (1ULL &lt;&lt; 2)
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            : #define BTRFS_BALANCE_TYPE_MASK         (BTRFS_BALANCE_DATA |       \
+<span class="lineNum">     247 </span>            :                                          BTRFS_BALANCE_SYSTEM |     \
+<span class="lineNum">     248 </span>            :                                          BTRFS_BALANCE_METADATA)
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span>            : #define BTRFS_BALANCE_FORCE             (1ULL &lt;&lt; 3)
+<span class="lineNum">     251 </span>            : #define BTRFS_BALANCE_RESUME            (1ULL &lt;&lt; 4)
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            : /*
+<span class="lineNum">     254 </span>            :  * Balance filters
+<span class="lineNum">     255 </span>            :  */
+<span class="lineNum">     256 </span>            : #define BTRFS_BALANCE_ARGS_PROFILES     (1ULL &lt;&lt; 0)
+<span class="lineNum">     257 </span>            : #define BTRFS_BALANCE_ARGS_USAGE        (1ULL &lt;&lt; 1)
+<span class="lineNum">     258 </span>            : #define BTRFS_BALANCE_ARGS_DEVID        (1ULL &lt;&lt; 2)
+<span class="lineNum">     259 </span>            : #define BTRFS_BALANCE_ARGS_DRANGE       (1ULL &lt;&lt; 3)
+<span class="lineNum">     260 </span>            : #define BTRFS_BALANCE_ARGS_VRANGE       (1ULL &lt;&lt; 4)
+<span class="lineNum">     261 </span>            : #define BTRFS_BALANCE_ARGS_LIMIT        (1ULL &lt;&lt; 5)
+<span class="lineNum">     262 </span>            : 
+<span class="lineNum">     263 </span>            : /*
+<span class="lineNum">     264 </span>            :  * Profile changing flags.  When SOFT is set we won't relocate chunk if
+<span class="lineNum">     265 </span>            :  * it already has the target profile (even though it may be
+<span class="lineNum">     266 </span>            :  * half-filled).
+<span class="lineNum">     267 </span>            :  */
+<span class="lineNum">     268 </span>            : #define BTRFS_BALANCE_ARGS_CONVERT      (1ULL &lt;&lt; 8)
+<span class="lineNum">     269 </span>            : #define BTRFS_BALANCE_ARGS_SOFT         (1ULL &lt;&lt; 9)
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            : struct btrfs_balance_args;
+<span class="lineNum">     272 </span>            : struct btrfs_balance_progress;
+<span class="lineNum">     273 </span>            : struct btrfs_balance_control {
+<span class="lineNum">     274 </span>            :         struct btrfs_fs_info *fs_info;
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span>            :         struct btrfs_balance_args data;
+<span class="lineNum">     277 </span>            :         struct btrfs_balance_args meta;
+<span class="lineNum">     278 </span>            :         struct btrfs_balance_args sys;
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span>            :         u64 flags;
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            :         struct btrfs_balance_progress stat;
+<span class="lineNum">     283 </span>            : };
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            : int btrfs_account_dev_extents_size(struct btrfs_device *device, u64 start,
+<span class="lineNum">     286 </span>            :                                    u64 end, u64 *length);
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span>            : #define btrfs_bio_size(n) (sizeof(struct btrfs_bio) + \
+<span class="lineNum">     289 </span>            :                             (sizeof(struct btrfs_bio_stripe) * (n)))
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span>            : int btrfs_map_block(struct btrfs_fs_info *fs_info, int rw,
+<span class="lineNum">     292 </span>            :                     u64 logical, u64 *length,
+<span class="lineNum">     293 </span>            :                     struct btrfs_bio **bbio_ret, int mirror_num);
+<span class="lineNum">     294 </span>            : int btrfs_rmap_block(struct btrfs_mapping_tree *map_tree,
+<span class="lineNum">     295 </span>            :                      u64 chunk_start, u64 physical, u64 devid,
+<span class="lineNum">     296 </span>            :                      u64 **logical, int *naddrs, int *stripe_len);
+<span class="lineNum">     297 </span>            : int btrfs_read_sys_array(struct btrfs_root *root);
+<span class="lineNum">     298 </span>            : int btrfs_read_chunk_tree(struct btrfs_root *root);
+<span class="lineNum">     299 </span>            : int btrfs_alloc_chunk(struct btrfs_trans_handle *trans,
+<span class="lineNum">     300 </span>            :                       struct btrfs_root *extent_root, u64 type);
+<span class="lineNum">     301 </span>            : void btrfs_mapping_init(struct btrfs_mapping_tree *tree);
+<span class="lineNum">     302 </span>            : void btrfs_mapping_tree_free(struct btrfs_mapping_tree *tree);
+<span class="lineNum">     303 </span>            : int btrfs_map_bio(struct btrfs_root *root, int rw, struct bio *bio,
+<span class="lineNum">     304 </span>            :                   int mirror_num, int async_submit);
+<span class="lineNum">     305 </span>            : int btrfs_open_devices(struct btrfs_fs_devices *fs_devices,
+<span class="lineNum">     306 </span>            :                        fmode_t flags, void *holder);
+<span class="lineNum">     307 </span>            : int btrfs_scan_one_device(const char *path, fmode_t flags, void *holder,
+<span class="lineNum">     308 </span>            :                           struct btrfs_fs_devices **fs_devices_ret);
+<span class="lineNum">     309 </span>            : int btrfs_close_devices(struct btrfs_fs_devices *fs_devices);
+<span class="lineNum">     310 </span>            : void btrfs_close_extra_devices(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     311 </span>            :                                struct btrfs_fs_devices *fs_devices, int step);
+<span class="lineNum">     312 </span>            : int btrfs_find_device_missing_or_by_path(struct btrfs_root *root,
+<span class="lineNum">     313 </span>            :                                          char *device_path,
+<span class="lineNum">     314 </span>            :                                          struct btrfs_device **device);
+<span class="lineNum">     315 </span>            : struct btrfs_device *btrfs_alloc_device(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     316 </span>            :                                         const u64 *devid,
+<span class="lineNum">     317 </span>            :                                         const u8 *uuid);
+<span class="lineNum">     318 </span>            : int btrfs_rm_device(struct btrfs_root *root, char *device_path);
+<span class="lineNum">     319 </span>            : void btrfs_cleanup_fs_uuids(void);
+<span class="lineNum">     320 </span>            : int btrfs_num_copies(struct btrfs_fs_info *fs_info, u64 logical, u64 len);
+<span class="lineNum">     321 </span>            : int btrfs_grow_device(struct btrfs_trans_handle *trans,
+<span class="lineNum">     322 </span>            :                       struct btrfs_device *device, u64 new_size);
+<span class="lineNum">     323 </span>            : struct btrfs_device *btrfs_find_device(struct btrfs_fs_info *fs_info, u64 devid,
+<span class="lineNum">     324 </span>            :                                        u8 *uuid, u8 *fsid);
+<span class="lineNum">     325 </span>            : int btrfs_shrink_device(struct btrfs_device *device, u64 new_size);
+<span class="lineNum">     326 </span>            : int btrfs_init_new_device(struct btrfs_root *root, char *path);
+<span class="lineNum">     327 </span>            : int btrfs_init_dev_replace_tgtdev(struct btrfs_root *root, char *device_path,
+<span class="lineNum">     328 </span>            :                                   struct btrfs_device **device_out);
+<span class="lineNum">     329 </span>            : int btrfs_balance(struct btrfs_balance_control *bctl,
+<span class="lineNum">     330 </span>            :                   struct btrfs_ioctl_balance_args *bargs);
+<span class="lineNum">     331 </span>            : int btrfs_resume_balance_async(struct btrfs_fs_info *fs_info);
+<span class="lineNum">     332 </span>            : int btrfs_recover_balance(struct btrfs_fs_info *fs_info);
+<span class="lineNum">     333 </span>            : int btrfs_pause_balance(struct btrfs_fs_info *fs_info);
+<span class="lineNum">     334 </span>            : int btrfs_cancel_balance(struct btrfs_fs_info *fs_info);
+<span class="lineNum">     335 </span>            : int btrfs_create_uuid_tree(struct btrfs_fs_info *fs_info);
+<span class="lineNum">     336 </span>            : int btrfs_check_uuid_tree(struct btrfs_fs_info *fs_info);
+<span class="lineNum">     337 </span>            : int btrfs_chunk_readonly(struct btrfs_root *root, u64 chunk_offset);
+<span class="lineNum">     338 </span>            : int find_free_dev_extent(struct btrfs_trans_handle *trans,
+<span class="lineNum">     339 </span>            :                          struct btrfs_device *device, u64 num_bytes,
+<span class="lineNum">     340 </span>            :                          u64 *start, u64 *max_avail);
+<span class="lineNum">     341 </span>            : void btrfs_dev_stat_inc_and_print(struct btrfs_device *dev, int index);
+<span class="lineNum">     342 </span>            : int btrfs_get_dev_stats(struct btrfs_root *root,
+<span class="lineNum">     343 </span>            :                         struct btrfs_ioctl_get_dev_stats *stats);
+<span class="lineNum">     344 </span>            : void btrfs_init_devices_late(struct btrfs_fs_info *fs_info);
+<span class="lineNum">     345 </span>            : int btrfs_init_dev_stats(struct btrfs_fs_info *fs_info);
+<span class="lineNum">     346 </span>            : int btrfs_run_dev_stats(struct btrfs_trans_handle *trans,
+<span class="lineNum">     347 </span>            :                         struct btrfs_fs_info *fs_info);
+<span class="lineNum">     348 </span>            : void btrfs_rm_dev_replace_srcdev(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     349 </span>            :                                  struct btrfs_device *srcdev);
+<span class="lineNum">     350 </span>            : void btrfs_destroy_dev_replace_tgtdev(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     351 </span>            :                                       struct btrfs_device *tgtdev);
+<span class="lineNum">     352 </span>            : void btrfs_init_dev_replace_tgtdev_for_resume(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     353 </span>            :                                               struct btrfs_device *tgtdev);
+<span class="lineNum">     354 </span>            : int btrfs_scratch_superblock(struct btrfs_device *device);
+<span class="lineNum">     355 </span>            : int btrfs_is_parity_mirror(struct btrfs_mapping_tree *map_tree,
+<span class="lineNum">     356 </span>            :                            u64 logical, u64 len, int mirror_num);
+<span class="lineNum">     357 </span>            : unsigned long btrfs_full_stripe_len(struct btrfs_root *root,
+<span class="lineNum">     358 </span>            :                                     struct btrfs_mapping_tree *map_tree,
+<span class="lineNum">     359 </span>            :                                     u64 logical);
+<span class="lineNum">     360 </span>            : int btrfs_finish_chunk_alloc(struct btrfs_trans_handle *trans,
+<span class="lineNum">     361 </span>            :                                 struct btrfs_root *extent_root,
+<span class="lineNum">     362 </span>            :                                 u64 chunk_offset, u64 chunk_size);
+<span class="lineNum">     363 </span>            : static inline void btrfs_dev_stat_inc(struct btrfs_device *dev,
+<span class="lineNum">     364 </span>            :                                       int index)
+<span class="lineNum">     365 </span>            : {
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :         atomic_inc(dev-&gt;dev_stat_values + index);</span>
+<span class="lineNum">     367 </span><span class="lineNoCov">          0 :         dev-&gt;dev_stats_dirty = 1;</span>
+<span class="lineNum">     368 </span>            : }
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span>            : static inline int btrfs_dev_stat_read(struct btrfs_device *dev,
+<span class="lineNum">     371 </span>            :                                       int index)
+<span class="lineNum">     372 </span>            : {
+<span class="lineNum">     373 </span><span class="lineCov">       1785 :         return atomic_read(dev-&gt;dev_stat_values + index);</span>
+<span class="lineNum">     374 </span>            : }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            : static inline int btrfs_dev_stat_read_and_reset(struct btrfs_device *dev,
+<span class="lineNum">     377 </span>            :                                                 int index)
+<span class="lineNum">     378 </span>            : {
+<span class="lineNum">     379 </span>            :         int ret;
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span><span class="lineNoCov">          0 :         ret = atomic_xchg(dev-&gt;dev_stat_values + index, 0);</span>
+<span class="lineNum">     382 </span><span class="lineNoCov">          0 :         dev-&gt;dev_stats_dirty = 1;</span>
+<span class="lineNum">     383 </span>            :         return ret;
+<span class="lineNum">     384 </span>            : }
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            : static inline void btrfs_dev_stat_set(struct btrfs_device *dev,
+<span class="lineNum">     387 </span>            :                                       int index, unsigned long val)
+<span class="lineNum">     388 </span>            : {
+<span class="lineNum">     389 </span><span class="lineCov">       1240 :         atomic_set(dev-&gt;dev_stat_values + index, val);</span>
+<span class="lineNum">     390 </span><span class="lineCov">       1240 :         dev-&gt;dev_stats_dirty = 1;</span>
+<span class="lineNum">     391 </span>            : }
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            : static inline void btrfs_dev_stat_reset(struct btrfs_device *dev,
+<span class="lineNum">     394 </span>            :                                         int index)
+<span class="lineNum">     395 </span>            : {
+<span class="lineNum">     396 </span>            :         btrfs_dev_stat_set(dev, index, 0);
+<span class="lineNum">     397 </span>            : }
+<span class="lineNum">     398 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

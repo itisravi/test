@@ -1,0 +1,434 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/extent_io.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - extent_io.h<span style="font-size: 80%;"> (source / <a href="extent_io.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef __EXTENTIO__</a>
+<span class="lineNum">       2 </span>            : #define __EXTENTIO__
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;linux/rbtree.h&gt;
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : /* bits for the extent state */
+<span class="lineNum">       7 </span>            : #define EXTENT_DIRTY 1
+<span class="lineNum">       8 </span>            : #define EXTENT_WRITEBACK (1 &lt;&lt; 1)
+<span class="lineNum">       9 </span>            : #define EXTENT_UPTODATE (1 &lt;&lt; 2)
+<span class="lineNum">      10 </span>            : #define EXTENT_LOCKED (1 &lt;&lt; 3)
+<span class="lineNum">      11 </span>            : #define EXTENT_NEW (1 &lt;&lt; 4)
+<span class="lineNum">      12 </span>            : #define EXTENT_DELALLOC (1 &lt;&lt; 5)
+<span class="lineNum">      13 </span>            : #define EXTENT_DEFRAG (1 &lt;&lt; 6)
+<span class="lineNum">      14 </span>            : #define EXTENT_DEFRAG_DONE (1 &lt;&lt; 7)
+<span class="lineNum">      15 </span>            : #define EXTENT_BUFFER_FILLED (1 &lt;&lt; 8)
+<span class="lineNum">      16 </span>            : #define EXTENT_BOUNDARY (1 &lt;&lt; 9)
+<span class="lineNum">      17 </span>            : #define EXTENT_NODATASUM (1 &lt;&lt; 10)
+<span class="lineNum">      18 </span>            : #define EXTENT_DO_ACCOUNTING (1 &lt;&lt; 11)
+<span class="lineNum">      19 </span>            : #define EXTENT_FIRST_DELALLOC (1 &lt;&lt; 12)
+<span class="lineNum">      20 </span>            : #define EXTENT_NEED_WAIT (1 &lt;&lt; 13)
+<span class="lineNum">      21 </span>            : #define EXTENT_DAMAGED (1 &lt;&lt; 14)
+<span class="lineNum">      22 </span>            : #define EXTENT_NORESERVE (1 &lt;&lt; 15)
+<span class="lineNum">      23 </span>            : #define EXTENT_IOBITS (EXTENT_LOCKED | EXTENT_WRITEBACK)
+<span class="lineNum">      24 </span>            : #define EXTENT_CTLBITS (EXTENT_DO_ACCOUNTING | EXTENT_FIRST_DELALLOC)
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : /*
+<span class="lineNum">      27 </span>            :  * flags for bio submission. The high bits indicate the compression
+<span class="lineNum">      28 </span>            :  * type for this bio
+<span class="lineNum">      29 </span>            :  */
+<span class="lineNum">      30 </span>            : #define EXTENT_BIO_COMPRESSED 1
+<span class="lineNum">      31 </span>            : #define EXTENT_BIO_TREE_LOG 2
+<span class="lineNum">      32 </span>            : #define EXTENT_BIO_PARENT_LOCKED 4
+<span class="lineNum">      33 </span>            : #define EXTENT_BIO_FLAG_SHIFT 16
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : /* these are bit numbers for test/set bit */
+<span class="lineNum">      36 </span>            : #define EXTENT_BUFFER_UPTODATE 0
+<span class="lineNum">      37 </span>            : #define EXTENT_BUFFER_BLOCKING 1
+<span class="lineNum">      38 </span>            : #define EXTENT_BUFFER_DIRTY 2
+<span class="lineNum">      39 </span>            : #define EXTENT_BUFFER_CORRUPT 3
+<span class="lineNum">      40 </span>            : #define EXTENT_BUFFER_READAHEAD 4       /* this got triggered by readahead */
+<span class="lineNum">      41 </span>            : #define EXTENT_BUFFER_TREE_REF 5
+<span class="lineNum">      42 </span>            : #define EXTENT_BUFFER_STALE 6
+<span class="lineNum">      43 </span>            : #define EXTENT_BUFFER_WRITEBACK 7
+<span class="lineNum">      44 </span>            : #define EXTENT_BUFFER_IOERR 8
+<span class="lineNum">      45 </span>            : #define EXTENT_BUFFER_DUMMY 9
+<span class="lineNum">      46 </span>            : #define EXTENT_BUFFER_IN_TREE 10
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : /* these are flags for extent_clear_unlock_delalloc */
+<span class="lineNum">      49 </span>            : #define PAGE_UNLOCK             (1 &lt;&lt; 0)
+<span class="lineNum">      50 </span>            : #define PAGE_CLEAR_DIRTY        (1 &lt;&lt; 1)
+<span class="lineNum">      51 </span>            : #define PAGE_SET_WRITEBACK      (1 &lt;&lt; 2)
+<span class="lineNum">      52 </span>            : #define PAGE_END_WRITEBACK      (1 &lt;&lt; 3)
+<span class="lineNum">      53 </span>            : #define PAGE_SET_PRIVATE2       (1 &lt;&lt; 4)
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : /*
+<span class="lineNum">      56 </span>            :  * page-&gt;private values.  Every page that is controlled by the extent
+<span class="lineNum">      57 </span>            :  * map has page-&gt;private set to one.
+<span class="lineNum">      58 </span>            :  */
+<span class="lineNum">      59 </span>            : #define EXTENT_PAGE_PRIVATE 1
+<span class="lineNum">      60 </span>            : #define EXTENT_PAGE_PRIVATE_FIRST_PAGE 3
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : struct extent_state;
+<span class="lineNum">      63 </span>            : struct btrfs_root;
+<span class="lineNum">      64 </span>            : struct btrfs_io_bio;
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : typedef int (extent_submit_bio_hook_t)(struct inode *inode, int rw,
+<span class="lineNum">      67 </span>            :                                        struct bio *bio, int mirror_num,
+<span class="lineNum">      68 </span>            :                                        unsigned long bio_flags, u64 bio_offset);
+<span class="lineNum">      69 </span>            : struct extent_io_ops {
+<span class="lineNum">      70 </span>            :         int (*fill_delalloc)(struct inode *inode, struct page *locked_page,
+<span class="lineNum">      71 </span>            :                              u64 start, u64 end, int *page_started,
+<span class="lineNum">      72 </span>            :                              unsigned long *nr_written);
+<span class="lineNum">      73 </span>            :         int (*writepage_start_hook)(struct page *page, u64 start, u64 end);
+<span class="lineNum">      74 </span>            :         int (*writepage_io_hook)(struct page *page, u64 start, u64 end);
+<span class="lineNum">      75 </span>            :         extent_submit_bio_hook_t *submit_bio_hook;
+<span class="lineNum">      76 </span>            :         int (*merge_bio_hook)(int rw, struct page *page, unsigned long offset,
+<span class="lineNum">      77 </span>            :                               size_t size, struct bio *bio,
+<span class="lineNum">      78 </span>            :                               unsigned long bio_flags);
+<span class="lineNum">      79 </span>            :         int (*readpage_io_failed_hook)(struct page *page, int failed_mirror);
+<span class="lineNum">      80 </span>            :         int (*readpage_end_io_hook)(struct btrfs_io_bio *io_bio, u64 phy_offset,
+<span class="lineNum">      81 </span>            :                                     struct page *page, u64 start, u64 end,
+<span class="lineNum">      82 </span>            :                                     int mirror);
+<span class="lineNum">      83 </span>            :         int (*writepage_end_io_hook)(struct page *page, u64 start, u64 end,
+<span class="lineNum">      84 </span>            :                                       struct extent_state *state, int uptodate);
+<span class="lineNum">      85 </span>            :         void (*set_bit_hook)(struct inode *inode, struct extent_state *state,
+<span class="lineNum">      86 </span>            :                              unsigned long *bits);
+<span class="lineNum">      87 </span>            :         void (*clear_bit_hook)(struct inode *inode, struct extent_state *state,
+<span class="lineNum">      88 </span>            :                                unsigned long *bits);
+<span class="lineNum">      89 </span>            :         void (*merge_extent_hook)(struct inode *inode,
+<span class="lineNum">      90 </span>            :                                   struct extent_state *new,
+<span class="lineNum">      91 </span>            :                                   struct extent_state *other);
+<span class="lineNum">      92 </span>            :         void (*split_extent_hook)(struct inode *inode,
+<span class="lineNum">      93 </span>            :                                   struct extent_state *orig, u64 split);
+<span class="lineNum">      94 </span>            : };
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            : struct extent_io_tree {
+<span class="lineNum">      97 </span>            :         struct rb_root state;
+<span class="lineNum">      98 </span>            :         struct address_space *mapping;
+<span class="lineNum">      99 </span>            :         u64 dirty_bytes;
+<span class="lineNum">     100 </span>            :         int track_uptodate;
+<span class="lineNum">     101 </span>            :         spinlock_t lock;
+<span class="lineNum">     102 </span>            :         struct extent_io_ops *ops;
+<span class="lineNum">     103 </span>            : };
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : struct extent_state {
+<span class="lineNum">     106 </span>            :         u64 start;
+<span class="lineNum">     107 </span>            :         u64 end; /* inclusive */
+<span class="lineNum">     108 </span>            :         struct rb_node rb_node;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            :         /* ADD NEW ELEMENTS AFTER THIS */
+<span class="lineNum">     111 </span>            :         struct extent_io_tree *tree;
+<span class="lineNum">     112 </span>            :         wait_queue_head_t wq;
+<span class="lineNum">     113 </span>            :         atomic_t refs;
+<span class="lineNum">     114 </span>            :         unsigned long state;
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            :         /* for use by the FS */
+<span class="lineNum">     117 </span>            :         u64 private;
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : #ifdef CONFIG_BTRFS_DEBUG
+<span class="lineNum">     120 </span>            :         struct list_head leak_list;
+<span class="lineNum">     121 </span>            : #endif
+<span class="lineNum">     122 </span>            : };
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            : #define INLINE_EXTENT_BUFFER_PAGES 16
+<span class="lineNum">     125 </span>            : #define MAX_INLINE_EXTENT_BUFFER_SIZE (INLINE_EXTENT_BUFFER_PAGES * PAGE_CACHE_SIZE)
+<span class="lineNum">     126 </span>            : struct extent_buffer {
+<span class="lineNum">     127 </span>            :         u64 start;
+<span class="lineNum">     128 </span>            :         unsigned long len;
+<span class="lineNum">     129 </span>            :         unsigned long map_start;
+<span class="lineNum">     130 </span>            :         unsigned long map_len;
+<span class="lineNum">     131 </span>            :         unsigned long bflags;
+<span class="lineNum">     132 </span>            :         struct btrfs_fs_info *fs_info;
+<span class="lineNum">     133 </span>            :         spinlock_t refs_lock;
+<span class="lineNum">     134 </span>            :         atomic_t refs;
+<span class="lineNum">     135 </span>            :         atomic_t io_pages;
+<span class="lineNum">     136 </span>            :         int read_mirror;
+<span class="lineNum">     137 </span>            :         struct rcu_head rcu_head;
+<span class="lineNum">     138 </span>            :         pid_t lock_owner;
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            :         /* count of read lock holders on the extent buffer */
+<span class="lineNum">     141 </span>            :         atomic_t write_locks;
+<span class="lineNum">     142 </span>            :         atomic_t read_locks;
+<span class="lineNum">     143 </span>            :         atomic_t blocking_writers;
+<span class="lineNum">     144 </span>            :         atomic_t blocking_readers;
+<span class="lineNum">     145 </span>            :         atomic_t spinning_readers;
+<span class="lineNum">     146 </span>            :         atomic_t spinning_writers;
+<span class="lineNum">     147 </span>            :         int lock_nested;
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span>            :         /* protects write locks */
+<span class="lineNum">     150 </span>            :         rwlock_t lock;
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            :         /* readers use lock_wq while they wait for the write
+<span class="lineNum">     153 </span>            :          * lock holders to unlock
+<span class="lineNum">     154 </span>            :          */
+<span class="lineNum">     155 </span>            :         wait_queue_head_t write_lock_wq;
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            :         /* writers use read_lock_wq while they wait for readers
+<span class="lineNum">     158 </span>            :          * to unlock
+<span class="lineNum">     159 </span>            :          */
+<span class="lineNum">     160 </span>            :         wait_queue_head_t read_lock_wq;
+<span class="lineNum">     161 </span>            :         struct page *pages[INLINE_EXTENT_BUFFER_PAGES];
+<span class="lineNum">     162 </span>            : #ifdef CONFIG_BTRFS_DEBUG
+<span class="lineNum">     163 </span>            :         struct list_head leak_list;
+<span class="lineNum">     164 </span>            : #endif
+<span class="lineNum">     165 </span>            : };
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            : static inline void extent_set_compress_type(unsigned long *bio_flags,
+<span class="lineNum">     168 </span>            :                                             int compress_type)
+<span class="lineNum">     169 </span>            : {
+<span class="lineNum">     170 </span><span class="lineCov">        332 :         *bio_flags |= compress_type &lt;&lt; EXTENT_BIO_FLAG_SHIFT;</span>
+<span class="lineNum">     171 </span>            : }
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            : static inline int extent_compress_type(unsigned long bio_flags)
+<span class="lineNum">     174 </span>            : {
+<span class="lineNum">     175 </span><span class="lineCov">         42 :         return bio_flags &gt;&gt; EXTENT_BIO_FLAG_SHIFT;</span>
+<span class="lineNum">     176 </span>            : }
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            : struct extent_map_tree;
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            : typedef struct extent_map *(get_extent_t)(struct inode *inode,
+<span class="lineNum">     181 </span>            :                                           struct page *page,
+<span class="lineNum">     182 </span>            :                                           size_t pg_offset,
+<span class="lineNum">     183 </span>            :                                           u64 start, u64 len,
+<span class="lineNum">     184 </span>            :                                           int create);
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : void extent_io_tree_init(struct extent_io_tree *tree,
+<span class="lineNum">     187 </span>            :                          struct address_space *mapping);
+<span class="lineNum">     188 </span>            : int try_release_extent_mapping(struct extent_map_tree *map,
+<span class="lineNum">     189 </span>            :                                struct extent_io_tree *tree, struct page *page,
+<span class="lineNum">     190 </span>            :                                gfp_t mask);
+<span class="lineNum">     191 </span>            : int try_release_extent_buffer(struct page *page);
+<span class="lineNum">     192 </span>            : int lock_extent(struct extent_io_tree *tree, u64 start, u64 end);
+<span class="lineNum">     193 </span>            : int lock_extent_bits(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     194 </span>            :                      unsigned long bits, struct extent_state **cached);
+<span class="lineNum">     195 </span>            : int unlock_extent(struct extent_io_tree *tree, u64 start, u64 end);
+<span class="lineNum">     196 </span>            : int unlock_extent_cached(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     197 </span>            :                          struct extent_state **cached, gfp_t mask);
+<span class="lineNum">     198 </span>            : int try_lock_extent(struct extent_io_tree *tree, u64 start, u64 end);
+<span class="lineNum">     199 </span>            : int extent_read_full_page(struct extent_io_tree *tree, struct page *page,
+<span class="lineNum">     200 </span>            :                           get_extent_t *get_extent, int mirror_num);
+<span class="lineNum">     201 </span>            : int extent_read_full_page_nolock(struct extent_io_tree *tree, struct page *page,
+<span class="lineNum">     202 </span>            :                                  get_extent_t *get_extent, int mirror_num);
+<span class="lineNum">     203 </span>            : int __init extent_io_init(void);
+<span class="lineNum">     204 </span>            : void extent_io_exit(void);
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            : u64 count_range_bits(struct extent_io_tree *tree,
+<span class="lineNum">     207 </span>            :                      u64 *start, u64 search_end,
+<span class="lineNum">     208 </span>            :                      u64 max_bytes, unsigned long bits, int contig);
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            : void free_extent_state(struct extent_state *state);
+<span class="lineNum">     211 </span>            : int test_range_bit(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     212 </span>            :                    unsigned long bits, int filled,
+<span class="lineNum">     213 </span>            :                    struct extent_state *cached_state);
+<span class="lineNum">     214 </span>            : int clear_extent_bits(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     215 </span>            :                       unsigned long bits, gfp_t mask);
+<span class="lineNum">     216 </span>            : int clear_extent_bit(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     217 </span>            :                      unsigned long bits, int wake, int delete,
+<span class="lineNum">     218 </span>            :                      struct extent_state **cached, gfp_t mask);
+<span class="lineNum">     219 </span>            : int set_extent_bits(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     220 </span>            :                     unsigned long bits, gfp_t mask);
+<span class="lineNum">     221 </span>            : int set_extent_bit(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     222 </span>            :                    unsigned long bits, u64 *failed_start,
+<span class="lineNum">     223 </span>            :                    struct extent_state **cached_state, gfp_t mask);
+<span class="lineNum">     224 </span>            : int set_extent_uptodate(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     225 </span>            :                         struct extent_state **cached_state, gfp_t mask);
+<span class="lineNum">     226 </span>            : int clear_extent_uptodate(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     227 </span>            :                           struct extent_state **cached_state, gfp_t mask);
+<span class="lineNum">     228 </span>            : int set_extent_new(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     229 </span>            :                    gfp_t mask);
+<span class="lineNum">     230 </span>            : int set_extent_dirty(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     231 </span>            :                      gfp_t mask);
+<span class="lineNum">     232 </span>            : int clear_extent_dirty(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     233 </span>            :                        gfp_t mask);
+<span class="lineNum">     234 </span>            : int convert_extent_bit(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     235 </span>            :                        unsigned long bits, unsigned long clear_bits,
+<span class="lineNum">     236 </span>            :                        struct extent_state **cached_state, gfp_t mask);
+<span class="lineNum">     237 </span>            : int set_extent_delalloc(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     238 </span>            :                         struct extent_state **cached_state, gfp_t mask);
+<span class="lineNum">     239 </span>            : int set_extent_defrag(struct extent_io_tree *tree, u64 start, u64 end,
+<span class="lineNum">     240 </span>            :                       struct extent_state **cached_state, gfp_t mask);
+<span class="lineNum">     241 </span>            : int find_first_extent_bit(struct extent_io_tree *tree, u64 start,
+<span class="lineNum">     242 </span>            :                           u64 *start_ret, u64 *end_ret, unsigned long bits,
+<span class="lineNum">     243 </span>            :                           struct extent_state **cached_state);
+<span class="lineNum">     244 </span>            : int extent_invalidatepage(struct extent_io_tree *tree,
+<span class="lineNum">     245 </span>            :                           struct page *page, unsigned long offset);
+<span class="lineNum">     246 </span>            : int extent_write_full_page(struct extent_io_tree *tree, struct page *page,
+<span class="lineNum">     247 </span>            :                           get_extent_t *get_extent,
+<span class="lineNum">     248 </span>            :                           struct writeback_control *wbc);
+<span class="lineNum">     249 </span>            : int extent_write_locked_range(struct extent_io_tree *tree, struct inode *inode,
+<span class="lineNum">     250 </span>            :                               u64 start, u64 end, get_extent_t *get_extent,
+<span class="lineNum">     251 </span>            :                               int mode);
+<span class="lineNum">     252 </span>            : int extent_writepages(struct extent_io_tree *tree,
+<span class="lineNum">     253 </span>            :                       struct address_space *mapping,
+<span class="lineNum">     254 </span>            :                       get_extent_t *get_extent,
+<span class="lineNum">     255 </span>            :                       struct writeback_control *wbc);
+<span class="lineNum">     256 </span>            : int btree_write_cache_pages(struct address_space *mapping,
+<span class="lineNum">     257 </span>            :                             struct writeback_control *wbc);
+<span class="lineNum">     258 </span>            : int extent_readpages(struct extent_io_tree *tree,
+<span class="lineNum">     259 </span>            :                      struct address_space *mapping,
+<span class="lineNum">     260 </span>            :                      struct list_head *pages, unsigned nr_pages,
+<span class="lineNum">     261 </span>            :                      get_extent_t get_extent);
+<span class="lineNum">     262 </span>            : int extent_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
+<span class="lineNum">     263 </span>            :                 __u64 start, __u64 len, get_extent_t *get_extent);
+<span class="lineNum">     264 </span>            : int get_state_private(struct extent_io_tree *tree, u64 start, u64 *private);
+<span class="lineNum">     265 </span>            : void set_page_extent_mapped(struct page *page);
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            : struct extent_buffer *alloc_extent_buffer(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     268 </span>            :                                           u64 start, unsigned long len);
+<span class="lineNum">     269 </span>            : struct extent_buffer *alloc_dummy_extent_buffer(u64 start, unsigned long len);
+<span class="lineNum">     270 </span>            : struct extent_buffer *btrfs_clone_extent_buffer(struct extent_buffer *src);
+<span class="lineNum">     271 </span>            : struct extent_buffer *find_extent_buffer(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     272 </span>            :                                          u64 start);
+<span class="lineNum">     273 </span>            : void free_extent_buffer(struct extent_buffer *eb);
+<span class="lineNum">     274 </span>            : void free_extent_buffer_stale(struct extent_buffer *eb);
+<span class="lineNum">     275 </span>            : #define WAIT_NONE       0
+<span class="lineNum">     276 </span>            : #define WAIT_COMPLETE   1
+<span class="lineNum">     277 </span>            : #define WAIT_PAGE_LOCK  2
+<span class="lineNum">     278 </span>            : int read_extent_buffer_pages(struct extent_io_tree *tree,
+<span class="lineNum">     279 </span>            :                              struct extent_buffer *eb, u64 start, int wait,
+<span class="lineNum">     280 </span>            :                              get_extent_t *get_extent, int mirror_num);
+<span class="lineNum">     281 </span>            : void wait_on_extent_buffer_writeback(struct extent_buffer *eb);
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            : static inline unsigned long num_extent_pages(u64 start, u64 len)
+<span class="lineNum">     284 </span>            : {
+<span class="lineNum">     285 </span><span class="lineCov">   12217727 :         return ((start + len + PAGE_CACHE_SIZE - 1) &gt;&gt; PAGE_CACHE_SHIFT) -</span>
+<span class="lineNum">     286 </span><span class="lineCov">    6108863 :                 (start &gt;&gt; PAGE_CACHE_SHIFT);</span>
+<span class="lineNum">     287 </span>            : }
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            : static inline struct page *extent_buffer_page(struct extent_buffer *eb,
+<span class="lineNum">     290 </span>            :                                               unsigned long i)
+<span class="lineNum">     291 </span>            : {
+<span class="lineNum">     292 </span><span class="lineCov">   74491579 :         return eb-&gt;pages[i];</span>
+<span class="lineNum">     293 </span>            : }
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            : static inline void extent_buffer_get(struct extent_buffer *eb)
+<span class="lineNum">     296 </span>            : {
+<span class="lineNum">     297 </span><span class="lineCov">    1649613 :         atomic_inc(&amp;eb-&gt;refs);</span>
+<span class="lineNum">     298 </span>            : }
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span>            : int memcmp_extent_buffer(struct extent_buffer *eb, const void *ptrv,
+<span class="lineNum">     301 </span>            :                           unsigned long start,
+<span class="lineNum">     302 </span>            :                           unsigned long len);
+<span class="lineNum">     303 </span>            : void read_extent_buffer(struct extent_buffer *eb, void *dst,
+<span class="lineNum">     304 </span>            :                         unsigned long start,
+<span class="lineNum">     305 </span>            :                         unsigned long len);
+<span class="lineNum">     306 </span>            : int read_extent_buffer_to_user(struct extent_buffer *eb, void __user *dst,
+<span class="lineNum">     307 </span>            :                                unsigned long start,
+<span class="lineNum">     308 </span>            :                                unsigned long len);
+<span class="lineNum">     309 </span>            : void write_extent_buffer(struct extent_buffer *eb, const void *src,
+<span class="lineNum">     310 </span>            :                          unsigned long start, unsigned long len);
+<span class="lineNum">     311 </span>            : void copy_extent_buffer(struct extent_buffer *dst, struct extent_buffer *src,
+<span class="lineNum">     312 </span>            :                         unsigned long dst_offset, unsigned long src_offset,
+<span class="lineNum">     313 </span>            :                         unsigned long len);
+<span class="lineNum">     314 </span>            : void memcpy_extent_buffer(struct extent_buffer *dst, unsigned long dst_offset,
+<span class="lineNum">     315 </span>            :                            unsigned long src_offset, unsigned long len);
+<span class="lineNum">     316 </span>            : void memmove_extent_buffer(struct extent_buffer *dst, unsigned long dst_offset,
+<span class="lineNum">     317 </span>            :                            unsigned long src_offset, unsigned long len);
+<span class="lineNum">     318 </span>            : void memset_extent_buffer(struct extent_buffer *eb, char c,
+<span class="lineNum">     319 </span>            :                           unsigned long start, unsigned long len);
+<span class="lineNum">     320 </span>            : void clear_extent_buffer_dirty(struct extent_buffer *eb);
+<span class="lineNum">     321 </span>            : int set_extent_buffer_dirty(struct extent_buffer *eb);
+<span class="lineNum">     322 </span>            : int set_extent_buffer_uptodate(struct extent_buffer *eb);
+<span class="lineNum">     323 </span>            : int clear_extent_buffer_uptodate(struct extent_buffer *eb);
+<span class="lineNum">     324 </span>            : int extent_buffer_uptodate(struct extent_buffer *eb);
+<span class="lineNum">     325 </span>            : int extent_buffer_under_io(struct extent_buffer *eb);
+<span class="lineNum">     326 </span>            : int map_private_extent_buffer(struct extent_buffer *eb, unsigned long offset,
+<span class="lineNum">     327 </span>            :                       unsigned long min_len, char **map,
+<span class="lineNum">     328 </span>            :                       unsigned long *map_start,
+<span class="lineNum">     329 </span>            :                       unsigned long *map_len);
+<span class="lineNum">     330 </span>            : int extent_range_clear_dirty_for_io(struct inode *inode, u64 start, u64 end);
+<span class="lineNum">     331 </span>            : int extent_range_redirty_for_io(struct inode *inode, u64 start, u64 end);
+<span class="lineNum">     332 </span>            : int extent_clear_unlock_delalloc(struct inode *inode, u64 start, u64 end,
+<span class="lineNum">     333 </span>            :                                  struct page *locked_page,
+<span class="lineNum">     334 </span>            :                                  unsigned long bits_to_clear,
+<span class="lineNum">     335 </span>            :                                  unsigned long page_ops);
+<span class="lineNum">     336 </span>            : struct bio *
+<span class="lineNum">     337 </span>            : btrfs_bio_alloc(struct block_device *bdev, u64 first_sector, int nr_vecs,
+<span class="lineNum">     338 </span>            :                 gfp_t gfp_flags);
+<span class="lineNum">     339 </span>            : struct bio *btrfs_io_bio_alloc(gfp_t gfp_mask, unsigned int nr_iovecs);
+<span class="lineNum">     340 </span>            : struct bio *btrfs_bio_clone(struct bio *bio, gfp_t gfp_mask);
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span>            : struct btrfs_fs_info;
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            : int repair_io_failure(struct btrfs_fs_info *fs_info, u64 start,
+<span class="lineNum">     345 </span>            :                         u64 length, u64 logical, struct page *page,
+<span class="lineNum">     346 </span>            :                         int mirror_num);
+<span class="lineNum">     347 </span>            : int end_extent_writepage(struct page *page, int err, u64 start, u64 end);
+<span class="lineNum">     348 </span>            : int repair_eb_io_failure(struct btrfs_root *root, struct extent_buffer *eb,
+<span class="lineNum">     349 </span>            :                          int mirror_num);
+<span class="lineNum">     350 </span>            : #ifdef CONFIG_BTRFS_FS_RUN_SANITY_TESTS
+<span class="lineNum">     351 </span>            : noinline u64 find_lock_delalloc_range(struct inode *inode,
+<span class="lineNum">     352 </span>            :                                       struct extent_io_tree *tree,
+<span class="lineNum">     353 </span>            :                                       struct page *locked_page, u64 *start,
+<span class="lineNum">     354 </span>            :                                       u64 *end, u64 max_bytes);
+<span class="lineNum">     355 </span>            : struct extent_buffer *alloc_test_extent_buffer(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     356 </span>            :                                                u64 start, unsigned long len);
+<span class="lineNum">     357 </span>            : #endif
+<span class="lineNum">     358 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

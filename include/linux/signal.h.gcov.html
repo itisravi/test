@@ -1,0 +1,524 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/signal.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - signal.h<span style="font-size: 80%;"> (source / <a href="signal.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_SIGNAL_H</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_SIGNAL_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;linux/list.h&gt;
+<span class="lineNum">       5 </span>            : #include &lt;uapi/linux/signal.h&gt;
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : struct task_struct;
+<span class="lineNum">       8 </span>            : 
+<span class="lineNum">       9 </span>            : /* for sysctl */
+<span class="lineNum">      10 </span>            : extern int print_fatal_signals;
+<span class="lineNum">      11 </span>            : /*
+<span class="lineNum">      12 </span>            :  * Real Time signals may be queued.
+<span class="lineNum">      13 </span>            :  */
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : struct sigqueue {
+<span class="lineNum">      16 </span>            :         struct list_head list;
+<span class="lineNum">      17 </span>            :         int flags;
+<span class="lineNum">      18 </span>            :         siginfo_t info;
+<span class="lineNum">      19 </span>            :         struct user_struct *user;
+<span class="lineNum">      20 </span>            : };
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : /* flags values. */
+<span class="lineNum">      23 </span>            : #define SIGQUEUE_PREALLOC       1
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : struct sigpending {
+<span class="lineNum">      26 </span>            :         struct list_head list;
+<span class="lineNum">      27 </span>            :         sigset_t signal;
+<span class="lineNum">      28 </span>            : };
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : /*
+<span class="lineNum">      31 </span>            :  * Define some primitives to manipulate sigset_t.
+<span class="lineNum">      32 </span>            :  */
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : #ifndef __HAVE_ARCH_SIG_BITOPS
+<span class="lineNum">      35 </span>            : #include &lt;linux/bitops.h&gt;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : /* We don't use &lt;linux/bitops.h&gt; for these because there is no need to
+<span class="lineNum">      38 </span>            :    be atomic.  */
+<span class="lineNum">      39 </span>            : static inline void sigaddset(sigset_t *set, int _sig)
+<span class="lineNum">      40 </span>            : {
+<span class="lineNum">      41 </span>            :         unsigned long sig = _sig - 1;
+<span class="lineNum">      42 </span>            :         if (_NSIG_WORDS == 1)
+<span class="lineNum">      43 </span>            :                 set-&gt;sig[0] |= 1UL &lt;&lt; sig;
+<span class="lineNum">      44 </span>            :         else
+<span class="lineNum">      45 </span>            :                 set-&gt;sig[sig / _NSIG_BPW] |= 1UL &lt;&lt; (sig % _NSIG_BPW);
+<span class="lineNum">      46 </span>            : }
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : static inline void sigdelset(sigset_t *set, int _sig)
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span>            :         unsigned long sig = _sig - 1;
+<span class="lineNum">      51 </span>            :         if (_NSIG_WORDS == 1)
+<span class="lineNum">      52 </span>            :                 set-&gt;sig[0] &amp;= ~(1UL &lt;&lt; sig);
+<span class="lineNum">      53 </span>            :         else
+<span class="lineNum">      54 </span>            :                 set-&gt;sig[sig / _NSIG_BPW] &amp;= ~(1UL &lt;&lt; (sig % _NSIG_BPW));
+<span class="lineNum">      55 </span>            : }
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : static inline int sigismember(sigset_t *set, int _sig)
+<span class="lineNum">      58 </span>            : {
+<span class="lineNum">      59 </span>            :         unsigned long sig = _sig - 1;
+<span class="lineNum">      60 </span>            :         if (_NSIG_WORDS == 1)
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :                 return 1 &amp; (set-&gt;sig[0] &gt;&gt; sig);</span>
+<span class="lineNum">      62 </span>            :         else
+<span class="lineNum">      63 </span>            :                 return 1 &amp; (set-&gt;sig[sig / _NSIG_BPW] &gt;&gt; (sig % _NSIG_BPW));
+<span class="lineNum">      64 </span>            : }
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : #endif /* __HAVE_ARCH_SIG_BITOPS */
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : static inline int sigisemptyset(sigset_t *set)
+<span class="lineNum">      69 </span>            : {
+<span class="lineNum">      70 </span>            :         extern void _NSIG_WORDS_is_unsupported_size(void);
+<span class="lineNum">      71 </span>            :         switch (_NSIG_WORDS) {
+<span class="lineNum">      72 </span>            :         case 4:
+<span class="lineNum">      73 </span>            :                 return (set-&gt;sig[3] | set-&gt;sig[2] |
+<span class="lineNum">      74 </span>            :                         set-&gt;sig[1] | set-&gt;sig[0]) == 0;
+<span class="lineNum">      75 </span>            :         case 2:
+<span class="lineNum">      76 </span>            :                 return (set-&gt;sig[1] | set-&gt;sig[0]) == 0;
+<span class="lineNum">      77 </span>            :         case 1:
+<span class="lineNum">      78 </span>            :                 return set-&gt;sig[0] == 0;
+<span class="lineNum">      79 </span>            :         default:
+<span class="lineNum">      80 </span>            :                 _NSIG_WORDS_is_unsupported_size();
+<span class="lineNum">      81 </span>            :                 return 0;
+<span class="lineNum">      82 </span>            :         }
+<span class="lineNum">      83 </span>            : }
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : #define sigmask(sig)    (1UL &lt;&lt; ((sig) - 1))
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : #ifndef __HAVE_ARCH_SIG_SETOPS
+<span class="lineNum">      88 </span>            : #include &lt;linux/string.h&gt;
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            : #define _SIG_SET_BINOP(name, op)                                        \
+<span class="lineNum">      91 </span>            : static inline void name(sigset_t *r, const sigset_t *a, const sigset_t *b) \
+<span class="lineNum">      92 </span>            : {                                                                       \
+<span class="lineNum">      93 </span>            :         extern void _NSIG_WORDS_is_unsupported_size(void);              \
+<span class="lineNum">      94 </span>            :         unsigned long a0, a1, a2, a3, b0, b1, b2, b3;                   \
+<span class="lineNum">      95 </span>            :                                                                         \
+<span class="lineNum">      96 </span>            :         switch (_NSIG_WORDS) {                                          \
+<span class="lineNum">      97 </span>            :             case 4:                                                     \
+<span class="lineNum">      98 </span>            :                 a3 = a-&gt;sig[3]; a2 = a-&gt;sig[2];                           \
+<span class="lineNum">      99 </span>            :                 b3 = b-&gt;sig[3]; b2 = b-&gt;sig[2];                           \
+<span class="lineNum">     100 </span>            :                 r-&gt;sig[3] = op(a3, b3);                                      \
+<span class="lineNum">     101 </span>            :                 r-&gt;sig[2] = op(a2, b2);                                      \
+<span class="lineNum">     102 </span>            :             case 2:                                                     \
+<span class="lineNum">     103 </span>            :                 a1 = a-&gt;sig[1]; b1 = b-&gt;sig[1];                           \
+<span class="lineNum">     104 </span>            :                 r-&gt;sig[1] = op(a1, b1);                                      \
+<span class="lineNum">     105 </span>            :             case 1:                                                     \
+<span class="lineNum">     106 </span>            :                 a0 = a-&gt;sig[0]; b0 = b-&gt;sig[0];                           \
+<span class="lineNum">     107 </span>            :                 r-&gt;sig[0] = op(a0, b0);                                      \
+<span class="lineNum">     108 </span>            :                 break;                                                  \
+<span class="lineNum">     109 </span>            :             default:                                                    \
+<span class="lineNum">     110 </span>            :                 _NSIG_WORDS_is_unsupported_size();                      \
+<span class="lineNum">     111 </span>            :         }                                                               \
+<span class="lineNum">     112 </span>            : }
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            : #define _sig_or(x,y)    ((x) | (y))
+<span class="lineNum">     115 </span>            : _SIG_SET_BINOP(sigorsets, _sig_or)
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            : #define _sig_and(x,y)   ((x) &amp; (y))
+<span class="lineNum">     118 </span>            : _SIG_SET_BINOP(sigandsets, _sig_and)
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : #define _sig_andn(x,y)  ((x) &amp; ~(y))
+<span class="lineNum">     121 </span>            : _SIG_SET_BINOP(sigandnsets, _sig_andn)
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : #undef _SIG_SET_BINOP
+<span class="lineNum">     124 </span>            : #undef _sig_or
+<span class="lineNum">     125 </span>            : #undef _sig_and
+<span class="lineNum">     126 </span>            : #undef _sig_andn
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span>            : #define _SIG_SET_OP(name, op)                                           \
+<span class="lineNum">     129 </span>            : static inline void name(sigset_t *set)                                  \
+<span class="lineNum">     130 </span>            : {                                                                       \
+<span class="lineNum">     131 </span>            :         extern void _NSIG_WORDS_is_unsupported_size(void);              \
+<span class="lineNum">     132 </span>            :                                                                         \
+<span class="lineNum">     133 </span>            :         switch (_NSIG_WORDS) {                                          \
+<span class="lineNum">     134 </span>            :             case 4: set-&gt;sig[3] = op(set-&gt;sig[3]);                        \
+<span class="lineNum">     135 </span>            :                     set-&gt;sig[2] = op(set-&gt;sig[2]);                        \
+<span class="lineNum">     136 </span>            :             case 2: set-&gt;sig[1] = op(set-&gt;sig[1]);                        \
+<span class="lineNum">     137 </span>            :             case 1: set-&gt;sig[0] = op(set-&gt;sig[0]);                        \
+<span class="lineNum">     138 </span>            :                     break;                                              \
+<span class="lineNum">     139 </span>            :             default:                                                    \
+<span class="lineNum">     140 </span>            :                 _NSIG_WORDS_is_unsupported_size();                      \
+<span class="lineNum">     141 </span>            :         }                                                               \
+<span class="lineNum">     142 </span>            : }
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            : #define _sig_not(x)     (~(x))
+<span class="lineNum">     145 </span>            : _SIG_SET_OP(signotset, _sig_not)
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            : #undef _SIG_SET_OP
+<span class="lineNum">     148 </span>            : #undef _sig_not
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span>            : static inline void sigemptyset(sigset_t *set)
+<span class="lineNum">     151 </span>            : {
+<span class="lineNum">     152 </span>            :         switch (_NSIG_WORDS) {
+<span class="lineNum">     153 </span>            :         default:
+<span class="lineNum">     154 </span>            :                 memset(set, 0, sizeof(sigset_t));
+<span class="lineNum">     155 </span>            :                 break;
+<span class="lineNum">     156 </span>            :         case 2: set-&gt;sig[1] = 0;
+<span class="lineNum">     157 </span>            :         case 1: set-&gt;sig[0] = 0;
+<span class="lineNum">     158 </span>            :                 break;
+<span class="lineNum">     159 </span>            :         }
+<span class="lineNum">     160 </span>            : }
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            : static inline void sigfillset(sigset_t *set)
+<span class="lineNum">     163 </span>            : {
+<span class="lineNum">     164 </span>            :         switch (_NSIG_WORDS) {
+<span class="lineNum">     165 </span>            :         default:
+<span class="lineNum">     166 </span>            :                 memset(set, -1, sizeof(sigset_t));
+<span class="lineNum">     167 </span>            :                 break;
+<span class="lineNum">     168 </span>            :         case 2: set-&gt;sig[1] = -1;
+<span class="lineNum">     169 </span>            :         case 1: set-&gt;sig[0] = -1;
+<span class="lineNum">     170 </span>            :                 break;
+<span class="lineNum">     171 </span>            :         }
+<span class="lineNum">     172 </span>            : }
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            : /* Some extensions for manipulating the low 32 signals in particular.  */
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : static inline void sigaddsetmask(sigset_t *set, unsigned long mask)
+<span class="lineNum">     177 </span>            : {
+<span class="lineNum">     178 </span>            :         set-&gt;sig[0] |= mask;
+<span class="lineNum">     179 </span>            : }
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            : static inline void sigdelsetmask(sigset_t *set, unsigned long mask)
+<span class="lineNum">     182 </span>            : {
+<span class="lineNum">     183 </span>            :         set-&gt;sig[0] &amp;= ~mask;
+<span class="lineNum">     184 </span>            : }
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : static inline int sigtestsetmask(sigset_t *set, unsigned long mask)
+<span class="lineNum">     187 </span>            : {
+<span class="lineNum">     188 </span>            :         return (set-&gt;sig[0] &amp; mask) != 0;
+<span class="lineNum">     189 </span>            : }
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            : static inline void siginitset(sigset_t *set, unsigned long mask)
+<span class="lineNum">     192 </span>            : {
+<span class="lineNum">     193 </span>            :         set-&gt;sig[0] = mask;
+<span class="lineNum">     194 </span>            :         switch (_NSIG_WORDS) {
+<span class="lineNum">     195 </span>            :         default:
+<span class="lineNum">     196 </span>            :                 memset(&amp;set-&gt;sig[1], 0, sizeof(long)*(_NSIG_WORDS-1));
+<span class="lineNum">     197 </span>            :                 break;
+<span class="lineNum">     198 </span>            :         case 2: set-&gt;sig[1] = 0;
+<span class="lineNum">     199 </span>            :         case 1: ;
+<span class="lineNum">     200 </span>            :         }
+<span class="lineNum">     201 </span>            : }
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span>            : static inline void siginitsetinv(sigset_t *set, unsigned long mask)
+<span class="lineNum">     204 </span>            : {
+<span class="lineNum">     205 </span>            :         set-&gt;sig[0] = ~mask;
+<span class="lineNum">     206 </span>            :         switch (_NSIG_WORDS) {
+<span class="lineNum">     207 </span>            :         default:
+<span class="lineNum">     208 </span>            :                 memset(&amp;set-&gt;sig[1], -1, sizeof(long)*(_NSIG_WORDS-1));
+<span class="lineNum">     209 </span>            :                 break;
+<span class="lineNum">     210 </span>            :         case 2: set-&gt;sig[1] = -1;
+<span class="lineNum">     211 </span>            :         case 1: ;
+<span class="lineNum">     212 </span>            :         }
+<span class="lineNum">     213 </span>            : }
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            : #endif /* __HAVE_ARCH_SIG_SETOPS */
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            : static inline void init_sigpending(struct sigpending *sig)
+<span class="lineNum">     218 </span>            : {
+<span class="lineNum">     219 </span>            :         sigemptyset(&amp;sig-&gt;signal);
+<span class="lineNum">     220 </span>            :         INIT_LIST_HEAD(&amp;sig-&gt;list);
+<span class="lineNum">     221 </span>            : }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            : extern void flush_sigqueue(struct sigpending *queue);
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span>            : /* Test if 'sig' is valid signal. Use this instead of testing _NSIG directly */
+<span class="lineNum">     226 </span>            : static inline int valid_signal(unsigned long sig)
+<span class="lineNum">     227 </span>            : {
+<span class="lineNum">     228 </span>            :         return sig &lt;= _NSIG ? 1 : 0;
+<span class="lineNum">     229 </span>            : }
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            : struct timespec;
+<span class="lineNum">     232 </span>            : struct pt_regs;
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            : extern int next_signal(struct sigpending *pending, sigset_t *mask);
+<span class="lineNum">     235 </span>            : extern int do_send_sig_info(int sig, struct siginfo *info,
+<span class="lineNum">     236 </span>            :                                 struct task_struct *p, bool group);
+<span class="lineNum">     237 </span>            : extern int group_send_sig_info(int sig, struct siginfo *info, struct task_struct *p);
+<span class="lineNum">     238 </span>            : extern int __group_send_sig_info(int, struct siginfo *, struct task_struct *);
+<span class="lineNum">     239 </span>            : extern int do_sigtimedwait(const sigset_t *, siginfo_t *,
+<span class="lineNum">     240 </span>            :                                 const struct timespec *);
+<span class="lineNum">     241 </span>            : extern int sigprocmask(int, sigset_t *, sigset_t *);
+<span class="lineNum">     242 </span>            : extern void set_current_blocked(sigset_t *);
+<span class="lineNum">     243 </span>            : extern void __set_current_blocked(const sigset_t *);
+<span class="lineNum">     244 </span>            : extern int show_unhandled_signals;
+<span class="lineNum">     245 </span>            : extern int sigsuspend(sigset_t *);
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span>            : struct sigaction {
+<span class="lineNum">     248 </span>            : #ifndef __ARCH_HAS_IRIX_SIGACTION
+<span class="lineNum">     249 </span>            :         __sighandler_t  sa_handler;
+<span class="lineNum">     250 </span>            :         unsigned long   sa_flags;
+<span class="lineNum">     251 </span>            : #else
+<span class="lineNum">     252 </span>            :         unsigned int    sa_flags;
+<span class="lineNum">     253 </span>            :         __sighandler_t  sa_handler;
+<span class="lineNum">     254 </span>            : #endif
+<span class="lineNum">     255 </span>            : #ifdef __ARCH_HAS_SA_RESTORER
+<span class="lineNum">     256 </span>            :         __sigrestore_t sa_restorer;
+<span class="lineNum">     257 </span>            : #endif
+<span class="lineNum">     258 </span>            :         sigset_t        sa_mask;        /* mask last for extensibility */
+<span class="lineNum">     259 </span>            : };
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : struct k_sigaction {
+<span class="lineNum">     262 </span>            :         struct sigaction sa;
+<span class="lineNum">     263 </span>            : #ifdef __ARCH_HAS_KA_RESTORER
+<span class="lineNum">     264 </span>            :         __sigrestore_t ka_restorer;
+<span class="lineNum">     265 </span>            : #endif
+<span class="lineNum">     266 </span>            : };
+<span class="lineNum">     267 </span>            :  
+<span class="lineNum">     268 </span>            : #ifdef CONFIG_OLD_SIGACTION
+<span class="lineNum">     269 </span>            : struct old_sigaction {
+<span class="lineNum">     270 </span>            :         __sighandler_t sa_handler;
+<span class="lineNum">     271 </span>            :         old_sigset_t sa_mask;
+<span class="lineNum">     272 </span>            :         unsigned long sa_flags;
+<span class="lineNum">     273 </span>            :         __sigrestore_t sa_restorer;
+<span class="lineNum">     274 </span>            : };
+<span class="lineNum">     275 </span>            : #endif
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : struct ksignal {
+<span class="lineNum">     278 </span>            :         struct k_sigaction ka;
+<span class="lineNum">     279 </span>            :         siginfo_t info;
+<span class="lineNum">     280 </span>            :         int sig;
+<span class="lineNum">     281 </span>            : };
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            : extern int get_signal(struct ksignal *ksig);
+<span class="lineNum">     284 </span>            : extern void signal_setup_done(int failed, struct ksignal *ksig, int stepping);
+<span class="lineNum">     285 </span>            : extern void exit_signals(struct task_struct *tsk);
+<span class="lineNum">     286 </span>            : extern void kernel_sigaction(int, __sighandler_t);
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span>            : static inline void allow_signal(int sig)
+<span class="lineNum">     289 </span>            : {
+<span class="lineNum">     290 </span>            :         /*
+<span class="lineNum">     291 </span>            :          * Kernel threads handle their own signals. Let the signal code
+<span class="lineNum">     292 </span>            :          * know it'll be handled, so that they don't get converted to
+<span class="lineNum">     293 </span>            :          * SIGKILL or just silently dropped.
+<span class="lineNum">     294 </span>            :          */
+<span class="lineNum">     295 </span>            :         kernel_sigaction(sig, (__force __sighandler_t)2);
+<span class="lineNum">     296 </span>            : }
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            : static inline void disallow_signal(int sig)
+<span class="lineNum">     299 </span>            : {
+<span class="lineNum">     300 </span>            :         kernel_sigaction(sig, SIG_IGN);
+<span class="lineNum">     301 </span>            : }
+<span class="lineNum">     302 </span>            : 
+<span class="lineNum">     303 </span>            : extern struct kmem_cache *sighand_cachep;
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span>            : int unhandled_signal(struct task_struct *tsk, int sig);
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            : /*
+<span class="lineNum">     308 </span>            :  * In POSIX a signal is sent either to a specific thread (Linux task)
+<span class="lineNum">     309 </span>            :  * or to the process as a whole (Linux thread group).  How the signal
+<span class="lineNum">     310 </span>            :  * is sent determines whether it's to one thread or the whole group,
+<span class="lineNum">     311 </span>            :  * which determines which signal mask(s) are involved in blocking it
+<span class="lineNum">     312 </span>            :  * from being delivered until later.  When the signal is delivered,
+<span class="lineNum">     313 </span>            :  * either it's caught or ignored by a user handler or it has a default
+<span class="lineNum">     314 </span>            :  * effect that applies to the whole thread group (POSIX process).
+<span class="lineNum">     315 </span>            :  *
+<span class="lineNum">     316 </span>            :  * The possible effects an unblocked signal set to SIG_DFL can have are:
+<span class="lineNum">     317 </span>            :  *   ignore     - Nothing Happens
+<span class="lineNum">     318 </span>            :  *   terminate  - kill the process, i.e. all threads in the group,
+<span class="lineNum">     319 </span>            :  *                similar to exit_group.  The group leader (only) reports
+<span class="lineNum">     320 </span>            :  *                WIFSIGNALED status to its parent.
+<span class="lineNum">     321 </span>            :  *   coredump   - write a core dump file describing all threads using
+<span class="lineNum">     322 </span>            :  *                the same mm and then kill all those threads
+<span class="lineNum">     323 </span>            :  *   stop       - stop all the threads in the group, i.e. TASK_STOPPED state
+<span class="lineNum">     324 </span>            :  *
+<span class="lineNum">     325 </span>            :  * SIGKILL and SIGSTOP cannot be caught, blocked, or ignored.
+<span class="lineNum">     326 </span>            :  * Other signals when not blocked and set to SIG_DFL behaves as follows.
+<span class="lineNum">     327 </span>            :  * The job control signals also have other special effects.
+<span class="lineNum">     328 </span>            :  *
+<span class="lineNum">     329 </span>            :  *      +--------------------+------------------+
+<span class="lineNum">     330 </span>            :  *      |  POSIX signal      |  default action  |
+<span class="lineNum">     331 </span>            :  *      +--------------------+------------------+
+<span class="lineNum">     332 </span>            :  *      |  SIGHUP            |  terminate       |
+<span class="lineNum">     333 </span>            :  *      |  SIGINT            |  terminate       |
+<span class="lineNum">     334 </span>            :  *      |  SIGQUIT           |  coredump        |
+<span class="lineNum">     335 </span>            :  *      |  SIGILL            |  coredump        |
+<span class="lineNum">     336 </span>            :  *      |  SIGTRAP           |  coredump        |
+<span class="lineNum">     337 </span>            :  *      |  SIGABRT/SIGIOT    |  coredump        |
+<span class="lineNum">     338 </span>            :  *      |  SIGBUS            |  coredump        |
+<span class="lineNum">     339 </span>            :  *      |  SIGFPE            |  coredump        |
+<span class="lineNum">     340 </span>            :  *      |  SIGKILL           |  terminate(+)    |
+<span class="lineNum">     341 </span>            :  *      |  SIGUSR1           |  terminate       |
+<span class="lineNum">     342 </span>            :  *      |  SIGSEGV           |  coredump        |
+<span class="lineNum">     343 </span>            :  *      |  SIGUSR2           |  terminate       |
+<span class="lineNum">     344 </span>            :  *      |  SIGPIPE           |  terminate       |
+<span class="lineNum">     345 </span>            :  *      |  SIGALRM           |  terminate       |
+<span class="lineNum">     346 </span>            :  *      |  SIGTERM           |  terminate       |
+<span class="lineNum">     347 </span>            :  *      |  SIGCHLD           |  ignore          |
+<span class="lineNum">     348 </span>            :  *      |  SIGCONT           |  ignore(*)       |
+<span class="lineNum">     349 </span>            :  *      |  SIGSTOP           |  stop(*)(+)      |
+<span class="lineNum">     350 </span>            :  *      |  SIGTSTP           |  stop(*)         |
+<span class="lineNum">     351 </span>            :  *      |  SIGTTIN           |  stop(*)         |
+<span class="lineNum">     352 </span>            :  *      |  SIGTTOU           |  stop(*)         |
+<span class="lineNum">     353 </span>            :  *      |  SIGURG            |  ignore          |
+<span class="lineNum">     354 </span>            :  *      |  SIGXCPU           |  coredump        |
+<span class="lineNum">     355 </span>            :  *      |  SIGXFSZ           |  coredump        |
+<span class="lineNum">     356 </span>            :  *      |  SIGVTALRM         |  terminate       |
+<span class="lineNum">     357 </span>            :  *      |  SIGPROF           |  terminate       |
+<span class="lineNum">     358 </span>            :  *      |  SIGPOLL/SIGIO     |  terminate       |
+<span class="lineNum">     359 </span>            :  *      |  SIGSYS/SIGUNUSED  |  coredump        |
+<span class="lineNum">     360 </span>            :  *      |  SIGSTKFLT         |  terminate       |
+<span class="lineNum">     361 </span>            :  *      |  SIGWINCH          |  ignore          |
+<span class="lineNum">     362 </span>            :  *      |  SIGPWR            |  terminate       |
+<span class="lineNum">     363 </span>            :  *      |  SIGRTMIN-SIGRTMAX |  terminate       |
+<span class="lineNum">     364 </span>            :  *      +--------------------+------------------+
+<span class="lineNum">     365 </span>            :  *      |  non-POSIX signal  |  default action  |
+<span class="lineNum">     366 </span>            :  *      +--------------------+------------------+
+<span class="lineNum">     367 </span>            :  *      |  SIGEMT            |  coredump        |
+<span class="lineNum">     368 </span>            :  *      +--------------------+------------------+
+<span class="lineNum">     369 </span>            :  *
+<span class="lineNum">     370 </span>            :  * (+) For SIGKILL and SIGSTOP the action is &quot;always&quot;, not just &quot;default&quot;.
+<span class="lineNum">     371 </span>            :  * (*) Special job control effects:
+<span class="lineNum">     372 </span>            :  * When SIGCONT is sent, it resumes the process (all threads in the group)
+<span class="lineNum">     373 </span>            :  * from TASK_STOPPED state and also clears any pending/queued stop signals
+<span class="lineNum">     374 </span>            :  * (any of those marked with &quot;stop(*)&quot;).  This happens regardless of blocking,
+<span class="lineNum">     375 </span>            :  * catching, or ignoring SIGCONT.  When any stop signal is sent, it clears
+<span class="lineNum">     376 </span>            :  * any pending/queued SIGCONT signals; this happens regardless of blocking,
+<span class="lineNum">     377 </span>            :  * catching, or ignored the stop signal, though (except for SIGSTOP) the
+<span class="lineNum">     378 </span>            :  * default action of stopping the process may happen later or never.
+<span class="lineNum">     379 </span>            :  */
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            : #ifdef SIGEMT
+<span class="lineNum">     382 </span>            : #define SIGEMT_MASK     rt_sigmask(SIGEMT)
+<span class="lineNum">     383 </span>            : #else
+<span class="lineNum">     384 </span>            : #define SIGEMT_MASK     0
+<span class="lineNum">     385 </span>            : #endif
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            : #if SIGRTMIN &gt; BITS_PER_LONG
+<span class="lineNum">     388 </span>            : #define rt_sigmask(sig) (1ULL &lt;&lt; ((sig)-1))
+<span class="lineNum">     389 </span>            : #else
+<span class="lineNum">     390 </span>            : #define rt_sigmask(sig) sigmask(sig)
+<span class="lineNum">     391 </span>            : #endif
+<span class="lineNum">     392 </span>            : #define siginmask(sig, mask) (rt_sigmask(sig) &amp; (mask))
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            : #define SIG_KERNEL_ONLY_MASK (\
+<span class="lineNum">     395 </span>            :         rt_sigmask(SIGKILL)   |  rt_sigmask(SIGSTOP))
+<span class="lineNum">     396 </span>            : 
+<span class="lineNum">     397 </span>            : #define SIG_KERNEL_STOP_MASK (\
+<span class="lineNum">     398 </span>            :         rt_sigmask(SIGSTOP)   |  rt_sigmask(SIGTSTP)   | \
+<span class="lineNum">     399 </span>            :         rt_sigmask(SIGTTIN)   |  rt_sigmask(SIGTTOU)   )
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span>            : #define SIG_KERNEL_COREDUMP_MASK (\
+<span class="lineNum">     402 </span>            :         rt_sigmask(SIGQUIT)   |  rt_sigmask(SIGILL)    | \
+<span class="lineNum">     403 </span>            :         rt_sigmask(SIGTRAP)   |  rt_sigmask(SIGABRT)   | \
+<span class="lineNum">     404 </span>            :         rt_sigmask(SIGFPE)    |  rt_sigmask(SIGSEGV)   | \
+<span class="lineNum">     405 </span>            :         rt_sigmask(SIGBUS)    |  rt_sigmask(SIGSYS)    | \
+<span class="lineNum">     406 </span>            :         rt_sigmask(SIGXCPU)   |  rt_sigmask(SIGXFSZ)   | \
+<span class="lineNum">     407 </span>            :         SIGEMT_MASK                                    )
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span>            : #define SIG_KERNEL_IGNORE_MASK (\
+<span class="lineNum">     410 </span>            :         rt_sigmask(SIGCONT)   |  rt_sigmask(SIGCHLD)   | \
+<span class="lineNum">     411 </span>            :         rt_sigmask(SIGWINCH)  |  rt_sigmask(SIGURG)    )
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span>            : #define sig_kernel_only(sig) \
+<span class="lineNum">     414 </span>            :         (((sig) &lt; SIGRTMIN) &amp;&amp; siginmask(sig, SIG_KERNEL_ONLY_MASK))
+<span class="lineNum">     415 </span>            : #define sig_kernel_coredump(sig) \
+<span class="lineNum">     416 </span>            :         (((sig) &lt; SIGRTMIN) &amp;&amp; siginmask(sig, SIG_KERNEL_COREDUMP_MASK))
+<span class="lineNum">     417 </span>            : #define sig_kernel_ignore(sig) \
+<span class="lineNum">     418 </span>            :         (((sig) &lt; SIGRTMIN) &amp;&amp; siginmask(sig, SIG_KERNEL_IGNORE_MASK))
+<span class="lineNum">     419 </span>            : #define sig_kernel_stop(sig) \
+<span class="lineNum">     420 </span>            :         (((sig) &lt; SIGRTMIN) &amp;&amp; siginmask(sig, SIG_KERNEL_STOP_MASK))
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span>            : #define sig_user_defined(t, signr) \
+<span class="lineNum">     423 </span>            :         (((t)-&gt;sighand-&gt;action[(signr)-1].sa.sa_handler != SIG_DFL) &amp;&amp;    \
+<span class="lineNum">     424 </span>            :          ((t)-&gt;sighand-&gt;action[(signr)-1].sa.sa_handler != SIG_IGN))
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span>            : #define sig_fatal(t, signr) \
+<span class="lineNum">     427 </span>            :         (!siginmask(signr, SIG_KERNEL_IGNORE_MASK|SIG_KERNEL_STOP_MASK) &amp;&amp; \
+<span class="lineNum">     428 </span>            :          (t)-&gt;sighand-&gt;action[(signr)-1].sa.sa_handler == SIG_DFL)
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            : void signals_init(void);
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span>            : int restore_altstack(const stack_t __user *);
+<span class="lineNum">     433 </span>            : int __save_altstack(stack_t __user *, unsigned long);
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span>            : #define save_altstack_ex(uss, sp) do { \
+<span class="lineNum">     436 </span>            :         stack_t __user *__uss = uss; \
+<span class="lineNum">     437 </span>            :         struct task_struct *t = current; \
+<span class="lineNum">     438 </span>            :         put_user_ex((void __user *)t-&gt;sas_ss_sp, &amp;__uss-&gt;ss_sp); \
+<span class="lineNum">     439 </span>            :         put_user_ex(sas_ss_flags(sp), &amp;__uss-&gt;ss_flags); \
+<span class="lineNum">     440 </span>            :         put_user_ex(t-&gt;sas_ss_size, &amp;__uss-&gt;ss_size); \
+<span class="lineNum">     441 </span>            : } while (0);
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            : #ifdef CONFIG_PROC_FS
+<span class="lineNum">     444 </span>            : struct seq_file;
+<span class="lineNum">     445 </span>            : extern void render_sigset_t(struct seq_file *, const char *, sigset_t *);
+<span class="lineNum">     446 </span>            : #endif
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            : #endif /* _LINUX_SIGNAL_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

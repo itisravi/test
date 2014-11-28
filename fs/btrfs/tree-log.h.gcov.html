@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/tree-log.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - tree-log.h<span style="font-size: 80%;"> (source / <a href="tree-log.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2008 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #ifndef __TREE_LOG_
+<span class="lineNum">      20 </span>            : #define __TREE_LOG_
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;transaction.h&quot;
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : /* return value for btrfs_log_dentry_safe that means we don't need to log it at all */
+<span class="lineNum">      26 </span>            : #define BTRFS_NO_LOG_SYNC 256
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : struct btrfs_log_ctx {
+<span class="lineNum">      29 </span>            :         int log_ret;
+<span class="lineNum">      30 </span>            :         int log_transid;
+<span class="lineNum">      31 </span>            :         struct list_head list;
+<span class="lineNum">      32 </span>            : };
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : static inline void btrfs_init_log_ctx(struct btrfs_log_ctx *ctx)
+<span class="lineNum">      35 </span>            : {
+<span class="lineNum">      36 </span><span class="lineCov">       3046 :         ctx-&gt;log_ret = 0;</span>
+<span class="lineNum">      37 </span><span class="lineCov">       3046 :         ctx-&gt;log_transid = 0;</span>
+<span class="lineNum">      38 </span>            :         INIT_LIST_HEAD(&amp;ctx-&gt;list);
+<span class="lineNum">      39 </span>            : }
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : static inline void btrfs_set_log_full_commit(struct btrfs_fs_info *fs_info,
+<span class="lineNum">      42 </span>            :                                              struct btrfs_trans_handle *trans)
+<span class="lineNum">      43 </span>            : {
+<span class="lineNum">      44 </span><span class="lineCov">        164 :         ACCESS_ONCE(fs_info-&gt;last_trans_log_full_commit) = trans-&gt;transid;</span>
+<span class="lineNum">      45 </span>            : }
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : static inline int btrfs_need_log_full_commit(struct btrfs_fs_info *fs_info,
+<span class="lineNum">      48 </span>            :                                              struct btrfs_trans_handle *trans)
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span><span class="lineCov">       4306 :         return ACCESS_ONCE(fs_info-&gt;last_trans_log_full_commit) ==</span>
+<span class="lineNum">      51 </span>            :                 trans-&gt;transid;
+<span class="lineNum">      52 </span>            : }
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : int btrfs_sync_log(struct btrfs_trans_handle *trans,
+<span class="lineNum">      55 </span>            :                    struct btrfs_root *root, struct btrfs_log_ctx *ctx);
+<span class="lineNum">      56 </span>            : int btrfs_free_log(struct btrfs_trans_handle *trans, struct btrfs_root *root);
+<span class="lineNum">      57 </span>            : int btrfs_free_log_root_tree(struct btrfs_trans_handle *trans,
+<span class="lineNum">      58 </span>            :                              struct btrfs_fs_info *fs_info);
+<span class="lineNum">      59 </span>            : int btrfs_recover_log_trees(struct btrfs_root *tree_root);
+<span class="lineNum">      60 </span>            : int btrfs_log_dentry_safe(struct btrfs_trans_handle *trans,
+<span class="lineNum">      61 </span>            :                           struct btrfs_root *root, struct dentry *dentry,
+<span class="lineNum">      62 </span>            :                           const loff_t start,
+<span class="lineNum">      63 </span>            :                           const loff_t end,
+<span class="lineNum">      64 </span>            :                           struct btrfs_log_ctx *ctx);
+<span class="lineNum">      65 </span>            : int btrfs_del_dir_entries_in_log(struct btrfs_trans_handle *trans,
+<span class="lineNum">      66 </span>            :                                  struct btrfs_root *root,
+<span class="lineNum">      67 </span>            :                                  const char *name, int name_len,
+<span class="lineNum">      68 </span>            :                                  struct inode *dir, u64 index);
+<span class="lineNum">      69 </span>            : int btrfs_del_inode_ref_in_log(struct btrfs_trans_handle *trans,
+<span class="lineNum">      70 </span>            :                                struct btrfs_root *root,
+<span class="lineNum">      71 </span>            :                                const char *name, int name_len,
+<span class="lineNum">      72 </span>            :                                struct inode *inode, u64 dirid);
+<span class="lineNum">      73 </span>            : void btrfs_end_log_trans(struct btrfs_root *root);
+<span class="lineNum">      74 </span>            : int btrfs_pin_log_trans(struct btrfs_root *root);
+<span class="lineNum">      75 </span>            : void btrfs_record_unlink_dir(struct btrfs_trans_handle *trans,
+<span class="lineNum">      76 </span>            :                              struct inode *dir, struct inode *inode,
+<span class="lineNum">      77 </span>            :                              int for_rename);
+<span class="lineNum">      78 </span>            : int btrfs_log_new_name(struct btrfs_trans_handle *trans,
+<span class="lineNum">      79 </span>            :                         struct inode *inode, struct inode *old_dir,
+<span class="lineNum">      80 </span>            :                         struct dentry *parent);
+<span class="lineNum">      81 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

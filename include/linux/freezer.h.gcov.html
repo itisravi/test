@@ -1,0 +1,427 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/freezer.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - freezer.h<span style="font-size: 80%;"> (source / <a href="freezer.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntryLo">71.4 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* Freezer declarations */</a>
+<span class="lineNum">       2 </span>            : 
+<span class="lineNum">       3 </span>            : #ifndef FREEZER_H_INCLUDED
+<span class="lineNum">       4 </span>            : #define FREEZER_H_INCLUDED
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : #include &lt;linux/debug_locks.h&gt;
+<span class="lineNum">       7 </span>            : #include &lt;linux/sched.h&gt;
+<span class="lineNum">       8 </span>            : #include &lt;linux/wait.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;linux/atomic.h&gt;
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #ifdef CONFIG_FREEZER
+<span class="lineNum">      12 </span>            : extern atomic_t system_freezing_cnt;    /* nr of freezing conds in effect */
+<span class="lineNum">      13 </span>            : extern bool pm_freezing;                /* PM freezing in effect */
+<span class="lineNum">      14 </span>            : extern bool pm_nosig_freezing;          /* PM nosig freezing in effect */
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /*
+<span class="lineNum">      17 </span>            :  * Timeout for stopping processes
+<span class="lineNum">      18 </span>            :  */
+<span class="lineNum">      19 </span>            : extern unsigned int freeze_timeout_msecs;
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : /*
+<span class="lineNum">      22 </span>            :  * Check if a process has been frozen
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : static inline bool frozen(struct task_struct *p)
+<span class="lineNum">      25 </span>            : {
+<span class="lineNum">      26 </span>            :         return p-&gt;flags &amp; PF_FROZEN;
+<span class="lineNum">      27 </span>            : }
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : extern bool freezing_slow_path(struct task_struct *p);
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : /*
+<span class="lineNum">      32 </span>            :  * Check if there is a request to freeze a process
+<span class="lineNum">      33 </span>            :  */
+<a name="34"><span class="lineNum">      34 </span>            : static inline bool freezing(struct task_struct *p)</a>
+<span class="lineNum">      35 </span>            : {
+<span class="lineNum">      36 </span><span class="lineCov">       1032 :         if (likely(!atomic_read(&amp;system_freezing_cnt)))</span>
+<span class="lineNum">      37 </span>            :                 return false;
+<span class="lineNum">      38 </span><span class="lineNoCov">          0 :         return freezing_slow_path(p);</span>
+<span class="lineNum">      39 </span>            : }
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : /* Takes and releases task alloc lock using task_lock() */
+<span class="lineNum">      42 </span>            : extern void __thaw_task(struct task_struct *t);
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : extern bool __refrigerator(bool check_kthr_stop);
+<span class="lineNum">      45 </span>            : extern int freeze_processes(void);
+<span class="lineNum">      46 </span>            : extern int freeze_kernel_threads(void);
+<span class="lineNum">      47 </span>            : extern void thaw_processes(void);
+<span class="lineNum">      48 </span>            : extern void thaw_kernel_threads(void);
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : /*
+<span class="lineNum">      51 </span>            :  * DO NOT ADD ANY NEW CALLERS OF THIS FUNCTION
+<span class="lineNum">      52 </span>            :  * If try_to_freeze causes a lockdep warning it means the caller may deadlock
+<span class="lineNum">      53 </span>            :  */
+<span class="lineNum">      54 </span><span class="lineCov">       1032 : static inline bool try_to_freeze_unsafe(void)</span>
+<span class="lineNum">      55 </span>            : {
+<span class="lineNum">      56 </span><span class="lineCov">       1032 :         might_sleep();</span>
+<span class="lineNum">      57 </span><span class="lineCov">       1032 :         if (likely(!freezing(current)))</span>
+<span class="lineNum">      58 </span>            :                 return false;
+<span class="lineNum">      59 </span><span class="lineNoCov">          0 :         return __refrigerator(false);</span>
+<span class="lineNum">      60 </span>            : }
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : static inline bool try_to_freeze(void)
+<span class="lineNum">      63 </span>            : {
+<span class="lineNum">      64 </span>            :         if (!(current-&gt;flags &amp; PF_NOFREEZE))
+<span class="lineNum">      65 </span>            :                 debug_check_no_locks_held();
+<span class="lineNum">      66 </span><span class="lineCov">       1032 :         return try_to_freeze_unsafe();</span>
+<span class="lineNum">      67 </span>            : }
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : extern bool freeze_task(struct task_struct *p);
+<span class="lineNum">      70 </span>            : extern bool set_freezable(void);
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : #ifdef CONFIG_CGROUP_FREEZER
+<span class="lineNum">      73 </span>            : extern bool cgroup_freezing(struct task_struct *task);
+<span class="lineNum">      74 </span>            : #else /* !CONFIG_CGROUP_FREEZER */
+<span class="lineNum">      75 </span>            : static inline bool cgroup_freezing(struct task_struct *task)
+<span class="lineNum">      76 </span>            : {
+<span class="lineNum">      77 </span>            :         return false;
+<span class="lineNum">      78 </span>            : }
+<span class="lineNum">      79 </span>            : #endif /* !CONFIG_CGROUP_FREEZER */
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : /*
+<span class="lineNum">      82 </span>            :  * The PF_FREEZER_SKIP flag should be set by a vfork parent right before it
+<span class="lineNum">      83 </span>            :  * calls wait_for_completion(&amp;vfork) and reset right after it returns from this
+<span class="lineNum">      84 </span>            :  * function.  Next, the parent should call try_to_freeze() to freeze itself
+<span class="lineNum">      85 </span>            :  * appropriately in case the child has exited before the freezing of tasks is
+<span class="lineNum">      86 </span>            :  * complete.  However, we don't want kernel threads to be frozen in unexpected
+<span class="lineNum">      87 </span>            :  * places, so we allow them to block freeze_processes() instead or to set
+<span class="lineNum">      88 </span>            :  * PF_NOFREEZE if needed. Fortunately, in the ____call_usermodehelper() case the
+<span class="lineNum">      89 </span>            :  * parent won't really block freeze_processes(), since ____call_usermodehelper()
+<span class="lineNum">      90 </span>            :  * (the child) does a little before exec/exit and it can't be frozen before
+<span class="lineNum">      91 </span>            :  * waking up the parent.
+<span class="lineNum">      92 </span>            :  */
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : /**
+<span class="lineNum">      96 </span>            :  * freezer_do_not_count - tell freezer to ignore %current
+<span class="lineNum">      97 </span>            :  *
+<span class="lineNum">      98 </span>            :  * Tell freezers to ignore the current task when determining whether the
+<span class="lineNum">      99 </span>            :  * target frozen state is reached.  IOW, the current task will be
+<span class="lineNum">     100 </span>            :  * considered frozen enough by freezers.
+<span class="lineNum">     101 </span>            :  *
+<span class="lineNum">     102 </span>            :  * The caller shouldn't do anything which isn't allowed for a frozen task
+<span class="lineNum">     103 </span>            :  * until freezer_cont() is called.  Usually, freezer[_do_not]_count() pair
+<span class="lineNum">     104 </span>            :  * wrap a scheduling operation and nothing much else.
+<span class="lineNum">     105 </span>            :  */
+<span class="lineNum">     106 </span>            : static inline void freezer_do_not_count(void)
+<span class="lineNum">     107 </span>            : {
+<span class="lineNum">     108 </span>            :         current-&gt;flags |= PF_FREEZER_SKIP;
+<span class="lineNum">     109 </span>            : }
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            : /**
+<span class="lineNum">     112 </span>            :  * freezer_count - tell freezer to stop ignoring %current
+<span class="lineNum">     113 </span>            :  *
+<span class="lineNum">     114 </span>            :  * Undo freezer_do_not_count().  It tells freezers that %current should be
+<span class="lineNum">     115 </span>            :  * considered again and tries to freeze if freezing condition is already in
+<span class="lineNum">     116 </span>            :  * effect.
+<span class="lineNum">     117 </span>            :  */
+<span class="lineNum">     118 </span>            : static inline void freezer_count(void)
+<span class="lineNum">     119 </span>            : {
+<span class="lineNum">     120 </span>            :         current-&gt;flags &amp;= ~PF_FREEZER_SKIP;
+<span class="lineNum">     121 </span>            :         /*
+<span class="lineNum">     122 </span>            :          * If freezing is in progress, the following paired with smp_mb()
+<span class="lineNum">     123 </span>            :          * in freezer_should_skip() ensures that either we see %true
+<span class="lineNum">     124 </span>            :          * freezing() or freezer_should_skip() sees !PF_FREEZER_SKIP.
+<span class="lineNum">     125 </span>            :          */
+<span class="lineNum">     126 </span>            :         smp_mb();
+<span class="lineNum">     127 </span>            :         try_to_freeze();
+<span class="lineNum">     128 </span>            : }
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : /* DO NOT ADD ANY NEW CALLERS OF THIS FUNCTION */
+<span class="lineNum">     131 </span>            : static inline void freezer_count_unsafe(void)
+<span class="lineNum">     132 </span>            : {
+<span class="lineNum">     133 </span>            :         current-&gt;flags &amp;= ~PF_FREEZER_SKIP;
+<span class="lineNum">     134 </span>            :         smp_mb();
+<span class="lineNum">     135 </span>            :         try_to_freeze_unsafe();
+<span class="lineNum">     136 </span>            : }
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            : /**
+<span class="lineNum">     139 </span>            :  * freezer_should_skip - whether to skip a task when determining frozen
+<span class="lineNum">     140 </span>            :  *                       state is reached
+<span class="lineNum">     141 </span>            :  * @p: task in quesion
+<span class="lineNum">     142 </span>            :  *
+<span class="lineNum">     143 </span>            :  * This function is used by freezers after establishing %true freezing() to
+<span class="lineNum">     144 </span>            :  * test whether a task should be skipped when determining the target frozen
+<span class="lineNum">     145 </span>            :  * state is reached.  IOW, if this function returns %true, @p is considered
+<span class="lineNum">     146 </span>            :  * frozen enough.
+<span class="lineNum">     147 </span>            :  */
+<span class="lineNum">     148 </span>            : static inline bool freezer_should_skip(struct task_struct *p)
+<span class="lineNum">     149 </span>            : {
+<span class="lineNum">     150 </span>            :         /*
+<span class="lineNum">     151 </span>            :          * The following smp_mb() paired with the one in freezer_count()
+<span class="lineNum">     152 </span>            :          * ensures that either freezer_count() sees %true freezing() or we
+<span class="lineNum">     153 </span>            :          * see cleared %PF_FREEZER_SKIP and return %false.  This makes it
+<span class="lineNum">     154 </span>            :          * impossible for a task to slip frozen state testing after
+<span class="lineNum">     155 </span>            :          * clearing %PF_FREEZER_SKIP.
+<span class="lineNum">     156 </span>            :          */
+<span class="lineNum">     157 </span>            :         smp_mb();
+<span class="lineNum">     158 </span>            :         return p-&gt;flags &amp; PF_FREEZER_SKIP;
+<span class="lineNum">     159 </span>            : }
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            : /*
+<span class="lineNum">     162 </span>            :  * These functions are intended to be used whenever you want allow a sleeping
+<span class="lineNum">     163 </span>            :  * task to be frozen. Note that neither return any clear indication of
+<span class="lineNum">     164 </span>            :  * whether a freeze event happened while in this function.
+<span class="lineNum">     165 </span>            :  */
+<span class="lineNum">     166 </span>            : 
+<span class="lineNum">     167 </span>            : /* Like schedule(), but should not block the freezer. */
+<span class="lineNum">     168 </span>            : static inline void freezable_schedule(void)
+<span class="lineNum">     169 </span>            : {
+<span class="lineNum">     170 </span>            :         freezer_do_not_count();
+<span class="lineNum">     171 </span>            :         schedule();
+<span class="lineNum">     172 </span>            :         freezer_count();
+<span class="lineNum">     173 </span>            : }
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            : /* DO NOT ADD ANY NEW CALLERS OF THIS FUNCTION */
+<span class="lineNum">     176 </span>            : static inline void freezable_schedule_unsafe(void)
+<span class="lineNum">     177 </span>            : {
+<span class="lineNum">     178 </span>            :         freezer_do_not_count();
+<span class="lineNum">     179 </span>            :         schedule();
+<span class="lineNum">     180 </span>            :         freezer_count_unsafe();
+<span class="lineNum">     181 </span>            : }
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            : /*
+<span class="lineNum">     184 </span>            :  * Like freezable_schedule_timeout(), but should not block the freezer.  Do not
+<span class="lineNum">     185 </span>            :  * call this with locks held.
+<span class="lineNum">     186 </span>            :  */
+<span class="lineNum">     187 </span>            : static inline long freezable_schedule_timeout(long timeout)
+<span class="lineNum">     188 </span>            : {
+<span class="lineNum">     189 </span>            :         long __retval;
+<span class="lineNum">     190 </span>            :         freezer_do_not_count();
+<span class="lineNum">     191 </span>            :         __retval = schedule_timeout(timeout);
+<span class="lineNum">     192 </span>            :         freezer_count();
+<span class="lineNum">     193 </span>            :         return __retval;
+<span class="lineNum">     194 </span>            : }
+<span class="lineNum">     195 </span>            : 
+<span class="lineNum">     196 </span>            : /*
+<span class="lineNum">     197 </span>            :  * Like schedule_timeout_interruptible(), but should not block the freezer.  Do not
+<span class="lineNum">     198 </span>            :  * call this with locks held.
+<span class="lineNum">     199 </span>            :  */
+<span class="lineNum">     200 </span>            : static inline long freezable_schedule_timeout_interruptible(long timeout)
+<span class="lineNum">     201 </span>            : {
+<span class="lineNum">     202 </span>            :         long __retval;
+<span class="lineNum">     203 </span>            :         freezer_do_not_count();
+<span class="lineNum">     204 </span>            :         __retval = schedule_timeout_interruptible(timeout);
+<span class="lineNum">     205 </span>            :         freezer_count();
+<span class="lineNum">     206 </span>            :         return __retval;
+<span class="lineNum">     207 </span>            : }
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            : /* Like schedule_timeout_killable(), but should not block the freezer. */
+<span class="lineNum">     210 </span>            : static inline long freezable_schedule_timeout_killable(long timeout)
+<span class="lineNum">     211 </span>            : {
+<span class="lineNum">     212 </span>            :         long __retval;
+<span class="lineNum">     213 </span>            :         freezer_do_not_count();
+<span class="lineNum">     214 </span>            :         __retval = schedule_timeout_killable(timeout);
+<span class="lineNum">     215 </span>            :         freezer_count();
+<span class="lineNum">     216 </span>            :         return __retval;
+<span class="lineNum">     217 </span>            : }
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            : /* DO NOT ADD ANY NEW CALLERS OF THIS FUNCTION */
+<span class="lineNum">     220 </span>            : static inline long freezable_schedule_timeout_killable_unsafe(long timeout)
+<span class="lineNum">     221 </span>            : {
+<span class="lineNum">     222 </span>            :         long __retval;
+<span class="lineNum">     223 </span>            :         freezer_do_not_count();
+<span class="lineNum">     224 </span>            :         __retval = schedule_timeout_killable(timeout);
+<span class="lineNum">     225 </span>            :         freezer_count_unsafe();
+<span class="lineNum">     226 </span>            :         return __retval;
+<span class="lineNum">     227 </span>            : }
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            : /*
+<span class="lineNum">     230 </span>            :  * Like schedule_hrtimeout_range(), but should not block the freezer.  Do not
+<span class="lineNum">     231 </span>            :  * call this with locks held.
+<span class="lineNum">     232 </span>            :  */
+<span class="lineNum">     233 </span>            : static inline int freezable_schedule_hrtimeout_range(ktime_t *expires,
+<span class="lineNum">     234 </span>            :                 unsigned long delta, const enum hrtimer_mode mode)
+<span class="lineNum">     235 </span>            : {
+<span class="lineNum">     236 </span>            :         int __retval;
+<span class="lineNum">     237 </span>            :         freezer_do_not_count();
+<span class="lineNum">     238 </span>            :         __retval = schedule_hrtimeout_range(expires, delta, mode);
+<span class="lineNum">     239 </span>            :         freezer_count();
+<span class="lineNum">     240 </span>            :         return __retval;
+<span class="lineNum">     241 </span>            : }
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            : /*
+<span class="lineNum">     244 </span>            :  * Freezer-friendly wrappers around wait_event_interruptible(),
+<span class="lineNum">     245 </span>            :  * wait_event_killable() and wait_event_interruptible_timeout(), originally
+<span class="lineNum">     246 </span>            :  * defined in &lt;linux/wait.h&gt;
+<span class="lineNum">     247 </span>            :  */
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            : #define wait_event_freezekillable(wq, condition)                        \
+<span class="lineNum">     250 </span>            : ({                                                                      \
+<span class="lineNum">     251 </span>            :         int __retval;                                                   \
+<span class="lineNum">     252 </span>            :         freezer_do_not_count();                                         \
+<span class="lineNum">     253 </span>            :         __retval = wait_event_killable(wq, (condition));                \
+<span class="lineNum">     254 </span>            :         freezer_count();                                                \
+<span class="lineNum">     255 </span>            :         __retval;                                                       \
+<span class="lineNum">     256 </span>            : })
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            : /* DO NOT ADD ANY NEW CALLERS OF THIS FUNCTION */
+<span class="lineNum">     259 </span>            : #define wait_event_freezekillable_unsafe(wq, condition)                 \
+<span class="lineNum">     260 </span>            : ({                                                                      \
+<span class="lineNum">     261 </span>            :         int __retval;                                                   \
+<span class="lineNum">     262 </span>            :         freezer_do_not_count();                                         \
+<span class="lineNum">     263 </span>            :         __retval = wait_event_killable(wq, (condition));                \
+<span class="lineNum">     264 </span>            :         freezer_count_unsafe();                                         \
+<span class="lineNum">     265 </span>            :         __retval;                                                       \
+<span class="lineNum">     266 </span>            : })
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            : #define wait_event_freezable(wq, condition)                             \
+<span class="lineNum">     269 </span>            : ({                                                                      \
+<span class="lineNum">     270 </span>            :         int __retval;                                                   \
+<span class="lineNum">     271 </span>            :         freezer_do_not_count();                                         \
+<span class="lineNum">     272 </span>            :         __retval = wait_event_interruptible(wq, (condition));           \
+<span class="lineNum">     273 </span>            :         freezer_count();                                                \
+<span class="lineNum">     274 </span>            :         __retval;                                                       \
+<span class="lineNum">     275 </span>            : })
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : #define wait_event_freezable_timeout(wq, condition, timeout)            \
+<span class="lineNum">     278 </span>            : ({                                                                      \
+<span class="lineNum">     279 </span>            :         long __retval = timeout;                                        \
+<span class="lineNum">     280 </span>            :         freezer_do_not_count();                                         \
+<span class="lineNum">     281 </span>            :         __retval = wait_event_interruptible_timeout(wq, (condition),    \
+<span class="lineNum">     282 </span>            :                                 __retval);                              \
+<span class="lineNum">     283 </span>            :         freezer_count();                                                \
+<span class="lineNum">     284 </span>            :         __retval;                                                       \
+<span class="lineNum">     285 </span>            : })
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            : #define wait_event_freezable_exclusive(wq, condition)                   \
+<span class="lineNum">     288 </span>            : ({                                                                      \
+<span class="lineNum">     289 </span>            :         int __retval;                                                   \
+<span class="lineNum">     290 </span>            :         freezer_do_not_count();                                         \
+<span class="lineNum">     291 </span>            :         __retval = wait_event_interruptible_exclusive(wq, condition);   \
+<span class="lineNum">     292 </span>            :         freezer_count();                                                \
+<span class="lineNum">     293 </span>            :         __retval;                                                       \
+<span class="lineNum">     294 </span>            : })
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            : #else /* !CONFIG_FREEZER */
+<span class="lineNum">     298 </span>            : static inline bool frozen(struct task_struct *p) { return false; }
+<span class="lineNum">     299 </span>            : static inline bool freezing(struct task_struct *p) { return false; }
+<span class="lineNum">     300 </span>            : static inline void __thaw_task(struct task_struct *t) {}
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            : static inline bool __refrigerator(bool check_kthr_stop) { return false; }
+<span class="lineNum">     303 </span>            : static inline int freeze_processes(void) { return -ENOSYS; }
+<span class="lineNum">     304 </span>            : static inline int freeze_kernel_threads(void) { return -ENOSYS; }
+<span class="lineNum">     305 </span>            : static inline void thaw_processes(void) {}
+<span class="lineNum">     306 </span>            : static inline void thaw_kernel_threads(void) {}
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span>            : static inline bool try_to_freeze_nowarn(void) { return false; }
+<span class="lineNum">     309 </span>            : static inline bool try_to_freeze(void) { return false; }
+<span class="lineNum">     310 </span>            : 
+<span class="lineNum">     311 </span>            : static inline void freezer_do_not_count(void) {}
+<span class="lineNum">     312 </span>            : static inline void freezer_count(void) {}
+<span class="lineNum">     313 </span>            : static inline int freezer_should_skip(struct task_struct *p) { return 0; }
+<span class="lineNum">     314 </span>            : static inline void set_freezable(void) {}
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            : #define freezable_schedule()  schedule()
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            : #define freezable_schedule_unsafe()  schedule()
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span>            : #define freezable_schedule_timeout(timeout)  schedule_timeout(timeout)
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span>            : #define freezable_schedule_timeout_interruptible(timeout)               \
+<span class="lineNum">     323 </span>            :         schedule_timeout_interruptible(timeout)
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            : #define freezable_schedule_timeout_killable(timeout)                    \
+<span class="lineNum">     326 </span>            :         schedule_timeout_killable(timeout)
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            : #define freezable_schedule_timeout_killable_unsafe(timeout)             \
+<span class="lineNum">     329 </span>            :         schedule_timeout_killable(timeout)
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            : #define freezable_schedule_hrtimeout_range(expires, delta, mode)        \
+<span class="lineNum">     332 </span>            :         schedule_hrtimeout_range(expires, delta, mode)
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span>            : #define wait_event_freezable(wq, condition)                             \
+<span class="lineNum">     335 </span>            :                 wait_event_interruptible(wq, condition)
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            : #define wait_event_freezable_timeout(wq, condition, timeout)            \
+<span class="lineNum">     338 </span>            :                 wait_event_interruptible_timeout(wq, condition, timeout)
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span>            : #define wait_event_freezable_exclusive(wq, condition)                   \
+<span class="lineNum">     341 </span>            :                 wait_event_interruptible_exclusive(wq, condition)
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span>            : #define wait_event_freezekillable(wq, condition)                \
+<span class="lineNum">     344 </span>            :                 wait_event_killable(wq, condition)
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            : #define wait_event_freezekillable_unsafe(wq, condition)                 \
+<span class="lineNum">     347 </span>            :                 wait_event_killable(wq, condition)
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            : #endif /* !CONFIG_FREEZER */
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            : #endif  /* FREEZER_H_INCLUDED */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

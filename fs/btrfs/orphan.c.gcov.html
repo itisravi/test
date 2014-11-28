@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/orphan.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - orphan.c<span style="font-size: 80%;"> (source / <a href="orphan.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2008 Red Hat.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      20 </span>            : #include &quot;disk-io.h&quot;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span><span class="lineCov">       9663 : int btrfs_insert_orphan_item(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">      23 </span>            :                              struct btrfs_root *root, u64 offset)
+<span class="lineNum">      24 </span>            : {
+<span class="lineNum">      25 </span>            :         struct btrfs_path *path;
+<span class="lineNum">      26 </span>            :         struct btrfs_key key;
+<span class="lineNum">      27 </span>            :         int ret = 0;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span><span class="lineCov">       9663 :         key.objectid = BTRFS_ORPHAN_OBJECTID;</span>
+<span class="lineNum">      30 </span>            :         btrfs_set_key_type(&amp;key, BTRFS_ORPHAN_ITEM_KEY);
+<span class="lineNum">      31 </span><span class="lineCov">       9663 :         key.offset = offset;</span>
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span><span class="lineCov">       9663 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">      34 </span><span class="lineCov">       9663 :         if (!path)</span>
+<span class="lineNum">      35 </span>            :                 return -ENOMEM;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            :         ret = btrfs_insert_empty_item(trans, root, path, &amp;key, 0);
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span><span class="lineCov">       9663 :         btrfs_free_path(path);</span>
+<span class="lineNum">      40 </span><span class="lineCov">       9663 :         return ret;</span>
+<span class="lineNum">      41 </span>            : }
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span><span class="lineCov">       9642 : int btrfs_del_orphan_item(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">      44 </span>            :                           struct btrfs_root *root, u64 offset)
+<span class="lineNum">      45 </span>            : {
+<span class="lineNum">      46 </span>            :         struct btrfs_path *path;
+<span class="lineNum">      47 </span>            :         struct btrfs_key key;
+<span class="lineNum">      48 </span>            :         int ret = 0;
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span><span class="lineCov">       9642 :         key.objectid = BTRFS_ORPHAN_OBJECTID;</span>
+<span class="lineNum">      51 </span>            :         btrfs_set_key_type(&amp;key, BTRFS_ORPHAN_ITEM_KEY);
+<span class="lineNum">      52 </span><span class="lineCov">       9642 :         key.offset = offset;</span>
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span><span class="lineCov">       9642 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">      55 </span><span class="lineCov">       9642 :         if (!path)</span>
+<span class="lineNum">      56 </span>            :                 return -ENOMEM;
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span><span class="lineCov">       9642 :         ret = btrfs_search_slot(trans, root, &amp;key, path, -1, 1);</span>
+<span class="lineNum">      59 </span><span class="lineCov">       9642 :         if (ret &lt; 0)</span>
+<span class="lineNum">      60 </span>            :                 goto out;
+<span class="lineNum">      61 </span><span class="lineCov">       9642 :         if (ret) { /* JDM: Really? */</span>
+<span class="lineNum">      62 </span>            :                 ret = -ENOENT;
+<span class="lineNum">      63 </span>            :                 goto out;
+<span class="lineNum">      64 </span>            :         }
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            :         ret = btrfs_del_item(trans, root, path);
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : out:
+<span class="lineNum">      69 </span><span class="lineCov">       9642 :         btrfs_free_path(path);</span>
+<span class="lineNum">      70 </span><span class="lineCov">       9642 :         return ret;</span>
+<span class="lineNum">      71 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

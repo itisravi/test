@@ -1,0 +1,630 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/page-flags.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - page-flags.h<span style="font-size: 80%;"> (source / <a href="page-flags.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryMed">83.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Macros for manipulating and testing page-&gt;flags
+<span class="lineNum">       3 </span>            :  */
+<span class="lineNum">       4 </span>            : 
+<span class="lineNum">       5 </span>            : #ifndef PAGE_FLAGS_H
+<span class="lineNum">       6 </span>            : #define PAGE_FLAGS_H
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;linux/bug.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;linux/mmdebug.h&gt;
+<span class="lineNum">      11 </span>            : #ifndef __GENERATING_BOUNDS_H
+<span class="lineNum">      12 </span>            : #include &lt;linux/mm_types.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;generated/bounds.h&gt;
+<span class="lineNum">      14 </span>            : #endif /* !__GENERATING_BOUNDS_H */
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /*
+<span class="lineNum">      17 </span>            :  * Various page-&gt;flags bits:
+<span class="lineNum">      18 </span>            :  *
+<span class="lineNum">      19 </span>            :  * PG_reserved is set for special pages, which can never be swapped out. Some
+<span class="lineNum">      20 </span>            :  * of them might not even exist (eg empty_bad_page)...
+<span class="lineNum">      21 </span>            :  *
+<span class="lineNum">      22 </span>            :  * The PG_private bitflag is set on pagecache pages if they contain filesystem
+<span class="lineNum">      23 </span>            :  * specific data (which is normally at page-&gt;private). It can be used by
+<span class="lineNum">      24 </span>            :  * private allocations for its own usage.
+<span class="lineNum">      25 </span>            :  *
+<span class="lineNum">      26 </span>            :  * During initiation of disk I/O, PG_locked is set. This bit is set before I/O
+<span class="lineNum">      27 </span>            :  * and cleared when writeback _starts_ or when read _completes_. PG_writeback
+<span class="lineNum">      28 </span>            :  * is set before writeback starts and cleared when it finishes.
+<span class="lineNum">      29 </span>            :  *
+<span class="lineNum">      30 </span>            :  * PG_locked also pins a page in pagecache, and blocks truncation of the file
+<span class="lineNum">      31 </span>            :  * while it is held.
+<span class="lineNum">      32 </span>            :  *
+<span class="lineNum">      33 </span>            :  * page_waitqueue(page) is a wait queue of all tasks waiting for the page
+<span class="lineNum">      34 </span>            :  * to become unlocked.
+<span class="lineNum">      35 </span>            :  *
+<span class="lineNum">      36 </span>            :  * PG_uptodate tells whether the page's contents is valid.  When a read
+<span class="lineNum">      37 </span>            :  * completes, the page becomes uptodate, unless a disk I/O error happened.
+<span class="lineNum">      38 </span>            :  *
+<span class="lineNum">      39 </span>            :  * PG_referenced, PG_reclaim are used for page reclaim for anonymous and
+<span class="lineNum">      40 </span>            :  * file-backed pagecache (see mm/vmscan.c).
+<span class="lineNum">      41 </span>            :  *
+<span class="lineNum">      42 </span>            :  * PG_error is set to indicate that an I/O error occurred on this page.
+<span class="lineNum">      43 </span>            :  *
+<span class="lineNum">      44 </span>            :  * PG_arch_1 is an architecture specific page state bit.  The generic code
+<span class="lineNum">      45 </span>            :  * guarantees that this bit is cleared for a page when it first is entered into
+<span class="lineNum">      46 </span>            :  * the page cache.
+<span class="lineNum">      47 </span>            :  *
+<span class="lineNum">      48 </span>            :  * PG_highmem pages are not permanently mapped into the kernel virtual address
+<span class="lineNum">      49 </span>            :  * space, they need to be kmapped separately for doing IO on the pages.  The
+<span class="lineNum">      50 </span>            :  * struct page (these bits with information) are always mapped into kernel
+<span class="lineNum">      51 </span>            :  * address space...
+<span class="lineNum">      52 </span>            :  *
+<span class="lineNum">      53 </span>            :  * PG_hwpoison indicates that a page got corrupted in hardware and contains
+<span class="lineNum">      54 </span>            :  * data with incorrect ECC bits that triggered a machine check. Accessing is
+<span class="lineNum">      55 </span>            :  * not safe since it may cause another machine check. Don't touch!
+<span class="lineNum">      56 </span>            :  */
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : /*
+<span class="lineNum">      59 </span>            :  * Don't use the *_dontuse flags.  Use the macros.  Otherwise you'll break
+<span class="lineNum">      60 </span>            :  * locked- and dirty-page accounting.
+<span class="lineNum">      61 </span>            :  *
+<span class="lineNum">      62 </span>            :  * The page flags field is split into two parts, the main flags area
+<span class="lineNum">      63 </span>            :  * which extends from the low bits upwards, and the fields area which
+<span class="lineNum">      64 </span>            :  * extends from the high bits downwards.
+<span class="lineNum">      65 </span>            :  *
+<span class="lineNum">      66 </span>            :  *  | FIELD | ... | FLAGS |
+<span class="lineNum">      67 </span>            :  *  N-1           ^       0
+<span class="lineNum">      68 </span>            :  *               (NR_PAGEFLAGS)
+<span class="lineNum">      69 </span>            :  *
+<span class="lineNum">      70 </span>            :  * The fields area is reserved for fields mapping zone, node (for NUMA) and
+<span class="lineNum">      71 </span>            :  * SPARSEMEM section (for variants of SPARSEMEM that require section ids like
+<span class="lineNum">      72 </span>            :  * SPARSEMEM_EXTREME with !SPARSEMEM_VMEMMAP).
+<span class="lineNum">      73 </span>            :  */
+<span class="lineNum">      74 </span>            : enum pageflags {
+<span class="lineNum">      75 </span>            :         PG_locked,              /* Page is locked. Don't touch. */
+<span class="lineNum">      76 </span>            :         PG_error,
+<span class="lineNum">      77 </span>            :         PG_referenced,
+<span class="lineNum">      78 </span>            :         PG_uptodate,
+<span class="lineNum">      79 </span>            :         PG_dirty,
+<span class="lineNum">      80 </span>            :         PG_lru,
+<span class="lineNum">      81 </span>            :         PG_active,
+<span class="lineNum">      82 </span>            :         PG_slab,
+<span class="lineNum">      83 </span>            :         PG_owner_priv_1,        /* Owner use. If pagecache, fs may use*/
+<span class="lineNum">      84 </span>            :         PG_arch_1,
+<span class="lineNum">      85 </span>            :         PG_reserved,
+<span class="lineNum">      86 </span>            :         PG_private,             /* If pagecache, has fs-private data */
+<span class="lineNum">      87 </span>            :         PG_private_2,           /* If pagecache, has fs aux data */
+<span class="lineNum">      88 </span>            :         PG_writeback,           /* Page is under writeback */
+<span class="lineNum">      89 </span>            : #ifdef CONFIG_PAGEFLAGS_EXTENDED
+<span class="lineNum">      90 </span>            :         PG_head,                /* A head page */
+<span class="lineNum">      91 </span>            :         PG_tail,                /* A tail page */
+<span class="lineNum">      92 </span>            : #else
+<span class="lineNum">      93 </span>            :         PG_compound,            /* A compound page */
+<span class="lineNum">      94 </span>            : #endif
+<span class="lineNum">      95 </span>            :         PG_swapcache,           /* Swap page: swp_entry_t in private */
+<span class="lineNum">      96 </span>            :         PG_mappedtodisk,        /* Has blocks allocated on-disk */
+<span class="lineNum">      97 </span>            :         PG_reclaim,             /* To be reclaimed asap */
+<span class="lineNum">      98 </span>            :         PG_swapbacked,          /* Page is backed by RAM/swap */
+<span class="lineNum">      99 </span>            :         PG_unevictable,         /* Page is &quot;unevictable&quot;  */
+<span class="lineNum">     100 </span>            : #ifdef CONFIG_MMU
+<span class="lineNum">     101 </span>            :         PG_mlocked,             /* Page is vma mlocked */
+<span class="lineNum">     102 </span>            : #endif
+<span class="lineNum">     103 </span>            : #ifdef CONFIG_ARCH_USES_PG_UNCACHED
+<span class="lineNum">     104 </span>            :         PG_uncached,            /* Page has been mapped as uncached */
+<span class="lineNum">     105 </span>            : #endif
+<span class="lineNum">     106 </span>            : #ifdef CONFIG_MEMORY_FAILURE
+<span class="lineNum">     107 </span>            :         PG_hwpoison,            /* hardware poisoned page. Don't touch */
+<span class="lineNum">     108 </span>            : #endif
+<span class="lineNum">     109 </span>            : #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+<span class="lineNum">     110 </span>            :         PG_compound_lock,
+<span class="lineNum">     111 </span>            : #endif
+<span class="lineNum">     112 </span>            :         __NR_PAGEFLAGS,
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            :         /* Filesystems */
+<span class="lineNum">     115 </span>            :         PG_checked = PG_owner_priv_1,
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            :         /* Two page bits are conscripted by FS-Cache to maintain local caching
+<span class="lineNum">     118 </span>            :          * state.  These bits are set on pages belonging to the netfs's inodes
+<span class="lineNum">     119 </span>            :          * when those inodes are being locally cached.
+<span class="lineNum">     120 </span>            :          */
+<span class="lineNum">     121 </span>            :         PG_fscache = PG_private_2,      /* page backed by cache */
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            :         /* XEN */
+<span class="lineNum">     124 </span>            :         PG_pinned = PG_owner_priv_1,
+<span class="lineNum">     125 </span>            :         PG_savepinned = PG_dirty,
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            :         /* SLOB */
+<span class="lineNum">     128 </span>            :         PG_slob_free = PG_private,
+<span class="lineNum">     129 </span>            : };
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            : #ifndef __GENERATING_BOUNDS_H
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            : /*
+<span class="lineNum">     134 </span>            :  * Macros to create function definitions for page flags
+<span class="lineNum">     135 </span>            :  */
+<span class="lineNum">     136 </span>            : #define TESTPAGEFLAG(uname, lname)                                      \
+<span class="lineNum">     137 </span>            : static inline int Page##uname(const struct page *page)                  \
+<span class="lineNum">     138 </span>            :                         { return test_bit(PG_##lname, &amp;page-&gt;flags); }
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : #define SETPAGEFLAG(uname, lname)                                       \
+<span class="lineNum">     141 </span>            : static inline void SetPage##uname(struct page *page)                    \
+<span class="lineNum">     142 </span>            :                         { set_bit(PG_##lname, &amp;page-&gt;flags); }
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            : #define CLEARPAGEFLAG(uname, lname)                                     \
+<span class="lineNum">     145 </span>            : static inline void ClearPage##uname(struct page *page)                  \
+<span class="lineNum">     146 </span>            :                         { clear_bit(PG_##lname, &amp;page-&gt;flags); }
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            : #define __SETPAGEFLAG(uname, lname)                                     \
+<span class="lineNum">     149 </span>            : static inline void __SetPage##uname(struct page *page)                  \
+<span class="lineNum">     150 </span>            :                         { __set_bit(PG_##lname, &amp;page-&gt;flags); }
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            : #define __CLEARPAGEFLAG(uname, lname)                                   \
+<span class="lineNum">     153 </span>            : static inline void __ClearPage##uname(struct page *page)                \
+<span class="lineNum">     154 </span>            :                         { __clear_bit(PG_##lname, &amp;page-&gt;flags); }
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : #define TESTSETFLAG(uname, lname)                                       \
+<span class="lineNum">     157 </span>            : static inline int TestSetPage##uname(struct page *page)                 \
+<span class="lineNum">     158 </span>            :                 { return test_and_set_bit(PG_##lname, &amp;page-&gt;flags); }
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            : #define TESTCLEARFLAG(uname, lname)                                     \
+<span class="lineNum">     161 </span>            : static inline int TestClearPage##uname(struct page *page)               \
+<span class="lineNum">     162 </span>            :                 { return test_and_clear_bit(PG_##lname, &amp;page-&gt;flags); }
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span>            : #define __TESTCLEARFLAG(uname, lname)                                   \
+<span class="lineNum">     165 </span>            : static inline int __TestClearPage##uname(struct page *page)             \
+<span class="lineNum">     166 </span>            :                 { return __test_and_clear_bit(PG_##lname, &amp;page-&gt;flags); }
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            : #define PAGEFLAG(uname, lname) TESTPAGEFLAG(uname, lname)               \
+<span class="lineNum">     169 </span>            :         SETPAGEFLAG(uname, lname) CLEARPAGEFLAG(uname, lname)
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            : #define __PAGEFLAG(uname, lname) TESTPAGEFLAG(uname, lname)             \
+<span class="lineNum">     172 </span>            :         __SETPAGEFLAG(uname, lname)  __CLEARPAGEFLAG(uname, lname)
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            : #define TESTSCFLAG(uname, lname)                                        \
+<span class="lineNum">     175 </span>            :         TESTSETFLAG(uname, lname) TESTCLEARFLAG(uname, lname)
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : #define TESTPAGEFLAG_FALSE(uname)                                       \
+<span class="lineNum">     178 </span>            : static inline int Page##uname(const struct page *page) { return 0; }
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            : #define SETPAGEFLAG_NOOP(uname)                                         \
+<span class="lineNum">     181 </span>            : static inline void SetPage##uname(struct page *page) {  }
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            : #define CLEARPAGEFLAG_NOOP(uname)                                       \
+<span class="lineNum">     184 </span>            : static inline void ClearPage##uname(struct page *page) {  }
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : #define __CLEARPAGEFLAG_NOOP(uname)                                     \
+<span class="lineNum">     187 </span>            : static inline void __ClearPage##uname(struct page *page) {  }
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            : #define TESTSETFLAG_FALSE(uname)                                        \
+<span class="lineNum">     190 </span>            : static inline int TestSetPage##uname(struct page *page) { return 0; }
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            : #define TESTCLEARFLAG_FALSE(uname)                                      \
+<span class="lineNum">     193 </span>            : static inline int TestClearPage##uname(struct page *page) { return 0; }
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            : #define __TESTCLEARFLAG_FALSE(uname)                                    \
+<span class="lineNum">     196 </span>            : static inline int __TestClearPage##uname(struct page *page) { return 0; }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : #define PAGEFLAG_FALSE(uname) TESTPAGEFLAG_FALSE(uname)                 \
+<span class="lineNum">     199 </span>            :         SETPAGEFLAG_NOOP(uname) CLEARPAGEFLAG_NOOP(uname)
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            : #define TESTSCFLAG_FALSE(uname)                                         \
+<span class="lineNum">     202 </span>            :         TESTSETFLAG_FALSE(uname) TESTCLEARFLAG_FALSE(uname)
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : struct page;    /* forward declaration */
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            : TESTPAGEFLAG(Locked, locked)
+<span class="lineNum">     207 </span>            : PAGEFLAG(Error, error) TESTCLEARFLAG(Error, error)
+<span class="lineNum">     208 </span>            : PAGEFLAG(Referenced, referenced) TESTCLEARFLAG(Referenced, referenced)
+<span class="lineNum">     209 </span>            :         __SETPAGEFLAG(Referenced, referenced)
+<span class="lineNum">     210 </span>            : PAGEFLAG(Dirty, dirty) TESTSCFLAG(Dirty, dirty) __CLEARPAGEFLAG(Dirty, dirty)
+<span class="lineNum">     211 </span>            : PAGEFLAG(LRU, lru) __CLEARPAGEFLAG(LRU, lru)
+<span class="lineNum">     212 </span>            : PAGEFLAG(Active, active) __CLEARPAGEFLAG(Active, active)
+<span class="lineNum">     213 </span>            :         TESTCLEARFLAG(Active, active)
+<span class="lineNum">     214 </span>            : __PAGEFLAG(Slab, slab)
+<span class="lineNum">     215 </span>            : PAGEFLAG(Checked, checked)              /* Used by some filesystems */
+<span class="lineNum">     216 </span>            : PAGEFLAG(Pinned, pinned) TESTSCFLAG(Pinned, pinned)     /* Xen */
+<span class="lineNum">     217 </span>            : PAGEFLAG(SavePinned, savepinned);                       /* Xen */
+<span class="lineNum">     218 </span>            : PAGEFLAG(Reserved, reserved) __CLEARPAGEFLAG(Reserved, reserved)
+<span class="lineNum">     219 </span>            : PAGEFLAG(SwapBacked, swapbacked) __CLEARPAGEFLAG(SwapBacked, swapbacked)
+<span class="lineNum">     220 </span>            :         __SETPAGEFLAG(SwapBacked, swapbacked)
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            : __PAGEFLAG(SlobFree, slob_free)
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            : /*
+<span class="lineNum">     225 </span>            :  * Private page markings that may be used by the filesystem that owns the page
+<span class="lineNum">     226 </span>            :  * for its own purposes.
+<span class="lineNum">     227 </span>            :  * - PG_private and PG_private_2 cause releasepage() and co to be invoked
+<span class="lineNum">     228 </span>            :  */
+<span class="lineNum">     229 </span>            : PAGEFLAG(Private, private) __SETPAGEFLAG(Private, private)
+<span class="lineNum">     230 </span>            :         __CLEARPAGEFLAG(Private, private)
+<span class="lineNum">     231 </span><span class="lineCov">    1308900 : PAGEFLAG(Private2, private_2) TESTSCFLAG(Private2, private_2)</span>
+<span class="lineNum">     232 </span>            : PAGEFLAG(OwnerPriv1, owner_priv_1) TESTCLEARFLAG(OwnerPriv1, owner_priv_1)
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            : /*
+<span class="lineNum">     235 </span>            :  * Only test-and-set exist for PG_writeback.  The unconditional operators are
+<span class="lineNum">     236 </span>            :  * risky: they bypass page accounting.
+<span class="lineNum">     237 </span>            :  */
+<span class="lineNum">     238 </span>            : TESTPAGEFLAG(Writeback, writeback) TESTSCFLAG(Writeback, writeback)
+<span class="lineNum">     239 </span>            : PAGEFLAG(MappedToDisk, mappedtodisk)
+<span class="lineNum">     240 </span>            : 
+<span class="lineNum">     241 </span>            : /* PG_readahead is only used for reads; PG_reclaim is only for writes */
+<span class="lineNum">     242 </span>            : PAGEFLAG(Reclaim, reclaim) TESTCLEARFLAG(Reclaim, reclaim)
+<span class="lineNum">     243 </span>            : PAGEFLAG(Readahead, reclaim) TESTCLEARFLAG(Readahead, reclaim)
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            : #ifdef CONFIG_HIGHMEM
+<span class="lineNum">     246 </span>            : /*
+<span class="lineNum">     247 </span>            :  * Must use a macro here due to header dependency issues. page_zone() is not
+<span class="lineNum">     248 </span>            :  * available at this point.
+<span class="lineNum">     249 </span>            :  */
+<span class="lineNum">     250 </span>            : #define PageHighMem(__p) is_highmem(page_zone(__p))
+<span class="lineNum">     251 </span>            : #else
+<span class="lineNum">     252 </span>            : PAGEFLAG_FALSE(HighMem)
+<span class="lineNum">     253 </span>            : #endif
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span>            : #ifdef CONFIG_SWAP
+<span class="lineNum">     256 </span>            : PAGEFLAG(SwapCache, swapcache)
+<span class="lineNum">     257 </span>            : #else
+<span class="lineNum">     258 </span>            : PAGEFLAG_FALSE(SwapCache)
+<span class="lineNum">     259 </span>            : #endif
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : PAGEFLAG(Unevictable, unevictable) __CLEARPAGEFLAG(Unevictable, unevictable)
+<span class="lineNum">     262 </span>            :         TESTCLEARFLAG(Unevictable, unevictable)
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            : #ifdef CONFIG_MMU
+<span class="lineNum">     265 </span>            : PAGEFLAG(Mlocked, mlocked) __CLEARPAGEFLAG(Mlocked, mlocked)
+<span class="lineNum">     266 </span>            :         TESTSCFLAG(Mlocked, mlocked) __TESTCLEARFLAG(Mlocked, mlocked)
+<span class="lineNum">     267 </span>            : #else
+<span class="lineNum">     268 </span>            : PAGEFLAG_FALSE(Mlocked) __CLEARPAGEFLAG_NOOP(Mlocked)
+<span class="lineNum">     269 </span>            :         TESTSCFLAG_FALSE(Mlocked) __TESTCLEARFLAG_FALSE(Mlocked)
+<span class="lineNum">     270 </span>            : #endif
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            : #ifdef CONFIG_ARCH_USES_PG_UNCACHED
+<span class="lineNum">     273 </span>            : PAGEFLAG(Uncached, uncached)
+<span class="lineNum">     274 </span>            : #else
+<span class="lineNum">     275 </span>            : PAGEFLAG_FALSE(Uncached)
+<span class="lineNum">     276 </span>            : #endif
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span>            : #ifdef CONFIG_MEMORY_FAILURE
+<span class="lineNum">     279 </span>            : PAGEFLAG(HWPoison, hwpoison)
+<span class="lineNum">     280 </span>            : TESTSCFLAG(HWPoison, hwpoison)
+<span class="lineNum">     281 </span>            : #define __PG_HWPOISON (1UL &lt;&lt; PG_hwpoison)
+<span class="lineNum">     282 </span>            : #else
+<span class="lineNum">     283 </span>            : PAGEFLAG_FALSE(HWPoison)
+<span class="lineNum">     284 </span>            : #define __PG_HWPOISON 0
+<span class="lineNum">     285 </span>            : #endif
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            : u64 stable_page_flags(struct page *page);
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span>            : static inline int PageUptodate(struct page *page)
+<span class="lineNum">     290 </span>            : {
+<span class="lineNum">     291 </span>            :         int ret = test_bit(PG_uptodate, &amp;(page)-&gt;flags);
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            :         /*
+<span class="lineNum">     294 </span>            :          * Must ensure that the data we read out of the page is loaded
+<span class="lineNum">     295 </span>            :          * _after_ we've loaded page-&gt;flags to check for PageUptodate.
+<span class="lineNum">     296 </span>            :          * We can skip the barrier if the page is not uptodate, because
+<span class="lineNum">     297 </span>            :          * we wouldn't be reading anything from it.
+<span class="lineNum">     298 </span>            :          *
+<span class="lineNum">     299 </span>            :          * See SetPageUptodate() for the other side of the story.
+<span class="lineNum">     300 </span>            :          */
+<span class="lineNum">     301 </span><span class="lineCov">    3286188 :         if (ret)</span>
+<span class="lineNum">     302 </span><span class="lineCov">    1555361 :                 smp_rmb();</span>
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            :         return ret;
+<span class="lineNum">     305 </span>            : }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            : static inline void __SetPageUptodate(struct page *page)
+<span class="lineNum">     308 </span>            : {
+<span class="lineNum">     309 </span>            :         smp_wmb();
+<span class="lineNum">     310 </span>            :         __set_bit(PG_uptodate, &amp;(page)-&gt;flags);
+<span class="lineNum">     311 </span>            : }
+<span class="lineNum">     312 </span>            : 
+<span class="lineNum">     313 </span>            : static inline void SetPageUptodate(struct page *page)
+<span class="lineNum">     314 </span>            : {
+<span class="lineNum">     315 </span>            :         /*
+<span class="lineNum">     316 </span>            :          * Memory barrier must be issued before setting the PG_uptodate bit,
+<span class="lineNum">     317 </span>            :          * so that all previous stores issued in order to bring the page
+<span class="lineNum">     318 </span>            :          * uptodate are actually visible before PageUptodate becomes true.
+<span class="lineNum">     319 </span>            :          */
+<span class="lineNum">     320 </span><span class="lineCov">    2026534 :         smp_wmb();</span>
+<span class="lineNum">     321 </span>            :         set_bit(PG_uptodate, &amp;(page)-&gt;flags);
+<span class="lineNum">     322 </span>            : }
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            : CLEARPAGEFLAG(Uptodate, uptodate)
+<span class="lineNum">     325 </span>            : 
+<span class="lineNum">     326 </span>            : extern void cancel_dirty_page(struct page *page, unsigned int account_size);
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span>            : int test_clear_page_writeback(struct page *page);
+<span class="lineNum">     329 </span>            : int __test_set_page_writeback(struct page *page, bool keep_write);
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span>            : #define test_set_page_writeback(page)                   \
+<span class="lineNum">     332 </span>            :         __test_set_page_writeback(page, false)
+<span class="lineNum">     333 </span>            : #define test_set_page_writeback_keepwrite(page) \
+<span class="lineNum">     334 </span>            :         __test_set_page_writeback(page, true)
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            : static inline void set_page_writeback(struct page *page)
+<span class="lineNum">     337 </span>            : {
+<span class="lineNum">     338 </span><span class="lineCov">    1492754 :         test_set_page_writeback(page);</span>
+<span class="lineNum">     339 </span>            : }
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span>            : static inline void set_page_writeback_keepwrite(struct page *page)
+<span class="lineNum">     342 </span>            : {
+<span class="lineNum">     343 </span>            :         test_set_page_writeback_keepwrite(page);
+<span class="lineNum">     344 </span>            : }
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            : #ifdef CONFIG_PAGEFLAGS_EXTENDED
+<span class="lineNum">     347 </span>            : /*
+<span class="lineNum">     348 </span>            :  * System with lots of page flags available. This allows separate
+<span class="lineNum">     349 </span>            :  * flags for PageHead() and PageTail() checks of compound pages so that bit
+<span class="lineNum">     350 </span>            :  * tests can be used in performance sensitive paths. PageCompound is
+<span class="lineNum">     351 </span>            :  * generally not used in hot code paths except arch/powerpc/mm/init_64.c
+<span class="lineNum">     352 </span>            :  * and arch/powerpc/kvm/book3s_64_vio_hv.c which use it to detect huge pages
+<span class="lineNum">     353 </span>            :  * and avoid handling those in real mode.
+<span class="lineNum">     354 </span>            :  */
+<span class="lineNum">     355 </span>            : __PAGEFLAG(Head, head) CLEARPAGEFLAG(Head, head)
+<span class="lineNum">     356 </span>            : __PAGEFLAG(Tail, tail)
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            : static inline int PageCompound(struct page *page)
+<span class="lineNum">     359 </span>            : {
+<span class="lineNum">     360 </span>            :         return page-&gt;flags &amp; ((1L &lt;&lt; PG_head) | (1L &lt;&lt; PG_tail));
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            : }
+<span class="lineNum">     363 </span>            : #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+<span class="lineNum">     364 </span>            : static inline void ClearPageCompound(struct page *page)
+<span class="lineNum">     365 </span>            : {
+<span class="lineNum">     366 </span>            :         BUG_ON(!PageHead(page));
+<span class="lineNum">     367 </span>            :         ClearPageHead(page);
+<span class="lineNum">     368 </span>            : }
+<span class="lineNum">     369 </span>            : #endif
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span>            : #define PG_head_mask ((1L &lt;&lt; PG_head))
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span>            : #else
+<span class="lineNum">     374 </span>            : /*
+<span class="lineNum">     375 </span>            :  * Reduce page flag use as much as possible by overlapping
+<span class="lineNum">     376 </span>            :  * compound page flags with the flags used for page cache pages. Possible
+<span class="lineNum">     377 </span>            :  * because PageCompound is always set for compound pages and not for
+<span class="lineNum">     378 </span>            :  * pages on the LRU and/or pagecache.
+<span class="lineNum">     379 </span>            :  */
+<span class="lineNum">     380 </span>            : TESTPAGEFLAG(Compound, compound)
+<span class="lineNum">     381 </span>            : __SETPAGEFLAG(Head, compound)  __CLEARPAGEFLAG(Head, compound)
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span>            : /*
+<span class="lineNum">     384 </span>            :  * PG_reclaim is used in combination with PG_compound to mark the
+<span class="lineNum">     385 </span>            :  * head and tail of a compound page. This saves one page flag
+<span class="lineNum">     386 </span>            :  * but makes it impossible to use compound pages for the page cache.
+<span class="lineNum">     387 </span>            :  * The PG_reclaim bit would have to be used for reclaim or readahead
+<span class="lineNum">     388 </span>            :  * if compound pages enter the page cache.
+<span class="lineNum">     389 </span>            :  *
+<span class="lineNum">     390 </span>            :  * PG_compound &amp; PG_reclaim =&gt; Tail page
+<span class="lineNum">     391 </span>            :  * PG_compound &amp; ~PG_reclaim        =&gt; Head page
+<span class="lineNum">     392 </span>            :  */
+<span class="lineNum">     393 </span>            : #define PG_head_mask ((1L &lt;&lt; PG_compound))
+<span class="lineNum">     394 </span>            : #define PG_head_tail_mask ((1L &lt;&lt; PG_compound) | (1L &lt;&lt; PG_reclaim))
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span>            : static inline int PageHead(struct page *page)
+<span class="lineNum">     397 </span>            : {
+<span class="lineNum">     398 </span>            :         return ((page-&gt;flags &amp; PG_head_tail_mask) == PG_head_mask);
+<span class="lineNum">     399 </span>            : }
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span>            : static inline int PageTail(struct page *page)
+<span class="lineNum">     402 </span>            : {
+<span class="lineNum">     403 </span>            :         return ((page-&gt;flags &amp; PG_head_tail_mask) == PG_head_tail_mask);
+<span class="lineNum">     404 </span>            : }
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span>            : static inline void __SetPageTail(struct page *page)
+<span class="lineNum">     407 </span>            : {
+<span class="lineNum">     408 </span>            :         page-&gt;flags |= PG_head_tail_mask;
+<span class="lineNum">     409 </span>            : }
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span>            : static inline void __ClearPageTail(struct page *page)
+<span class="lineNum">     412 </span>            : {
+<span class="lineNum">     413 </span>            :         page-&gt;flags &amp;= ~PG_head_tail_mask;
+<span class="lineNum">     414 </span>            : }
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span>            : #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+<span class="lineNum">     417 </span>            : static inline void ClearPageCompound(struct page *page)
+<span class="lineNum">     418 </span>            : {
+<span class="lineNum">     419 </span>            :         BUG_ON((page-&gt;flags &amp; PG_head_tail_mask) != (1 &lt;&lt; PG_compound));
+<span class="lineNum">     420 </span>            :         clear_bit(PG_compound, &amp;page-&gt;flags);
+<span class="lineNum">     421 </span>            : }
+<span class="lineNum">     422 </span>            : #endif
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            : #endif /* !PAGEFLAGS_EXTENDED */
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span>            : #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+<span class="lineNum">     427 </span>            : /*
+<span class="lineNum">     428 </span>            :  * PageHuge() only returns true for hugetlbfs pages, but not for
+<span class="lineNum">     429 </span>            :  * normal or transparent huge pages.
+<span class="lineNum">     430 </span>            :  *
+<span class="lineNum">     431 </span>            :  * PageTransHuge() returns true for both transparent huge and
+<span class="lineNum">     432 </span>            :  * hugetlbfs pages, but not normal pages. PageTransHuge() can only be
+<span class="lineNum">     433 </span>            :  * called only in the core VM paths where hugetlbfs pages can't exist.
+<span class="lineNum">     434 </span>            :  */
+<span class="lineNum">     435 </span>            : static inline int PageTransHuge(struct page *page)
+<span class="lineNum">     436 </span>            : {
+<span class="lineNum">     437 </span>            :         VM_BUG_ON_PAGE(PageTail(page), page);
+<span class="lineNum">     438 </span>            :         return PageHead(page);
+<span class="lineNum">     439 </span>            : }
+<span class="lineNum">     440 </span>            : 
+<span class="lineNum">     441 </span>            : /*
+<span class="lineNum">     442 </span>            :  * PageTransCompound returns true for both transparent huge pages
+<span class="lineNum">     443 </span>            :  * and hugetlbfs pages, so it should only be called when it's known
+<span class="lineNum">     444 </span>            :  * that hugetlbfs pages aren't involved.
+<span class="lineNum">     445 </span>            :  */
+<span class="lineNum">     446 </span>            : static inline int PageTransCompound(struct page *page)
+<span class="lineNum">     447 </span>            : {
+<span class="lineNum">     448 </span>            :         return PageCompound(page);
+<span class="lineNum">     449 </span>            : }
+<span class="lineNum">     450 </span>            : 
+<span class="lineNum">     451 </span>            : /*
+<span class="lineNum">     452 </span>            :  * PageTransTail returns true for both transparent huge pages
+<span class="lineNum">     453 </span>            :  * and hugetlbfs pages, so it should only be called when it's known
+<span class="lineNum">     454 </span>            :  * that hugetlbfs pages aren't involved.
+<span class="lineNum">     455 </span>            :  */
+<span class="lineNum">     456 </span>            : static inline int PageTransTail(struct page *page)
+<span class="lineNum">     457 </span>            : {
+<span class="lineNum">     458 </span>            :         return PageTail(page);
+<span class="lineNum">     459 </span>            : }
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span>            : #else
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span>            : static inline int PageTransHuge(struct page *page)
+<span class="lineNum">     464 </span>            : {
+<span class="lineNum">     465 </span>            :         return 0;
+<span class="lineNum">     466 </span>            : }
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span>            : static inline int PageTransCompound(struct page *page)
+<span class="lineNum">     469 </span>            : {
+<span class="lineNum">     470 </span>            :         return 0;
+<span class="lineNum">     471 </span>            : }
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            : static inline int PageTransTail(struct page *page)
+<span class="lineNum">     474 </span>            : {
+<span class="lineNum">     475 </span>            :         return 0;
+<span class="lineNum">     476 </span>            : }
+<span class="lineNum">     477 </span>            : #endif
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            : /*
+<span class="lineNum">     480 </span>            :  * If network-based swap is enabled, sl*b must keep track of whether pages
+<span class="lineNum">     481 </span>            :  * were allocated from pfmemalloc reserves.
+<span class="lineNum">     482 </span>            :  */
+<span class="lineNum">     483 </span>            : static inline int PageSlabPfmemalloc(struct page *page)
+<span class="lineNum">     484 </span>            : {
+<span class="lineNum">     485 </span>            :         VM_BUG_ON_PAGE(!PageSlab(page), page);
+<span class="lineNum">     486 </span>            :         return PageActive(page);
+<span class="lineNum">     487 </span>            : }
+<span class="lineNum">     488 </span>            : 
+<span class="lineNum">     489 </span>            : static inline void SetPageSlabPfmemalloc(struct page *page)
+<span class="lineNum">     490 </span>            : {
+<span class="lineNum">     491 </span>            :         VM_BUG_ON_PAGE(!PageSlab(page), page);
+<span class="lineNum">     492 </span>            :         SetPageActive(page);
+<span class="lineNum">     493 </span>            : }
+<span class="lineNum">     494 </span>            : 
+<span class="lineNum">     495 </span>            : static inline void __ClearPageSlabPfmemalloc(struct page *page)
+<span class="lineNum">     496 </span>            : {
+<span class="lineNum">     497 </span>            :         VM_BUG_ON_PAGE(!PageSlab(page), page);
+<span class="lineNum">     498 </span>            :         __ClearPageActive(page);
+<span class="lineNum">     499 </span>            : }
+<span class="lineNum">     500 </span>            : 
+<span class="lineNum">     501 </span>            : static inline void ClearPageSlabPfmemalloc(struct page *page)
+<span class="lineNum">     502 </span>            : {
+<span class="lineNum">     503 </span>            :         VM_BUG_ON_PAGE(!PageSlab(page), page);
+<span class="lineNum">     504 </span>            :         ClearPageActive(page);
+<span class="lineNum">     505 </span>            : }
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span>            : #ifdef CONFIG_MMU
+<span class="lineNum">     508 </span>            : #define __PG_MLOCKED            (1 &lt;&lt; PG_mlocked)
+<span class="lineNum">     509 </span>            : #else
+<span class="lineNum">     510 </span>            : #define __PG_MLOCKED            0
+<span class="lineNum">     511 </span>            : #endif
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span>            : #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+<span class="lineNum">     514 </span>            : #define __PG_COMPOUND_LOCK              (1 &lt;&lt; PG_compound_lock)
+<span class="lineNum">     515 </span>            : #else
+<span class="lineNum">     516 </span>            : #define __PG_COMPOUND_LOCK              0
+<span class="lineNum">     517 </span>            : #endif
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span>            : /*
+<span class="lineNum">     520 </span>            :  * Flags checked when a page is freed.  Pages being freed should not have
+<span class="lineNum">     521 </span>            :  * these flags set.  It they are, there is a problem.
+<span class="lineNum">     522 </span>            :  */
+<span class="lineNum">     523 </span>            : #define PAGE_FLAGS_CHECK_AT_FREE \
+<span class="lineNum">     524 </span>            :         (1 &lt;&lt; PG_lru       | 1 &lt;&lt; PG_locked    | \
+<span class="lineNum">     525 </span>            :          1 &lt;&lt; PG_private | 1 &lt;&lt; PG_private_2 | \
+<span class="lineNum">     526 </span>            :          1 &lt;&lt; PG_writeback | 1 &lt;&lt; PG_reserved | \
+<span class="lineNum">     527 </span>            :          1 &lt;&lt; PG_slab      | 1 &lt;&lt; PG_swapcache | 1 &lt;&lt; PG_active | \
+<span class="lineNum">     528 </span>            :          1 &lt;&lt; PG_unevictable | __PG_MLOCKED | __PG_HWPOISON | \
+<span class="lineNum">     529 </span>            :          __PG_COMPOUND_LOCK)
+<span class="lineNum">     530 </span>            : 
+<span class="lineNum">     531 </span>            : /*
+<span class="lineNum">     532 </span>            :  * Flags checked when a page is prepped for return by the page allocator.
+<span class="lineNum">     533 </span>            :  * Pages being prepped should not have any flags set.  It they are set,
+<span class="lineNum">     534 </span>            :  * there has been a kernel bug or struct page corruption.
+<span class="lineNum">     535 </span>            :  */
+<span class="lineNum">     536 </span>            : #define PAGE_FLAGS_CHECK_AT_PREP        ((1 &lt;&lt; NR_PAGEFLAGS) - 1)
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            : #define PAGE_FLAGS_PRIVATE                              \
+<span class="lineNum">     539 </span>            :         (1 &lt;&lt; PG_private | 1 &lt;&lt; PG_private_2)
+<span class="lineNum">     540 </span>            : /**
+<span class="lineNum">     541 </span>            :  * page_has_private - Determine if page has private stuff
+<span class="lineNum">     542 </span>            :  * @page: The page to be checked
+<span class="lineNum">     543 </span>            :  *
+<span class="lineNum">     544 </span>            :  * Determine if a page has private stuff, indicating that release routines
+<span class="lineNum">     545 </span>            :  * should be invoked upon it.
+<span class="lineNum">     546 </span>            :  */
+<span class="lineNum">     547 </span>            : static inline int page_has_private(struct page *page)
+<span class="lineNum">     548 </span>            : {
+<span class="lineNum">     549 </span><span class="lineNoCov">          0 :         return !!(page-&gt;flags &amp; PAGE_FLAGS_PRIVATE);</span>
+<span class="lineNum">     550 </span>            : }
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span>            : #endif /* !__GENERATING_BOUNDS_H */
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span>            : #endif  /* PAGE_FLAGS_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

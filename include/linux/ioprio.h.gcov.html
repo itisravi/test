@@ -1,0 +1,155 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/ioprio.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - ioprio.h<span style="font-size: 80%;"> (source / <a href="ioprio.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef IOPRIO_H</a>
+<span class="lineNum">       2 </span>            : #define IOPRIO_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;linux/sched.h&gt;
+<span class="lineNum">       5 </span>            : #include &lt;linux/iocontext.h&gt;
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : /*
+<span class="lineNum">       8 </span>            :  * Gives us 8 prio classes with 13-bits of data for each class
+<span class="lineNum">       9 </span>            :  */
+<span class="lineNum">      10 </span>            : #define IOPRIO_BITS             (16)
+<span class="lineNum">      11 </span>            : #define IOPRIO_CLASS_SHIFT      (13)
+<span class="lineNum">      12 </span>            : #define IOPRIO_PRIO_MASK        ((1UL &lt;&lt; IOPRIO_CLASS_SHIFT) - 1)
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : #define IOPRIO_PRIO_CLASS(mask) ((mask) &gt;&gt; IOPRIO_CLASS_SHIFT)
+<span class="lineNum">      15 </span>            : #define IOPRIO_PRIO_DATA(mask)  ((mask) &amp; IOPRIO_PRIO_MASK)
+<span class="lineNum">      16 </span>            : #define IOPRIO_PRIO_VALUE(class, data)  (((class) &lt;&lt; IOPRIO_CLASS_SHIFT) | data)
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : #define ioprio_valid(mask)      (IOPRIO_PRIO_CLASS((mask)) != IOPRIO_CLASS_NONE)
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : /*
+<span class="lineNum">      21 </span>            :  * These are the io priority groups as implemented by CFQ. RT is the realtime
+<span class="lineNum">      22 </span>            :  * class, it always gets premium service. BE is the best-effort scheduling
+<span class="lineNum">      23 </span>            :  * class, the default for any process. IDLE is the idle scheduling class, it
+<span class="lineNum">      24 </span>            :  * is only served when no one else is using the disk.
+<span class="lineNum">      25 </span>            :  */
+<span class="lineNum">      26 </span>            : enum {
+<span class="lineNum">      27 </span>            :         IOPRIO_CLASS_NONE,
+<span class="lineNum">      28 </span>            :         IOPRIO_CLASS_RT,
+<span class="lineNum">      29 </span>            :         IOPRIO_CLASS_BE,
+<span class="lineNum">      30 </span>            :         IOPRIO_CLASS_IDLE,
+<span class="lineNum">      31 </span>            : };
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : /*
+<span class="lineNum">      34 </span>            :  * 8 best effort priority levels are supported
+<span class="lineNum">      35 </span>            :  */
+<span class="lineNum">      36 </span>            : #define IOPRIO_BE_NR    (8)
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : enum {
+<span class="lineNum">      39 </span>            :         IOPRIO_WHO_PROCESS = 1,
+<span class="lineNum">      40 </span>            :         IOPRIO_WHO_PGRP,
+<span class="lineNum">      41 </span>            :         IOPRIO_WHO_USER,
+<span class="lineNum">      42 </span>            : };
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : /*
+<span class="lineNum">      45 </span>            :  * Fallback BE priority
+<span class="lineNum">      46 </span>            :  */
+<span class="lineNum">      47 </span>            : #define IOPRIO_NORM     (4)
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : /*
+<span class="lineNum">      50 </span>            :  * if process has set io priority explicitly, use that. if not, convert
+<span class="lineNum">      51 </span>            :  * the cpu scheduler nice value to an io priority
+<span class="lineNum">      52 </span>            :  */
+<span class="lineNum">      53 </span>            : static inline int task_nice_ioprio(struct task_struct *task)
+<span class="lineNum">      54 </span>            : {
+<span class="lineNum">      55 </span><span class="lineCov">        372 :         return (task_nice(task) + 20) / 5;</span>
+<span class="lineNum">      56 </span>            : }
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : /*
+<span class="lineNum">      59 </span>            :  * This is for the case where the task hasn't asked for a specific IO class.
+<span class="lineNum">      60 </span>            :  * Check for idle and rt task process, and return appropriate IO class.
+<span class="lineNum">      61 </span>            :  */
+<span class="lineNum">      62 </span>            : static inline int task_nice_ioclass(struct task_struct *task)
+<span class="lineNum">      63 </span>            : {
+<span class="lineNum">      64 </span><span class="lineCov">        372 :         if (task-&gt;policy == SCHED_IDLE)</span>
+<span class="lineNum">      65 </span>            :                 return IOPRIO_CLASS_IDLE;
+<span class="lineNum">      66 </span><span class="lineCov">        372 :         else if (task-&gt;policy == SCHED_FIFO || task-&gt;policy == SCHED_RR)</span>
+<span class="lineNum">      67 </span>            :                 return IOPRIO_CLASS_RT;
+<span class="lineNum">      68 </span>            :         else
+<span class="lineNum">      69 </span>            :                 return IOPRIO_CLASS_BE;
+<span class="lineNum">      70 </span>            : }
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : /*
+<span class="lineNum">      73 </span>            :  * For inheritance, return the highest of the two given priorities
+<span class="lineNum">      74 </span>            :  */
+<span class="lineNum">      75 </span>            : extern int ioprio_best(unsigned short aprio, unsigned short bprio);
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : extern int set_task_ioprio(struct task_struct *task, int ioprio);
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

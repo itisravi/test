@@ -1,0 +1,317 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - arch/x86/include/asm/thread_info.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">arch/x86/include/asm</a> - thread_info.h<span style="font-size: 80%;"> (source / <a href="thread_info.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* thread_info.h: low-level thread information</a>
+<span class="lineNum">       2 </span>            :  *
+<span class="lineNum">       3 </span>            :  * Copyright (C) 2002  David Howells (dhowells@redhat.com)
+<span class="lineNum">       4 </span>            :  * - Incorporating suggestions made by Linus Torvalds and Dave Miller
+<span class="lineNum">       5 </span>            :  */
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : #ifndef _ASM_X86_THREAD_INFO_H
+<span class="lineNum">       8 </span>            : #define _ASM_X86_THREAD_INFO_H
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : #include &lt;linux/compiler.h&gt;
+<span class="lineNum">      11 </span>            : #include &lt;asm/page.h&gt;
+<span class="lineNum">      12 </span>            : #include &lt;asm/percpu.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;asm/types.h&gt;
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : /*
+<span class="lineNum">      16 </span>            :  * low level task data that entry.S needs immediate access to
+<span class="lineNum">      17 </span>            :  * - this struct should fit entirely inside of one cache line
+<span class="lineNum">      18 </span>            :  * - this struct shares the supervisor stack pages
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : #ifndef __ASSEMBLY__
+<span class="lineNum">      21 </span>            : struct task_struct;
+<span class="lineNum">      22 </span>            : struct exec_domain;
+<span class="lineNum">      23 </span>            : #include &lt;asm/processor.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;linux/atomic.h&gt;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : struct thread_info {
+<span class="lineNum">      27 </span>            :         struct task_struct      *task;          /* main task structure */
+<span class="lineNum">      28 </span>            :         struct exec_domain      *exec_domain;   /* execution domain */
+<span class="lineNum">      29 </span>            :         __u32                   flags;          /* low level flags */
+<span class="lineNum">      30 </span>            :         __u32                   status;         /* thread synchronous flags */
+<span class="lineNum">      31 </span>            :         __u32                   cpu;            /* current CPU */
+<span class="lineNum">      32 </span>            :         int                     saved_preempt_count;
+<span class="lineNum">      33 </span>            :         mm_segment_t            addr_limit;
+<span class="lineNum">      34 </span>            :         struct restart_block    restart_block;
+<span class="lineNum">      35 </span>            :         void __user             *sysenter_return;
+<span class="lineNum">      36 </span>            :         unsigned int            sig_on_uaccess_error:1;
+<span class="lineNum">      37 </span>            :         unsigned int            uaccess_err:1;  /* uaccess failed */
+<span class="lineNum">      38 </span>            : };
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : #define INIT_THREAD_INFO(tsk)                   \
+<span class="lineNum">      41 </span>            : {                                               \
+<span class="lineNum">      42 </span>            :         .task           = &amp;tsk,                     \
+<span class="lineNum">      43 </span>            :         .exec_domain    = &amp;default_exec_domain,     \
+<span class="lineNum">      44 </span>            :         .flags          = 0,                    \
+<span class="lineNum">      45 </span>            :         .cpu            = 0,                    \
+<span class="lineNum">      46 </span>            :         .saved_preempt_count = INIT_PREEMPT_COUNT,      \
+<span class="lineNum">      47 </span>            :         .addr_limit     = KERNEL_DS,            \
+<span class="lineNum">      48 </span>            :         .restart_block = {                      \
+<span class="lineNum">      49 </span>            :                 .fn = do_no_restart_syscall,    \
+<span class="lineNum">      50 </span>            :         },                                      \
+<span class="lineNum">      51 </span>            : }
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : #define init_thread_info        (init_thread_union.thread_info)
+<span class="lineNum">      54 </span>            : #define init_stack              (init_thread_union.stack)
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : #else /* !__ASSEMBLY__ */
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : #include &lt;asm/asm-offsets.h&gt;
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : #endif
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : /*
+<span class="lineNum">      63 </span>            :  * thread information flags
+<span class="lineNum">      64 </span>            :  * - these are process state flags that various assembly files
+<span class="lineNum">      65 </span>            :  *   may need to access
+<span class="lineNum">      66 </span>            :  * - pending work-to-be-done flags are in LSW
+<span class="lineNum">      67 </span>            :  * - other flags in MSW
+<span class="lineNum">      68 </span>            :  * Warning: layout of LSW is hardcoded in entry.S
+<span class="lineNum">      69 </span>            :  */
+<span class="lineNum">      70 </span>            : #define TIF_SYSCALL_TRACE       0       /* syscall trace active */
+<span class="lineNum">      71 </span>            : #define TIF_NOTIFY_RESUME       1       /* callback before returning to user */
+<span class="lineNum">      72 </span>            : #define TIF_SIGPENDING          2       /* signal pending */
+<span class="lineNum">      73 </span>            : #define TIF_NEED_RESCHED        3       /* rescheduling necessary */
+<span class="lineNum">      74 </span>            : #define TIF_SINGLESTEP          4       /* reenable singlestep on user return*/
+<span class="lineNum">      75 </span>            : #define TIF_SYSCALL_EMU         6       /* syscall emulation active */
+<span class="lineNum">      76 </span>            : #define TIF_SYSCALL_AUDIT       7       /* syscall auditing active */
+<span class="lineNum">      77 </span>            : #define TIF_SECCOMP             8       /* secure computing */
+<span class="lineNum">      78 </span>            : #define TIF_MCE_NOTIFY          10      /* notify userspace of an MCE */
+<span class="lineNum">      79 </span>            : #define TIF_USER_RETURN_NOTIFY  11      /* notify kernel of userspace return */
+<span class="lineNum">      80 </span>            : #define TIF_UPROBE              12      /* breakpointed or singlestepping */
+<span class="lineNum">      81 </span>            : #define TIF_NOTSC               16      /* TSC is not accessible in userland */
+<span class="lineNum">      82 </span>            : #define TIF_IA32                17      /* IA32 compatibility process */
+<span class="lineNum">      83 </span>            : #define TIF_FORK                18      /* ret_from_fork */
+<span class="lineNum">      84 </span>            : #define TIF_NOHZ                19      /* in adaptive nohz mode */
+<span class="lineNum">      85 </span>            : #define TIF_MEMDIE              20      /* is terminating due to OOM killer */
+<span class="lineNum">      86 </span>            : #define TIF_POLLING_NRFLAG      21      /* idle is polling for TIF_NEED_RESCHED */
+<span class="lineNum">      87 </span>            : #define TIF_IO_BITMAP           22      /* uses I/O bitmap */
+<span class="lineNum">      88 </span>            : #define TIF_FORCED_TF           24      /* true if TF in eflags artificially */
+<span class="lineNum">      89 </span>            : #define TIF_BLOCKSTEP           25      /* set when we want DEBUGCTLMSR_BTF */
+<span class="lineNum">      90 </span>            : #define TIF_LAZY_MMU_UPDATES    27      /* task is updating the mmu lazily */
+<span class="lineNum">      91 </span>            : #define TIF_SYSCALL_TRACEPOINT  28      /* syscall tracepoint instrumentation */
+<span class="lineNum">      92 </span>            : #define TIF_ADDR32              29      /* 32-bit address space on 64 bits */
+<span class="lineNum">      93 </span>            : #define TIF_X32                 30      /* 32-bit native x86-64 binary */
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            : #define _TIF_SYSCALL_TRACE      (1 &lt;&lt; TIF_SYSCALL_TRACE)
+<span class="lineNum">      96 </span>            : #define _TIF_NOTIFY_RESUME      (1 &lt;&lt; TIF_NOTIFY_RESUME)
+<span class="lineNum">      97 </span>            : #define _TIF_SIGPENDING         (1 &lt;&lt; TIF_SIGPENDING)
+<span class="lineNum">      98 </span>            : #define _TIF_SINGLESTEP         (1 &lt;&lt; TIF_SINGLESTEP)
+<span class="lineNum">      99 </span>            : #define _TIF_NEED_RESCHED       (1 &lt;&lt; TIF_NEED_RESCHED)
+<span class="lineNum">     100 </span>            : #define _TIF_SYSCALL_EMU        (1 &lt;&lt; TIF_SYSCALL_EMU)
+<span class="lineNum">     101 </span>            : #define _TIF_SYSCALL_AUDIT      (1 &lt;&lt; TIF_SYSCALL_AUDIT)
+<span class="lineNum">     102 </span>            : #define _TIF_SECCOMP            (1 &lt;&lt; TIF_SECCOMP)
+<span class="lineNum">     103 </span>            : #define _TIF_MCE_NOTIFY         (1 &lt;&lt; TIF_MCE_NOTIFY)
+<span class="lineNum">     104 </span>            : #define _TIF_USER_RETURN_NOTIFY (1 &lt;&lt; TIF_USER_RETURN_NOTIFY)
+<span class="lineNum">     105 </span>            : #define _TIF_UPROBE             (1 &lt;&lt; TIF_UPROBE)
+<span class="lineNum">     106 </span>            : #define _TIF_NOTSC              (1 &lt;&lt; TIF_NOTSC)
+<span class="lineNum">     107 </span>            : #define _TIF_IA32               (1 &lt;&lt; TIF_IA32)
+<span class="lineNum">     108 </span>            : #define _TIF_FORK               (1 &lt;&lt; TIF_FORK)
+<span class="lineNum">     109 </span>            : #define _TIF_NOHZ               (1 &lt;&lt; TIF_NOHZ)
+<span class="lineNum">     110 </span>            : #define _TIF_POLLING_NRFLAG     (1 &lt;&lt; TIF_POLLING_NRFLAG)
+<span class="lineNum">     111 </span>            : #define _TIF_IO_BITMAP          (1 &lt;&lt; TIF_IO_BITMAP)
+<span class="lineNum">     112 </span>            : #define _TIF_FORCED_TF          (1 &lt;&lt; TIF_FORCED_TF)
+<span class="lineNum">     113 </span>            : #define _TIF_BLOCKSTEP          (1 &lt;&lt; TIF_BLOCKSTEP)
+<span class="lineNum">     114 </span>            : #define _TIF_LAZY_MMU_UPDATES   (1 &lt;&lt; TIF_LAZY_MMU_UPDATES)
+<span class="lineNum">     115 </span>            : #define _TIF_SYSCALL_TRACEPOINT (1 &lt;&lt; TIF_SYSCALL_TRACEPOINT)
+<span class="lineNum">     116 </span>            : #define _TIF_ADDR32             (1 &lt;&lt; TIF_ADDR32)
+<span class="lineNum">     117 </span>            : #define _TIF_X32                (1 &lt;&lt; TIF_X32)
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : /* work to do in syscall_trace_enter() */
+<span class="lineNum">     120 </span>            : #define _TIF_WORK_SYSCALL_ENTRY \
+<span class="lineNum">     121 </span>            :         (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_EMU | _TIF_SYSCALL_AUDIT |   \
+<span class="lineNum">     122 </span>            :          _TIF_SECCOMP | _TIF_SINGLESTEP | _TIF_SYSCALL_TRACEPOINT |     \
+<span class="lineNum">     123 </span>            :          _TIF_NOHZ)
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            : /* work to do in syscall_trace_leave() */
+<span class="lineNum">     126 </span>            : #define _TIF_WORK_SYSCALL_EXIT  \
+<span class="lineNum">     127 </span>            :         (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | _TIF_SINGLESTEP |    \
+<span class="lineNum">     128 </span>            :          _TIF_SYSCALL_TRACEPOINT | _TIF_NOHZ)
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : /* work to do on interrupt/exception return */
+<span class="lineNum">     131 </span>            : #define _TIF_WORK_MASK                                                  \
+<span class="lineNum">     132 </span>            :         (0x0000FFFF &amp;                                                       \
+<span class="lineNum">     133 </span>            :          ~(_TIF_SYSCALL_TRACE|_TIF_SYSCALL_AUDIT|                       \
+<span class="lineNum">     134 </span>            :            _TIF_SINGLESTEP|_TIF_SECCOMP|_TIF_SYSCALL_EMU))
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            : /* work to do on any return to user space */
+<span class="lineNum">     137 </span>            : #define _TIF_ALLWORK_MASK                                               \
+<span class="lineNum">     138 </span>            :         ((0x0000FFFF &amp; ~_TIF_SECCOMP) | _TIF_SYSCALL_TRACEPOINT |   \
+<span class="lineNum">     139 </span>            :         _TIF_NOHZ)
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            : /* Only used for 64 bit */
+<span class="lineNum">     142 </span>            : #define _TIF_DO_NOTIFY_MASK                                             \
+<span class="lineNum">     143 </span>            :         (_TIF_SIGPENDING | _TIF_MCE_NOTIFY | _TIF_NOTIFY_RESUME |       \
+<span class="lineNum">     144 </span>            :          _TIF_USER_RETURN_NOTIFY)
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            : /* flags to check in __switch_to() */
+<span class="lineNum">     147 </span>            : #define _TIF_WORK_CTXSW                                                 \
+<span class="lineNum">     148 </span>            :         (_TIF_IO_BITMAP|_TIF_NOTSC|_TIF_BLOCKSTEP)
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span>            : #define _TIF_WORK_CTXSW_PREV (_TIF_WORK_CTXSW|_TIF_USER_RETURN_NOTIFY)
+<span class="lineNum">     151 </span>            : #define _TIF_WORK_CTXSW_NEXT (_TIF_WORK_CTXSW)
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            : #define STACK_WARN              (THREAD_SIZE/8)
+<span class="lineNum">     154 </span>            : #define KERNEL_STACK_OFFSET     (5*(BITS_PER_LONG/8))
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : /*
+<span class="lineNum">     157 </span>            :  * macros/functions for gaining access to the thread information structure
+<span class="lineNum">     158 </span>            :  *
+<span class="lineNum">     159 </span>            :  * preempt_count needs to be 1 initially, until the scheduler is functional.
+<span class="lineNum">     160 </span>            :  */
+<span class="lineNum">     161 </span>            : #ifndef __ASSEMBLY__
+<span class="lineNum">     162 </span>            : 
+<a name="163"><span class="lineNum">     163 </span>            : DECLARE_PER_CPU(unsigned long, kernel_stack);</a>
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span><span class="lineCov">     248946 : static inline struct thread_info *current_thread_info(void)</span>
+<span class="lineNum">     166 </span>            : {
+<span class="lineNum">     167 </span>            :         struct thread_info *ti;
+<span class="lineNum">     168 </span><span class="lineCov">     641586 :         ti = (void *)(this_cpu_read_stable(kernel_stack) +</span>
+<span class="lineNum">     169 </span><span class="lineCov">     320793 :                       KERNEL_STACK_OFFSET - THREAD_SIZE);</span>
+<span class="lineNum">     170 </span><span class="lineCov">     248946 :         return ti;</span>
+<span class="lineNum">     171 </span>            : }
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            : #else /* !__ASSEMBLY__ */
+<span class="lineNum">     174 </span>            : 
+<span class="lineNum">     175 </span>            : /* how to get the thread information struct from ASM */
+<span class="lineNum">     176 </span>            : #define GET_THREAD_INFO(reg) \
+<span class="lineNum">     177 </span>            :         _ASM_MOV PER_CPU_VAR(kernel_stack),reg ; \
+<span class="lineNum">     178 </span>            :         _ASM_SUB $(THREAD_SIZE-KERNEL_STACK_OFFSET),reg ;
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            : /*
+<span class="lineNum">     181 </span>            :  * Same if PER_CPU_VAR(kernel_stack) is, perhaps with some offset, already in
+<span class="lineNum">     182 </span>            :  * a certain register (to be used in assembler memory operands).
+<span class="lineNum">     183 </span>            :  */
+<span class="lineNum">     184 </span>            : #define THREAD_INFO(reg, off) KERNEL_STACK_OFFSET+(off)-THREAD_SIZE(reg)
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : #endif
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            : /*
+<span class="lineNum">     189 </span>            :  * Thread-synchronous status.
+<span class="lineNum">     190 </span>            :  *
+<span class="lineNum">     191 </span>            :  * This is different from the flags in that nobody else
+<span class="lineNum">     192 </span>            :  * ever touches our thread-synchronous status, so we don't
+<span class="lineNum">     193 </span>            :  * have to worry about atomic accesses.
+<span class="lineNum">     194 </span>            :  */
+<span class="lineNum">     195 </span>            : #define TS_COMPAT               0x0002  /* 32bit syscall active (64BIT)*/
+<span class="lineNum">     196 </span>            : #define TS_RESTORE_SIGMASK      0x0008  /* restore signal mask in do_signal() */
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : #ifndef __ASSEMBLY__
+<span class="lineNum">     199 </span>            : #define HAVE_SET_RESTORE_SIGMASK        1
+<span class="lineNum">     200 </span>            : static inline void set_restore_sigmask(void)
+<span class="lineNum">     201 </span>            : {
+<span class="lineNum">     202 </span>            :         struct thread_info *ti = current_thread_info();
+<span class="lineNum">     203 </span>            :         ti-&gt;status |= TS_RESTORE_SIGMASK;
+<span class="lineNum">     204 </span>            :         WARN_ON(!test_bit(TIF_SIGPENDING, (unsigned long *)&amp;ti-&gt;flags));
+<span class="lineNum">     205 </span>            : }
+<span class="lineNum">     206 </span>            : static inline void clear_restore_sigmask(void)
+<span class="lineNum">     207 </span>            : {
+<span class="lineNum">     208 </span>            :         current_thread_info()-&gt;status &amp;= ~TS_RESTORE_SIGMASK;
+<span class="lineNum">     209 </span>            : }
+<span class="lineNum">     210 </span>            : static inline bool test_restore_sigmask(void)
+<span class="lineNum">     211 </span>            : {
+<span class="lineNum">     212 </span>            :         return current_thread_info()-&gt;status &amp; TS_RESTORE_SIGMASK;
+<span class="lineNum">     213 </span>            : }
+<span class="lineNum">     214 </span>            : static inline bool test_and_clear_restore_sigmask(void)
+<span class="lineNum">     215 </span>            : {
+<span class="lineNum">     216 </span>            :         struct thread_info *ti = current_thread_info();
+<span class="lineNum">     217 </span>            :         if (!(ti-&gt;status &amp; TS_RESTORE_SIGMASK))
+<span class="lineNum">     218 </span>            :                 return false;
+<span class="lineNum">     219 </span>            :         ti-&gt;status &amp;= ~TS_RESTORE_SIGMASK;
+<span class="lineNum">     220 </span>            :         return true;
+<span class="lineNum">     221 </span>            : }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            : static inline bool is_ia32_task(void)
+<span class="lineNum">     224 </span>            : {
+<span class="lineNum">     225 </span>            : #ifdef CONFIG_X86_32
+<span class="lineNum">     226 </span>            :         return true;
+<span class="lineNum">     227 </span>            : #endif
+<span class="lineNum">     228 </span>            : #ifdef CONFIG_IA32_EMULATION
+<span class="lineNum">     229 </span>            :         if (current_thread_info()-&gt;status &amp; TS_COMPAT)
+<span class="lineNum">     230 </span>            :                 return true;
+<span class="lineNum">     231 </span>            : #endif
+<span class="lineNum">     232 </span>            :         return false;
+<span class="lineNum">     233 </span>            : }
+<span class="lineNum">     234 </span>            : #endif  /* !__ASSEMBLY__ */
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            : #ifndef __ASSEMBLY__
+<span class="lineNum">     237 </span>            : extern void arch_task_cache_init(void);
+<span class="lineNum">     238 </span>            : extern int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src);
+<span class="lineNum">     239 </span>            : extern void arch_release_task_struct(struct task_struct *tsk);
+<span class="lineNum">     240 </span>            : #endif
+<span class="lineNum">     241 </span>            : #endif /* _ASM_X86_THREAD_INFO_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

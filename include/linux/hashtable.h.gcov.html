@@ -1,0 +1,281 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/hashtable.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - hashtable.h<span style="font-size: 80%;"> (source / <a href="hashtable.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Statically sized hash table implementation
+<span class="lineNum">       3 </span>            :  * (C) 2012  Sasha Levin &lt;levinsasha928@gmail.com&gt;
+<span class="lineNum">       4 </span>            :  */
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : #ifndef _LINUX_HASHTABLE_H
+<span class="lineNum">       7 </span>            : #define _LINUX_HASHTABLE_H
+<span class="lineNum">       8 </span>            : 
+<span class="lineNum">       9 </span>            : #include &lt;linux/list.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">      11 </span>            : #include &lt;linux/kernel.h&gt;
+<span class="lineNum">      12 </span>            : #include &lt;linux/hash.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;linux/rculist.h&gt;
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : #define DEFINE_HASHTABLE(name, bits)                                            \
+<span class="lineNum">      16 </span>            :         struct hlist_head name[1 &lt;&lt; (bits)] =                                     \
+<span class="lineNum">      17 </span>            :                         { [0 ... ((1 &lt;&lt; (bits)) - 1)] = HLIST_HEAD_INIT }
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #define DECLARE_HASHTABLE(name, bits)                                           \
+<span class="lineNum">      20 </span>            :         struct hlist_head name[1 &lt;&lt; (bits)]
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #define HASH_SIZE(name) (ARRAY_SIZE(name))
+<span class="lineNum">      23 </span>            : #define HASH_BITS(name) ilog2(HASH_SIZE(name))
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : /* Use hash_32 when possible to allow for fast 32bit hashing in 64bit kernels. */
+<span class="lineNum">      26 </span>            : #define hash_min(val, bits)                                                     \
+<span class="lineNum">      27 </span>            :         (sizeof(val) &lt;= 4 ? hash_32(val, bits) : hash_long(val, bits))
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : static inline void __hash_init(struct hlist_head *ht, unsigned int sz)
+<span class="lineNum">      30 </span>            : {
+<span class="lineNum">      31 </span>            :         unsigned int i;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span><span class="lineNoCov">          0 :         for (i = 0; i &lt; sz; i++)</span>
+<span class="lineNum">      34 </span><span class="lineNoCov">          0 :                 INIT_HLIST_HEAD(&amp;ht[i]);</span>
+<span class="lineNum">      35 </span>            : }
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : /**
+<span class="lineNum">      38 </span>            :  * hash_init - initialize a hash table
+<span class="lineNum">      39 </span>            :  * @hashtable: hashtable to be initialized
+<span class="lineNum">      40 </span>            :  *
+<span class="lineNum">      41 </span>            :  * Calculates the size of the hashtable from the given parameter, otherwise
+<span class="lineNum">      42 </span>            :  * same as hash_init_size.
+<span class="lineNum">      43 </span>            :  *
+<span class="lineNum">      44 </span>            :  * This has to be a macro since HASH_BITS() will not work on pointers since
+<span class="lineNum">      45 </span>            :  * it calculates the size during preprocessing.
+<span class="lineNum">      46 </span>            :  */
+<span class="lineNum">      47 </span>            : #define hash_init(hashtable) __hash_init(hashtable, HASH_SIZE(hashtable))
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : /**
+<span class="lineNum">      50 </span>            :  * hash_add - add an object to a hashtable
+<span class="lineNum">      51 </span>            :  * @hashtable: hashtable to add to
+<span class="lineNum">      52 </span>            :  * @node: the &amp;struct hlist_node of the object to be added
+<span class="lineNum">      53 </span>            :  * @key: the key of the object to be added
+<span class="lineNum">      54 </span>            :  */
+<span class="lineNum">      55 </span>            : #define hash_add(hashtable, node, key)                                          \
+<span class="lineNum">      56 </span>            :         hlist_add_head(node, &amp;hashtable[hash_min(key, HASH_BITS(hashtable))])
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : /**
+<span class="lineNum">      59 </span>            :  * hash_add_rcu - add an object to a rcu enabled hashtable
+<span class="lineNum">      60 </span>            :  * @hashtable: hashtable to add to
+<span class="lineNum">      61 </span>            :  * @node: the &amp;struct hlist_node of the object to be added
+<span class="lineNum">      62 </span>            :  * @key: the key of the object to be added
+<span class="lineNum">      63 </span>            :  */
+<span class="lineNum">      64 </span>            : #define hash_add_rcu(hashtable, node, key)                                      \
+<span class="lineNum">      65 </span>            :         hlist_add_head_rcu(node, &amp;hashtable[hash_min(key, HASH_BITS(hashtable))])
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : /**
+<span class="lineNum">      68 </span>            :  * hash_hashed - check whether an object is in any hashtable
+<span class="lineNum">      69 </span>            :  * @node: the &amp;struct hlist_node of the object to be checked
+<span class="lineNum">      70 </span>            :  */
+<span class="lineNum">      71 </span>            : static inline bool hash_hashed(struct hlist_node *node)
+<span class="lineNum">      72 </span>            : {
+<span class="lineNum">      73 </span>            :         return !hlist_unhashed(node);
+<span class="lineNum">      74 </span>            : }
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : static inline bool __hash_empty(struct hlist_head *ht, unsigned int sz)
+<span class="lineNum">      77 </span>            : {
+<span class="lineNum">      78 </span>            :         unsigned int i;
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            :         for (i = 0; i &lt; sz; i++)
+<span class="lineNum">      81 </span>            :                 if (!hlist_empty(&amp;ht[i]))
+<span class="lineNum">      82 </span>            :                         return false;
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            :         return true;
+<span class="lineNum">      85 </span>            : }
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : /**
+<span class="lineNum">      88 </span>            :  * hash_empty - check whether a hashtable is empty
+<span class="lineNum">      89 </span>            :  * @hashtable: hashtable to check
+<span class="lineNum">      90 </span>            :  *
+<span class="lineNum">      91 </span>            :  * This has to be a macro since HASH_BITS() will not work on pointers since
+<span class="lineNum">      92 </span>            :  * it calculates the size during preprocessing.
+<span class="lineNum">      93 </span>            :  */
+<span class="lineNum">      94 </span>            : #define hash_empty(hashtable) __hash_empty(hashtable, HASH_SIZE(hashtable))
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            : /**
+<span class="lineNum">      97 </span>            :  * hash_del - remove an object from a hashtable
+<span class="lineNum">      98 </span>            :  * @node: &amp;struct hlist_node of the object to remove
+<span class="lineNum">      99 </span>            :  */
+<span class="lineNum">     100 </span>            : static inline void hash_del(struct hlist_node *node)
+<span class="lineNum">     101 </span>            : {
+<span class="lineNum">     102 </span>            :         hlist_del_init(node);
+<span class="lineNum">     103 </span>            : }
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : /**
+<span class="lineNum">     106 </span>            :  * hash_del_rcu - remove an object from a rcu enabled hashtable
+<span class="lineNum">     107 </span>            :  * @node: &amp;struct hlist_node of the object to remove
+<span class="lineNum">     108 </span>            :  */
+<span class="lineNum">     109 </span>            : static inline void hash_del_rcu(struct hlist_node *node)
+<span class="lineNum">     110 </span>            : {
+<span class="lineNum">     111 </span>            :         hlist_del_init_rcu(node);
+<span class="lineNum">     112 </span>            : }
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            : /**
+<span class="lineNum">     115 </span>            :  * hash_for_each - iterate over a hashtable
+<span class="lineNum">     116 </span>            :  * @name: hashtable to iterate
+<span class="lineNum">     117 </span>            :  * @bkt: integer to use as bucket loop cursor
+<span class="lineNum">     118 </span>            :  * @obj: the type * to use as a loop cursor for each entry
+<span class="lineNum">     119 </span>            :  * @member: the name of the hlist_node within the struct
+<span class="lineNum">     120 </span>            :  */
+<span class="lineNum">     121 </span>            : #define hash_for_each(name, bkt, obj, member)                           \
+<span class="lineNum">     122 </span>            :         for ((bkt) = 0, obj = NULL; obj == NULL &amp;&amp; (bkt) &lt; HASH_SIZE(name);\
+<span class="lineNum">     123 </span>            :                         (bkt)++)\
+<span class="lineNum">     124 </span>            :                 hlist_for_each_entry(obj, &amp;name[bkt], member)
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            : /**
+<span class="lineNum">     127 </span>            :  * hash_for_each_rcu - iterate over a rcu enabled hashtable
+<span class="lineNum">     128 </span>            :  * @name: hashtable to iterate
+<span class="lineNum">     129 </span>            :  * @bkt: integer to use as bucket loop cursor
+<span class="lineNum">     130 </span>            :  * @obj: the type * to use as a loop cursor for each entry
+<span class="lineNum">     131 </span>            :  * @member: the name of the hlist_node within the struct
+<span class="lineNum">     132 </span>            :  */
+<span class="lineNum">     133 </span>            : #define hash_for_each_rcu(name, bkt, obj, member)                       \
+<span class="lineNum">     134 </span>            :         for ((bkt) = 0, obj = NULL; obj == NULL &amp;&amp; (bkt) &lt; HASH_SIZE(name);\
+<span class="lineNum">     135 </span>            :                         (bkt)++)\
+<span class="lineNum">     136 </span>            :                 hlist_for_each_entry_rcu(obj, &amp;name[bkt], member)
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            : /**
+<span class="lineNum">     139 </span>            :  * hash_for_each_safe - iterate over a hashtable safe against removal of
+<span class="lineNum">     140 </span>            :  * hash entry
+<span class="lineNum">     141 </span>            :  * @name: hashtable to iterate
+<span class="lineNum">     142 </span>            :  * @bkt: integer to use as bucket loop cursor
+<span class="lineNum">     143 </span>            :  * @tmp: a &amp;struct used for temporary storage
+<span class="lineNum">     144 </span>            :  * @obj: the type * to use as a loop cursor for each entry
+<span class="lineNum">     145 </span>            :  * @member: the name of the hlist_node within the struct
+<span class="lineNum">     146 </span>            :  */
+<span class="lineNum">     147 </span>            : #define hash_for_each_safe(name, bkt, tmp, obj, member)                 \
+<span class="lineNum">     148 </span>            :         for ((bkt) = 0, obj = NULL; obj == NULL &amp;&amp; (bkt) &lt; HASH_SIZE(name);\
+<span class="lineNum">     149 </span>            :                         (bkt)++)\
+<span class="lineNum">     150 </span>            :                 hlist_for_each_entry_safe(obj, tmp, &amp;name[bkt], member)
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            : /**
+<span class="lineNum">     153 </span>            :  * hash_for_each_possible - iterate over all possible objects hashing to the
+<span class="lineNum">     154 </span>            :  * same bucket
+<span class="lineNum">     155 </span>            :  * @name: hashtable to iterate
+<span class="lineNum">     156 </span>            :  * @obj: the type * to use as a loop cursor for each entry
+<span class="lineNum">     157 </span>            :  * @member: the name of the hlist_node within the struct
+<span class="lineNum">     158 </span>            :  * @key: the key of the objects to iterate over
+<span class="lineNum">     159 </span>            :  */
+<span class="lineNum">     160 </span>            : #define hash_for_each_possible(name, obj, member, key)                  \
+<span class="lineNum">     161 </span>            :         hlist_for_each_entry(obj, &amp;name[hash_min(key, HASH_BITS(name))], member)
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            : /**
+<span class="lineNum">     164 </span>            :  * hash_for_each_possible_rcu - iterate over all possible objects hashing to the
+<span class="lineNum">     165 </span>            :  * same bucket in an rcu enabled hashtable
+<span class="lineNum">     166 </span>            :  * in a rcu enabled hashtable
+<span class="lineNum">     167 </span>            :  * @name: hashtable to iterate
+<span class="lineNum">     168 </span>            :  * @obj: the type * to use as a loop cursor for each entry
+<span class="lineNum">     169 </span>            :  * @member: the name of the hlist_node within the struct
+<span class="lineNum">     170 </span>            :  * @key: the key of the objects to iterate over
+<span class="lineNum">     171 </span>            :  */
+<span class="lineNum">     172 </span>            : #define hash_for_each_possible_rcu(name, obj, member, key)              \
+<span class="lineNum">     173 </span>            :         hlist_for_each_entry_rcu(obj, &amp;name[hash_min(key, HASH_BITS(name))],\
+<span class="lineNum">     174 </span>            :                 member)
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : /**
+<span class="lineNum">     177 </span>            :  * hash_for_each_possible_rcu_notrace - iterate over all possible objects hashing
+<span class="lineNum">     178 </span>            :  * to the same bucket in an rcu enabled hashtable in a rcu enabled hashtable
+<span class="lineNum">     179 </span>            :  * @name: hashtable to iterate
+<span class="lineNum">     180 </span>            :  * @obj: the type * to use as a loop cursor for each entry
+<span class="lineNum">     181 </span>            :  * @member: the name of the hlist_node within the struct
+<span class="lineNum">     182 </span>            :  * @key: the key of the objects to iterate over
+<span class="lineNum">     183 </span>            :  *
+<span class="lineNum">     184 </span>            :  * This is the same as hash_for_each_possible_rcu() except that it does
+<span class="lineNum">     185 </span>            :  * not do any RCU debugging or tracing.
+<span class="lineNum">     186 </span>            :  */
+<span class="lineNum">     187 </span>            : #define hash_for_each_possible_rcu_notrace(name, obj, member, key) \
+<span class="lineNum">     188 </span>            :         hlist_for_each_entry_rcu_notrace(obj, \
+<span class="lineNum">     189 </span>            :                 &amp;name[hash_min(key, HASH_BITS(name))], member)
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            : /**
+<span class="lineNum">     192 </span>            :  * hash_for_each_possible_safe - iterate over all possible objects hashing to the
+<span class="lineNum">     193 </span>            :  * same bucket safe against removals
+<span class="lineNum">     194 </span>            :  * @name: hashtable to iterate
+<span class="lineNum">     195 </span>            :  * @obj: the type * to use as a loop cursor for each entry
+<span class="lineNum">     196 </span>            :  * @tmp: a &amp;struct used for temporary storage
+<span class="lineNum">     197 </span>            :  * @member: the name of the hlist_node within the struct
+<span class="lineNum">     198 </span>            :  * @key: the key of the objects to iterate over
+<span class="lineNum">     199 </span>            :  */
+<span class="lineNum">     200 </span>            : #define hash_for_each_possible_safe(name, obj, tmp, member, key)        \
+<span class="lineNum">     201 </span>            :         hlist_for_each_entry_safe(obj, tmp,\
+<span class="lineNum">     202 </span>            :                 &amp;name[hash_min(key, HASH_BITS(name))], member)
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : 
+<span class="lineNum">     205 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

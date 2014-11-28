@@ -1,0 +1,268 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/spinlock_api_smp.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - spinlock_api_smp.h<span style="font-size: 80%;"> (source / <a href="spinlock_api_smp.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef __LINUX_SPINLOCK_API_SMP_H</a>
+<span class="lineNum">       2 </span>            : #define __LINUX_SPINLOCK_API_SMP_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #ifndef __LINUX_SPINLOCK_H
+<span class="lineNum">       5 </span>            : # error &quot;please don't include this file directly&quot;
+<span class="lineNum">       6 </span>            : #endif
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : /*
+<span class="lineNum">       9 </span>            :  * include/linux/spinlock_api_smp.h
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * spinlock API declarations on SMP (and debug)
+<span class="lineNum">      12 </span>            :  * (implemented in kernel/spinlock.c)
+<span class="lineNum">      13 </span>            :  *
+<span class="lineNum">      14 </span>            :  * portions Copyright 2005, Red Hat, Inc., Ingo Molnar
+<span class="lineNum">      15 </span>            :  * Released under the General Public License (GPL).
+<span class="lineNum">      16 </span>            :  */
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : int in_lock_functions(unsigned long addr);
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : #define assert_raw_spin_locked(x)       BUG_ON(!raw_spin_is_locked(x))
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : void __lockfunc _raw_spin_lock(raw_spinlock_t *lock)            __acquires(lock);
+<span class="lineNum">      23 </span>            : void __lockfunc _raw_spin_lock_nested(raw_spinlock_t *lock, int subclass)
+<span class="lineNum">      24 </span>            :                                                                 __acquires(lock);
+<span class="lineNum">      25 </span>            : void __lockfunc
+<span class="lineNum">      26 </span>            : _raw_spin_lock_nest_lock(raw_spinlock_t *lock, struct lockdep_map *map)
+<span class="lineNum">      27 </span>            :                                                                 __acquires(lock);
+<span class="lineNum">      28 </span>            : void __lockfunc _raw_spin_lock_bh(raw_spinlock_t *lock)         __acquires(lock);
+<span class="lineNum">      29 </span>            : void __lockfunc _raw_spin_lock_irq(raw_spinlock_t *lock)
+<span class="lineNum">      30 </span>            :                                                                 __acquires(lock);
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : unsigned long __lockfunc _raw_spin_lock_irqsave(raw_spinlock_t *lock)
+<span class="lineNum">      33 </span>            :                                                                 __acquires(lock);
+<span class="lineNum">      34 </span>            : unsigned long __lockfunc
+<span class="lineNum">      35 </span>            : _raw_spin_lock_irqsave_nested(raw_spinlock_t *lock, int subclass)
+<span class="lineNum">      36 </span>            :                                                                 __acquires(lock);
+<span class="lineNum">      37 </span>            : int __lockfunc _raw_spin_trylock(raw_spinlock_t *lock);
+<span class="lineNum">      38 </span>            : int __lockfunc _raw_spin_trylock_bh(raw_spinlock_t *lock);
+<span class="lineNum">      39 </span>            : void __lockfunc _raw_spin_unlock(raw_spinlock_t *lock)          __releases(lock);
+<span class="lineNum">      40 </span>            : void __lockfunc _raw_spin_unlock_bh(raw_spinlock_t *lock)       __releases(lock);
+<span class="lineNum">      41 </span>            : void __lockfunc _raw_spin_unlock_irq(raw_spinlock_t *lock)      __releases(lock);
+<span class="lineNum">      42 </span>            : void __lockfunc
+<span class="lineNum">      43 </span>            : _raw_spin_unlock_irqrestore(raw_spinlock_t *lock, unsigned long flags)
+<span class="lineNum">      44 </span>            :                                                                 __releases(lock);
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : #ifdef CONFIG_INLINE_SPIN_LOCK
+<span class="lineNum">      47 </span>            : #define _raw_spin_lock(lock) __raw_spin_lock(lock)
+<span class="lineNum">      48 </span>            : #endif
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : #ifdef CONFIG_INLINE_SPIN_LOCK_BH
+<span class="lineNum">      51 </span>            : #define _raw_spin_lock_bh(lock) __raw_spin_lock_bh(lock)
+<span class="lineNum">      52 </span>            : #endif
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : #ifdef CONFIG_INLINE_SPIN_LOCK_IRQ
+<span class="lineNum">      55 </span>            : #define _raw_spin_lock_irq(lock) __raw_spin_lock_irq(lock)
+<span class="lineNum">      56 </span>            : #endif
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : #ifdef CONFIG_INLINE_SPIN_LOCK_IRQSAVE
+<span class="lineNum">      59 </span>            : #define _raw_spin_lock_irqsave(lock) __raw_spin_lock_irqsave(lock)
+<span class="lineNum">      60 </span>            : #endif
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : #ifdef CONFIG_INLINE_SPIN_TRYLOCK
+<span class="lineNum">      63 </span>            : #define _raw_spin_trylock(lock) __raw_spin_trylock(lock)
+<span class="lineNum">      64 </span>            : #endif
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : #ifdef CONFIG_INLINE_SPIN_TRYLOCK_BH
+<span class="lineNum">      67 </span>            : #define _raw_spin_trylock_bh(lock) __raw_spin_trylock_bh(lock)
+<span class="lineNum">      68 </span>            : #endif
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : #ifndef CONFIG_UNINLINE_SPIN_UNLOCK
+<span class="lineNum">      71 </span>            : #define _raw_spin_unlock(lock) __raw_spin_unlock(lock)
+<span class="lineNum">      72 </span>            : #endif
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            : #ifdef CONFIG_INLINE_SPIN_UNLOCK_BH
+<span class="lineNum">      75 </span>            : #define _raw_spin_unlock_bh(lock) __raw_spin_unlock_bh(lock)
+<span class="lineNum">      76 </span>            : #endif
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : #ifdef CONFIG_INLINE_SPIN_UNLOCK_IRQ
+<span class="lineNum">      79 </span>            : #define _raw_spin_unlock_irq(lock) __raw_spin_unlock_irq(lock)
+<span class="lineNum">      80 </span>            : #endif
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : #ifdef CONFIG_INLINE_SPIN_UNLOCK_IRQRESTORE
+<span class="lineNum">      83 </span>            : #define _raw_spin_unlock_irqrestore(lock, flags) __raw_spin_unlock_irqrestore(lock, flags)
+<span class="lineNum">      84 </span>            : #endif
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : static inline int __raw_spin_trylock(raw_spinlock_t *lock)
+<span class="lineNum">      87 </span>            : {
+<span class="lineNum">      88 </span>            :         preempt_disable();
+<span class="lineNum">      89 </span>            :         if (do_raw_spin_trylock(lock)) {
+<span class="lineNum">      90 </span>            :                 spin_acquire(&amp;lock-&gt;dep_map, 0, 1, _RET_IP_);
+<span class="lineNum">      91 </span>            :                 return 1;
+<span class="lineNum">      92 </span>            :         }
+<span class="lineNum">      93 </span>            :         preempt_enable();
+<span class="lineNum">      94 </span>            :         return 0;
+<span class="lineNum">      95 </span>            : }
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            : /*
+<span class="lineNum">      98 </span>            :  * If lockdep is enabled then we use the non-preemption spin-ops
+<span class="lineNum">      99 </span>            :  * even on CONFIG_PREEMPT, because lockdep assumes that interrupts are
+<span class="lineNum">     100 </span>            :  * not re-enabled during lock-acquire (which the preempt-spin-ops do):
+<span class="lineNum">     101 </span>            :  */
+<span class="lineNum">     102 </span>            : #if !defined(CONFIG_GENERIC_LOCKBREAK) || defined(CONFIG_DEBUG_LOCK_ALLOC)
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : static inline unsigned long __raw_spin_lock_irqsave(raw_spinlock_t *lock)
+<span class="lineNum">     105 </span>            : {
+<span class="lineNum">     106 </span>            :         unsigned long flags;
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            :         local_irq_save(flags);
+<span class="lineNum">     109 </span>            :         preempt_disable();
+<span class="lineNum">     110 </span>            :         spin_acquire(&amp;lock-&gt;dep_map, 0, 0, _RET_IP_);
+<span class="lineNum">     111 </span>            :         /*
+<span class="lineNum">     112 </span>            :          * On lockdep we dont want the hand-coded irq-enable of
+<span class="lineNum">     113 </span>            :          * do_raw_spin_lock_flags() code, because lockdep assumes
+<span class="lineNum">     114 </span>            :          * that interrupts are not re-enabled during lock-acquire:
+<span class="lineNum">     115 </span>            :          */
+<span class="lineNum">     116 </span>            : #ifdef CONFIG_LOCKDEP
+<span class="lineNum">     117 </span>            :         LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
+<span class="lineNum">     118 </span>            : #else
+<span class="lineNum">     119 </span>            :         do_raw_spin_lock_flags(lock, &amp;flags);
+<span class="lineNum">     120 </span>            : #endif
+<span class="lineNum">     121 </span>            :         return flags;
+<span class="lineNum">     122 </span>            : }
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            : static inline void __raw_spin_lock_irq(raw_spinlock_t *lock)
+<span class="lineNum">     125 </span>            : {
+<span class="lineNum">     126 </span>            :         local_irq_disable();
+<span class="lineNum">     127 </span>            :         preempt_disable();
+<span class="lineNum">     128 </span>            :         spin_acquire(&amp;lock-&gt;dep_map, 0, 0, _RET_IP_);
+<span class="lineNum">     129 </span>            :         LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
+<span class="lineNum">     130 </span>            : }
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : static inline void __raw_spin_lock_bh(raw_spinlock_t *lock)
+<span class="lineNum">     133 </span>            : {
+<span class="lineNum">     134 </span>            :         __local_bh_disable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
+<span class="lineNum">     135 </span>            :         spin_acquire(&amp;lock-&gt;dep_map, 0, 0, _RET_IP_);
+<span class="lineNum">     136 </span>            :         LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
+<span class="lineNum">     137 </span>            : }
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : static inline void __raw_spin_lock(raw_spinlock_t *lock)
+<span class="lineNum">     140 </span>            : {
+<span class="lineNum">     141 </span>            :         preempt_disable();
+<span class="lineNum">     142 </span>            :         spin_acquire(&amp;lock-&gt;dep_map, 0, 0, _RET_IP_);
+<span class="lineNum">     143 </span>            :         LOCK_CONTENDED(lock, do_raw_spin_trylock, do_raw_spin_lock);
+<span class="lineNum">     144 </span>            : }
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            : #endif /* !CONFIG_GENERIC_LOCKBREAK || CONFIG_DEBUG_LOCK_ALLOC */
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            : static inline void __raw_spin_unlock(raw_spinlock_t *lock)
+<span class="lineNum">     149 </span>            : {
+<span class="lineNum">     150 </span>            :         spin_release(&amp;lock-&gt;dep_map, 1, _RET_IP_);
+<span class="lineNum">     151 </span>            :         do_raw_spin_unlock(lock);
+<span class="lineNum">     152 </span><span class="lineCov">   21594974 :         preempt_enable();</span>
+<span class="lineNum">     153 </span>            : }
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            : static inline void __raw_spin_unlock_irqrestore(raw_spinlock_t *lock,
+<span class="lineNum">     156 </span>            :                                             unsigned long flags)
+<span class="lineNum">     157 </span>            : {
+<span class="lineNum">     158 </span>            :         spin_release(&amp;lock-&gt;dep_map, 1, _RET_IP_);
+<span class="lineNum">     159 </span>            :         do_raw_spin_unlock(lock);
+<span class="lineNum">     160 </span>            :         local_irq_restore(flags);
+<span class="lineNum">     161 </span>            :         preempt_enable();
+<a name="162"><span class="lineNum">     162 </span>            : }</a>
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span><span class="lineCov">    2361091 : static inline void __raw_spin_unlock_irq(raw_spinlock_t *lock)</span>
+<span class="lineNum">     165 </span>            : {
+<span class="lineNum">     166 </span>            :         spin_release(&amp;lock-&gt;dep_map, 1, _RET_IP_);
+<span class="lineNum">     167 </span>            :         do_raw_spin_unlock(lock);
+<span class="lineNum">     168 </span>            :         local_irq_enable();
+<span class="lineNum">     169 </span><span class="lineCov">    2361091 :         preempt_enable();</span>
+<span class="lineNum">     170 </span><span class="lineCov">    2361094 : }</span>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            : static inline void __raw_spin_unlock_bh(raw_spinlock_t *lock)
+<span class="lineNum">     173 </span>            : {
+<span class="lineNum">     174 </span>            :         spin_release(&amp;lock-&gt;dep_map, 1, _RET_IP_);
+<span class="lineNum">     175 </span>            :         do_raw_spin_unlock(lock);
+<span class="lineNum">     176 </span>            :         __local_bh_enable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
+<span class="lineNum">     177 </span>            : }
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            : static inline int __raw_spin_trylock_bh(raw_spinlock_t *lock)
+<span class="lineNum">     180 </span>            : {
+<span class="lineNum">     181 </span>            :         __local_bh_disable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
+<span class="lineNum">     182 </span>            :         if (do_raw_spin_trylock(lock)) {
+<span class="lineNum">     183 </span>            :                 spin_acquire(&amp;lock-&gt;dep_map, 0, 1, _RET_IP_);
+<span class="lineNum">     184 </span>            :                 return 1;
+<span class="lineNum">     185 </span>            :         }
+<span class="lineNum">     186 </span>            :         __local_bh_enable_ip(_RET_IP_, SOFTIRQ_LOCK_OFFSET);
+<span class="lineNum">     187 </span>            :         return 0;
+<span class="lineNum">     188 </span>            : }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : #include &lt;linux/rwlock_api_smp.h&gt;
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span>            : #endif /* __LINUX_SPINLOCK_API_SMP_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

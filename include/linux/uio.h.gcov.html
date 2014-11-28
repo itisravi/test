@@ -1,0 +1,207 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/uio.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - uio.h<span style="font-size: 80%;"> (source / <a href="uio.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  *      Berkeley style UIO structures   -       Alan Cox 1994.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  *              This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  *              modify it under the terms of the GNU General Public License
+<span class="lineNum">       6 </span>            :  *              as published by the Free Software Foundation; either version
+<span class="lineNum">       7 </span>            :  *              2 of the License, or (at your option) any later version.
+<span class="lineNum">       8 </span>            :  */
+<span class="lineNum">       9 </span>            : #ifndef __LINUX_UIO_H
+<span class="lineNum">      10 </span>            : #define __LINUX_UIO_H
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : #include &lt;linux/kernel.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;uapi/linux/uio.h&gt;
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : struct page;
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : struct kvec {
+<span class="lineNum">      18 </span>            :         void *iov_base; /* and that should *never* hold a userland pointer */
+<span class="lineNum">      19 </span>            :         size_t iov_len;
+<span class="lineNum">      20 </span>            : };
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : enum {
+<span class="lineNum">      23 </span>            :         ITER_IOVEC = 0,
+<span class="lineNum">      24 </span>            :         ITER_KVEC = 2,
+<span class="lineNum">      25 </span>            :         ITER_BVEC = 4,
+<span class="lineNum">      26 </span>            : };
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : struct iov_iter {
+<span class="lineNum">      29 </span>            :         int type;
+<span class="lineNum">      30 </span>            :         size_t iov_offset;
+<span class="lineNum">      31 </span>            :         size_t count;
+<span class="lineNum">      32 </span>            :         union {
+<span class="lineNum">      33 </span>            :                 const struct iovec *iov;
+<span class="lineNum">      34 </span>            :                 const struct bio_vec *bvec;
+<span class="lineNum">      35 </span>            :         };
+<span class="lineNum">      36 </span>            :         unsigned long nr_segs;
+<span class="lineNum">      37 </span>            : };
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : /*
+<span class="lineNum">      40 </span>            :  * Total number of bytes covered by an iovec.
+<span class="lineNum">      41 </span>            :  *
+<span class="lineNum">      42 </span>            :  * NOTE that it is not safe to use this function until all the iovec's
+<span class="lineNum">      43 </span>            :  * segment lengths have been validated.  Because the individual lengths can
+<span class="lineNum">      44 </span>            :  * overflow a size_t when added together.
+<span class="lineNum">      45 </span>            :  */
+<span class="lineNum">      46 </span>            : static inline size_t iov_length(const struct iovec *iov, unsigned long nr_segs)
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span>            :         unsigned long seg;
+<span class="lineNum">      49 </span>            :         size_t ret = 0;
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            :         for (seg = 0; seg &lt; nr_segs; seg++)
+<span class="lineNum">      52 </span>            :                 ret += iov[seg].iov_len;
+<span class="lineNum">      53 </span>            :         return ret;
+<span class="lineNum">      54 </span>            : }
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : static inline struct iovec iov_iter_iovec(const struct iov_iter *iter)
+<span class="lineNum">      57 </span>            : {
+<span class="lineNum">      58 </span>            :         return (struct iovec) {
+<span class="lineNum">      59 </span>            :                 .iov_base = iter-&gt;iov-&gt;iov_base + iter-&gt;iov_offset,
+<span class="lineNum">      60 </span>            :                 .iov_len = min(iter-&gt;count,
+<span class="lineNum">      61 </span>            :                                iter-&gt;iov-&gt;iov_len - iter-&gt;iov_offset),
+<span class="lineNum">      62 </span>            :         };
+<span class="lineNum">      63 </span>            : }
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : #define iov_for_each(iov, iter, start)                          \
+<span class="lineNum">      66 </span>            :         if (!((start).type &amp; ITER_BVEC))                    \
+<span class="lineNum">      67 </span>            :         for (iter = (start);                                    \
+<span class="lineNum">      68 </span>            :              (iter).count &amp;&amp;                                    \
+<span class="lineNum">      69 </span>            :              ((iov = iov_iter_iovec(&amp;(iter))), 1);          \
+<span class="lineNum">      70 </span>            :              iov_iter_advance(&amp;(iter), (iov).iov_len))
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : unsigned long iov_shorten(struct iovec *iov, unsigned long nr_segs, size_t to);
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            : size_t iov_iter_copy_from_user_atomic(struct page *page,
+<span class="lineNum">      75 </span>            :                 struct iov_iter *i, unsigned long offset, size_t bytes);
+<span class="lineNum">      76 </span>            : void iov_iter_advance(struct iov_iter *i, size_t bytes);
+<span class="lineNum">      77 </span>            : int iov_iter_fault_in_readable(struct iov_iter *i, size_t bytes);
+<span class="lineNum">      78 </span>            : size_t iov_iter_single_seg_count(const struct iov_iter *i);
+<span class="lineNum">      79 </span>            : size_t copy_page_to_iter(struct page *page, size_t offset, size_t bytes,
+<span class="lineNum">      80 </span>            :                          struct iov_iter *i);
+<span class="lineNum">      81 </span>            : size_t copy_page_from_iter(struct page *page, size_t offset, size_t bytes,
+<span class="lineNum">      82 </span>            :                          struct iov_iter *i);
+<span class="lineNum">      83 </span>            : unsigned long iov_iter_alignment(const struct iov_iter *i);
+<span class="lineNum">      84 </span>            : void iov_iter_init(struct iov_iter *i, int direction, const struct iovec *iov,
+<span class="lineNum">      85 </span>            :                         unsigned long nr_segs, size_t count);
+<span class="lineNum">      86 </span>            : ssize_t iov_iter_get_pages(struct iov_iter *i, struct page **pages,
+<span class="lineNum">      87 </span>            :                         size_t maxsize, unsigned maxpages, size_t *start);
+<span class="lineNum">      88 </span>            : ssize_t iov_iter_get_pages_alloc(struct iov_iter *i, struct page ***pages,
+<span class="lineNum">      89 </span>            :                         size_t maxsize, size_t *start);
+<span class="lineNum">      90 </span>            : int iov_iter_npages(const struct iov_iter *i, int maxpages);
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : static inline size_t iov_iter_count(struct iov_iter *i)
+<span class="lineNum">      93 </span>            : {
+<span class="lineNum">      94 </span>            :         return i-&gt;count;
+<span class="lineNum">      95 </span>            : }
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            : /*
+<span class="lineNum">      98 </span>            :  * Cap the iov_iter by given limit; note that the second argument is
+<span class="lineNum">      99 </span>            :  * *not* the new size - it's upper limit for such.  Passing it a value
+<span class="lineNum">     100 </span>            :  * greater than the amount of data in iov_iter is fine - it'll just do
+<span class="lineNum">     101 </span>            :  * nothing in that case.
+<span class="lineNum">     102 </span>            :  */
+<span class="lineNum">     103 </span>            : static inline void iov_iter_truncate(struct iov_iter *i, u64 count)
+<span class="lineNum">     104 </span>            : {
+<span class="lineNum">     105 </span>            :         /*
+<span class="lineNum">     106 </span>            :          * count doesn't have to fit in size_t - comparison extends both
+<span class="lineNum">     107 </span>            :          * operands to u64 here and any value that would be truncated by
+<span class="lineNum">     108 </span>            :          * conversion in assignement is by definition greater than all
+<span class="lineNum">     109 </span>            :          * values of size_t, including old i-&gt;count.
+<span class="lineNum">     110 </span>            :          */
+<span class="lineNum">     111 </span><span class="lineCov">     139356 :         if (i-&gt;count &gt; count)</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :                 i-&gt;count = count;</span>
+<span class="lineNum">     113 </span>            : }
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : /*
+<span class="lineNum">     116 </span>            :  * reexpand a previously truncated iterator; count must be no more than how much
+<span class="lineNum">     117 </span>            :  * we had shrunk it.
+<span class="lineNum">     118 </span>            :  */
+<span class="lineNum">     119 </span>            : static inline void iov_iter_reexpand(struct iov_iter *i, size_t count)
+<span class="lineNum">     120 </span>            : {
+<span class="lineNum">     121 </span>            :         i-&gt;count = count;
+<span class="lineNum">     122 </span>            : }
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            : int memcpy_fromiovec(unsigned char *kdata, struct iovec *iov, int len);
+<span class="lineNum">     125 </span>            : int memcpy_toiovec(struct iovec *iov, unsigned char *kdata, int len);
+<span class="lineNum">     126 </span>            : int memcpy_fromiovecend(unsigned char *kdata, const struct iovec *iov,
+<span class="lineNum">     127 </span>            :                         int offset, int len);
+<span class="lineNum">     128 </span>            : int memcpy_toiovecend(const struct iovec *v, unsigned char *kdata,
+<span class="lineNum">     129 </span>            :                       int offset, int len);
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/kref.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - kref.h<span style="font-size: 80%;"> (source / <a href="kref.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * kref.h - library routines for handling generic reference counted objects
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * Copyright (C) 2004 Greg Kroah-Hartman &lt;greg@kroah.com&gt;
+<span class="lineNum">       5 </span>            :  * Copyright (C) 2004 IBM Corp.
+<span class="lineNum">       6 </span>            :  *
+<span class="lineNum">       7 </span>            :  * based on kobject.h which was:
+<span class="lineNum">       8 </span>            :  * Copyright (C) 2002-2003 Patrick Mochel &lt;mochel@osdl.org&gt;
+<span class="lineNum">       9 </span>            :  * Copyright (C) 2002-2003 Open Source Development Labs
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * This file is released under the GPLv2.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  */
+<span class="lineNum">      14 </span>            : 
+<span class="lineNum">      15 </span>            : #ifndef _KREF_H_
+<span class="lineNum">      16 </span>            : #define _KREF_H_
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : #include &lt;linux/bug.h&gt;
+<span class="lineNum">      19 </span>            : #include &lt;linux/atomic.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/kernel.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/mutex.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;linux/spinlock.h&gt;
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : struct kref {
+<span class="lineNum">      25 </span>            :         atomic_t refcount;
+<span class="lineNum">      26 </span>            : };
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : /**
+<span class="lineNum">      29 </span>            :  * kref_init - initialize object.
+<span class="lineNum">      30 </span>            :  * @kref: object in question.
+<span class="lineNum">      31 </span>            :  */
+<span class="lineNum">      32 </span>            : static inline void kref_init(struct kref *kref)
+<span class="lineNum">      33 </span>            : {
+<span class="lineNum">      34 </span>            :         atomic_set(&amp;kref-&gt;refcount, 1);
+<span class="lineNum">      35 </span>            : }
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : /**
+<span class="lineNum">      38 </span>            :  * kref_get - increment refcount for object.
+<a name="39"><span class="lineNum">      39 </span>            :  * @kref: object.</a>
+<span class="lineNum">      40 </span>            :  */
+<span class="lineNum">      41 </span><span class="lineCov">      26766 : static inline void kref_get(struct kref *kref)</span>
+<span class="lineNum">      42 </span>            : {
+<span class="lineNum">      43 </span>            :         /* If refcount was 0 before incrementing then we have a race
+<span class="lineNum">      44 </span>            :          * condition when this kref is freeing by some other thread right now.
+<span class="lineNum">      45 </span>            :          * In this case one should use kref_get_unless_zero()
+<span class="lineNum">      46 </span>            :          */
+<span class="lineNum">      47 </span><span class="lineCov">      53550 :         WARN_ON_ONCE(atomic_inc_return(&amp;kref-&gt;refcount) &lt; 2);</span>
+<span class="lineNum">      48 </span><span class="lineCov">      26784 : }</span>
+<span class="lineNum">      49 </span>            : 
+<span class="lineNum">      50 </span>            : /**
+<span class="lineNum">      51 </span>            :  * kref_sub - subtract a number of refcounts for object.
+<span class="lineNum">      52 </span>            :  * @kref: object.
+<span class="lineNum">      53 </span>            :  * @count: Number of recounts to subtract.
+<span class="lineNum">      54 </span>            :  * @release: pointer to the function that will clean up the object when the
+<span class="lineNum">      55 </span>            :  *           last reference to the object is released.
+<span class="lineNum">      56 </span>            :  *           This pointer is required, and it is not acceptable to pass kfree
+<span class="lineNum">      57 </span>            :  *           in as this function.  If the caller does pass kfree to this
+<span class="lineNum">      58 </span>            :  *           function, you will be publicly mocked mercilessly by the kref
+<span class="lineNum">      59 </span>            :  *           maintainer, and anyone else who happens to notice it.  You have
+<span class="lineNum">      60 </span>            :  *           been warned.
+<span class="lineNum">      61 </span>            :  *
+<span class="lineNum">      62 </span>            :  * Subtract @count from the refcount, and if 0, call release().
+<span class="lineNum">      63 </span>            :  * Return 1 if the object was removed, otherwise return 0.  Beware, if this
+<span class="lineNum">      64 </span>            :  * function returns 0, you still can not count on the kref from remaining in
+<span class="lineNum">      65 </span>            :  * memory.  Only use the return value if you want to see if the kref is now
+<a name="66"><span class="lineNum">      66 </span>            :  * gone, not present.</a>
+<span class="lineNum">      67 </span>            :  */
+<span class="lineNum">      68 </span><span class="lineCov">      27223 : static inline int kref_sub(struct kref *kref, unsigned int count,</span>
+<span class="lineNum">      69 </span>            :              void (*release)(struct kref *kref))
+<span class="lineNum">      70 </span>            : {
+<span class="lineNum">      71 </span><span class="lineCov">      27223 :         WARN_ON(release == NULL);</span>
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span><span class="lineCov">      54465 :         if (atomic_sub_and_test((int) count, &amp;kref-&gt;refcount)) {</span>
+<span class="lineNum">      74 </span><span class="lineCov">        460 :                 release(kref);</span>
+<span class="lineNum">      75 </span><span class="lineCov">        460 :                 return 1;</span>
+<span class="lineNum">      76 </span>            :         }
+<span class="lineNum">      77 </span>            :         return 0;
+<span class="lineNum">      78 </span>            : }
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            : /**
+<span class="lineNum">      81 </span>            :  * kref_put - decrement refcount for object.
+<span class="lineNum">      82 </span>            :  * @kref: object.
+<span class="lineNum">      83 </span>            :  * @release: pointer to the function that will clean up the object when the
+<span class="lineNum">      84 </span>            :  *           last reference to the object is released.
+<span class="lineNum">      85 </span>            :  *           This pointer is required, and it is not acceptable to pass kfree
+<span class="lineNum">      86 </span>            :  *           in as this function.  If the caller does pass kfree to this
+<span class="lineNum">      87 </span>            :  *           function, you will be publicly mocked mercilessly by the kref
+<span class="lineNum">      88 </span>            :  *           maintainer, and anyone else who happens to notice it.  You have
+<span class="lineNum">      89 </span>            :  *           been warned.
+<span class="lineNum">      90 </span>            :  *
+<span class="lineNum">      91 </span>            :  * Decrement the refcount, and if 0, call release().
+<span class="lineNum">      92 </span>            :  * Return 1 if the object was removed, otherwise return 0.  Beware, if this
+<span class="lineNum">      93 </span>            :  * function returns 0, you still can not count on the kref from remaining in
+<span class="lineNum">      94 </span>            :  * memory.  Only use the return value if you want to see if the kref is now
+<span class="lineNum">      95 </span>            :  * gone, not present.
+<span class="lineNum">      96 </span>            :  */
+<span class="lineNum">      97 </span>            : static inline int kref_put(struct kref *kref, void (*release)(struct kref *kref))
+<span class="lineNum">      98 </span>            : {
+<span class="lineNum">      99 </span><span class="lineCov">      27254 :         return kref_sub(kref, 1, release);</span>
+<span class="lineNum">     100 </span>            : }
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : /**
+<span class="lineNum">     103 </span>            :  * kref_put_spinlock_irqsave - decrement refcount for object.
+<span class="lineNum">     104 </span>            :  * @kref: object.
+<span class="lineNum">     105 </span>            :  * @release: pointer to the function that will clean up the object when the
+<span class="lineNum">     106 </span>            :  *           last reference to the object is released.
+<span class="lineNum">     107 </span>            :  *           This pointer is required, and it is not acceptable to pass kfree
+<span class="lineNum">     108 </span>            :  *           in as this function.
+<span class="lineNum">     109 </span>            :  * @lock: lock to take in release case
+<span class="lineNum">     110 </span>            :  *
+<span class="lineNum">     111 </span>            :  * Behaves identical to kref_put with one exception.  If the reference count
+<span class="lineNum">     112 </span>            :  * drops to zero, the lock will be taken atomically wrt dropping the reference
+<span class="lineNum">     113 </span>            :  * count.  The release function has to call spin_unlock() without _irqrestore.
+<span class="lineNum">     114 </span>            :  */
+<span class="lineNum">     115 </span>            : static inline int kref_put_spinlock_irqsave(struct kref *kref,
+<span class="lineNum">     116 </span>            :                 void (*release)(struct kref *kref),
+<span class="lineNum">     117 </span>            :                 spinlock_t *lock)
+<span class="lineNum">     118 </span>            : {
+<span class="lineNum">     119 </span>            :         unsigned long flags;
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :         WARN_ON(release == NULL);
+<span class="lineNum">     122 </span>            :         if (atomic_add_unless(&amp;kref-&gt;refcount, -1, 1))
+<span class="lineNum">     123 </span>            :                 return 0;
+<span class="lineNum">     124 </span>            :         spin_lock_irqsave(lock, flags);
+<span class="lineNum">     125 </span>            :         if (atomic_dec_and_test(&amp;kref-&gt;refcount)) {
+<span class="lineNum">     126 </span>            :                 release(kref);
+<span class="lineNum">     127 </span>            :                 local_irq_restore(flags);
+<span class="lineNum">     128 </span>            :                 return 1;
+<span class="lineNum">     129 </span>            :         }
+<span class="lineNum">     130 </span>            :         spin_unlock_irqrestore(lock, flags);
+<span class="lineNum">     131 </span>            :         return 0;
+<span class="lineNum">     132 </span>            : }
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            : static inline int kref_put_mutex(struct kref *kref,
+<span class="lineNum">     135 </span>            :                                  void (*release)(struct kref *kref),
+<span class="lineNum">     136 </span>            :                                  struct mutex *lock)
+<span class="lineNum">     137 </span>            : {
+<span class="lineNum">     138 </span>            :         WARN_ON(release == NULL);
+<span class="lineNum">     139 </span>            :         if (unlikely(!atomic_add_unless(&amp;kref-&gt;refcount, -1, 1))) {
+<span class="lineNum">     140 </span>            :                 mutex_lock(lock);
+<span class="lineNum">     141 </span>            :                 if (unlikely(!atomic_dec_and_test(&amp;kref-&gt;refcount))) {
+<span class="lineNum">     142 </span>            :                         mutex_unlock(lock);
+<span class="lineNum">     143 </span>            :                         return 0;
+<span class="lineNum">     144 </span>            :                 }
+<span class="lineNum">     145 </span>            :                 release(kref);
+<span class="lineNum">     146 </span>            :                 return 1;
+<span class="lineNum">     147 </span>            :         }
+<span class="lineNum">     148 </span>            :         return 0;
+<span class="lineNum">     149 </span>            : }
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            : /**
+<span class="lineNum">     152 </span>            :  * kref_get_unless_zero - Increment refcount for object unless it is zero.
+<span class="lineNum">     153 </span>            :  * @kref: object.
+<span class="lineNum">     154 </span>            :  *
+<span class="lineNum">     155 </span>            :  * Return non-zero if the increment succeeded. Otherwise return 0.
+<span class="lineNum">     156 </span>            :  *
+<span class="lineNum">     157 </span>            :  * This function is intended to simplify locking around refcounting for
+<span class="lineNum">     158 </span>            :  * objects that can be looked up from a lookup structure, and which are
+<span class="lineNum">     159 </span>            :  * removed from that lookup structure in the object destructor.
+<span class="lineNum">     160 </span>            :  * Operations on such objects require at least a read lock around
+<span class="lineNum">     161 </span>            :  * lookup + kref_get, and a write lock around kref_put + remove from lookup
+<span class="lineNum">     162 </span>            :  * structure. Furthermore, RCU implementations become extremely tricky.
+<span class="lineNum">     163 </span>            :  * With a lookup followed by a kref_get_unless_zero *with return value check*
+<span class="lineNum">     164 </span>            :  * locking in the kref_put path can be deferred to the actual removal from
+<span class="lineNum">     165 </span>            :  * the lookup structure and RCU lookups become trivial.
+<span class="lineNum">     166 </span>            :  */
+<span class="lineNum">     167 </span>            : static inline int __must_check kref_get_unless_zero(struct kref *kref)
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span>            :         return atomic_add_unless(&amp;kref-&gt;refcount, 1, 0);
+<span class="lineNum">     170 </span>            : }
+<span class="lineNum">     171 </span>            : #endif /* _KREF_H_ */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

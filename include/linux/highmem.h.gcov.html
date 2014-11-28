@@ -1,0 +1,325 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/highmem.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - highmem.h<span style="font-size: 80%;"> (source / <a href="highmem.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntryMed">88.9 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_HIGHMEM_H</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_HIGHMEM_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;linux/fs.h&gt;
+<span class="lineNum">       5 </span>            : #include &lt;linux/kernel.h&gt;
+<span class="lineNum">       6 </span>            : #include &lt;linux/bug.h&gt;
+<span class="lineNum">       7 </span>            : #include &lt;linux/mm.h&gt;
+<span class="lineNum">       8 </span>            : #include &lt;linux/uaccess.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;linux/hardirq.h&gt;
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #include &lt;asm/cacheflush.h&gt;
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : #ifndef ARCH_HAS_FLUSH_ANON_PAGE
+<span class="lineNum">      14 </span>            : static inline void flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned long vmaddr)
+<span class="lineNum">      15 </span>            : {
+<span class="lineNum">      16 </span>            : }
+<span class="lineNum">      17 </span>            : #endif
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #ifndef ARCH_HAS_FLUSH_KERNEL_DCACHE_PAGE
+<span class="lineNum">      20 </span>            : static inline void flush_kernel_dcache_page(struct page *page)
+<span class="lineNum">      21 </span>            : {
+<span class="lineNum">      22 </span>            : }
+<span class="lineNum">      23 </span>            : static inline void flush_kernel_vmap_range(void *vaddr, int size)
+<span class="lineNum">      24 </span>            : {
+<span class="lineNum">      25 </span>            : }
+<span class="lineNum">      26 </span>            : static inline void invalidate_kernel_vmap_range(void *vaddr, int size)
+<span class="lineNum">      27 </span>            : {
+<span class="lineNum">      28 </span>            : }
+<span class="lineNum">      29 </span>            : #endif
+<span class="lineNum">      30 </span>            : 
+<span class="lineNum">      31 </span>            : #include &lt;asm/kmap_types.h&gt;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #ifdef CONFIG_HIGHMEM
+<span class="lineNum">      34 </span>            : #include &lt;asm/highmem.h&gt;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : /* declarations for linux/mm/highmem.c */
+<span class="lineNum">      37 </span>            : unsigned int nr_free_highpages(void);
+<span class="lineNum">      38 </span>            : extern unsigned long totalhigh_pages;
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : void kmap_flush_unused(void);
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : struct page *kmap_to_page(void *addr);
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : #else /* CONFIG_HIGHMEM */
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : static inline unsigned int nr_free_highpages(void) { return 0; }
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : static inline struct page *kmap_to_page(void *addr)
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span>            :         return virt_to_page(addr);
+<span class="lineNum">      51 </span>            : }
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : #define totalhigh_pages 0UL
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : #ifndef ARCH_HAS_KMAP
+<span class="lineNum">      56 </span>            : static inline void *kmap(struct page *page)
+<span class="lineNum">      57 </span>            : {
+<span class="lineNum">      58 </span><span class="lineCov">     413408 :         might_sleep();</span>
+<span class="lineNum">      59 </span>            :         return page_address(page);
+<span class="lineNum">      60 </span>            : }
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : static inline void kunmap(struct page *page)
+<span class="lineNum">      63 </span>            : {
+<span class="lineNum">      64 </span>            : }
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : static inline void *kmap_atomic(struct page *page)
+<span class="lineNum">      67 </span>            : {
+<span class="lineNum">      68 </span>            :         pagefault_disable();
+<span class="lineNum">      69 </span>            :         return page_address(page);
+<span class="lineNum">      70 </span>            : }
+<span class="lineNum">      71 </span>            : #define kmap_atomic_prot(page, prot)    kmap_atomic(page)
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : static inline void __kunmap_atomic(void *addr)
+<span class="lineNum">      74 </span>            : {
+<span class="lineNum">      75 </span>            :         pagefault_enable();
+<span class="lineNum">      76 </span>            : }
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : #define kmap_atomic_pfn(pfn)    kmap_atomic(pfn_to_page(pfn))
+<span class="lineNum">      79 </span>            : #define kmap_atomic_to_page(ptr)        virt_to_page(ptr)
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : #define kmap_flush_unused()     do {} while(0)
+<span class="lineNum">      82 </span>            : #endif
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : #endif /* CONFIG_HIGHMEM */
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : #if defined(CONFIG_HIGHMEM) || defined(CONFIG_X86_32)
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            : DECLARE_PER_CPU(int, __kmap_atomic_idx);
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            : static inline int kmap_atomic_idx_push(void)
+<span class="lineNum">      91 </span>            : {
+<span class="lineNum">      92 </span>            :         int idx = __this_cpu_inc_return(__kmap_atomic_idx) - 1;
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : #ifdef CONFIG_DEBUG_HIGHMEM
+<span class="lineNum">      95 </span>            :         WARN_ON_ONCE(in_irq() &amp;&amp; !irqs_disabled());
+<span class="lineNum">      96 </span>            :         BUG_ON(idx &gt;= KM_TYPE_NR);
+<span class="lineNum">      97 </span>            : #endif
+<span class="lineNum">      98 </span>            :         return idx;
+<span class="lineNum">      99 </span>            : }
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span>            : static inline int kmap_atomic_idx(void)
+<span class="lineNum">     102 </span>            : {
+<span class="lineNum">     103 </span>            :         return __this_cpu_read(__kmap_atomic_idx) - 1;
+<span class="lineNum">     104 </span>            : }
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            : static inline void kmap_atomic_idx_pop(void)
+<span class="lineNum">     107 </span>            : {
+<span class="lineNum">     108 </span>            : #ifdef CONFIG_DEBUG_HIGHMEM
+<span class="lineNum">     109 </span>            :         int idx = __this_cpu_dec_return(__kmap_atomic_idx);
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :         BUG_ON(idx &lt; 0);
+<span class="lineNum">     112 </span>            : #else
+<span class="lineNum">     113 </span>            :         __this_cpu_dec(__kmap_atomic_idx);
+<span class="lineNum">     114 </span>            : #endif
+<span class="lineNum">     115 </span>            : }
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            : #endif
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : /*
+<span class="lineNum">     120 </span>            :  * Prevent people trying to call kunmap_atomic() as if it were kunmap()
+<span class="lineNum">     121 </span>            :  * kunmap_atomic() should get the return value of kmap_atomic, not the page.
+<span class="lineNum">     122 </span>            :  */
+<span class="lineNum">     123 </span>            : #define kunmap_atomic(addr)                                     \
+<span class="lineNum">     124 </span>            : do {                                                            \
+<span class="lineNum">     125 </span>            :         BUILD_BUG_ON(__same_type((addr), struct page *));       \
+<span class="lineNum">     126 </span>            :         __kunmap_atomic(addr);                                  \
+<span class="lineNum">     127 </span>            : } while (0)
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : /* when CONFIG_HIGHMEM is not set these will be plain clear/copy_page */
+<span class="lineNum">     131 </span>            : #ifndef clear_user_highpage
+<span class="lineNum">     132 </span>            : static inline void clear_user_highpage(struct page *page, unsigned long vaddr)
+<span class="lineNum">     133 </span>            : {
+<span class="lineNum">     134 </span>            :         void *addr = kmap_atomic(page);
+<span class="lineNum">     135 </span>            :         clear_user_page(addr, vaddr, page);
+<span class="lineNum">     136 </span>            :         kunmap_atomic(addr);
+<span class="lineNum">     137 </span>            : }
+<span class="lineNum">     138 </span>            : #endif
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : #ifndef __HAVE_ARCH_ALLOC_ZEROED_USER_HIGHPAGE
+<span class="lineNum">     141 </span>            : /**
+<span class="lineNum">     142 </span>            :  * __alloc_zeroed_user_highpage - Allocate a zeroed HIGHMEM page for a VMA with caller-specified movable GFP flags
+<span class="lineNum">     143 </span>            :  * @movableflags: The GFP flags related to the pages future ability to move like __GFP_MOVABLE
+<span class="lineNum">     144 </span>            :  * @vma: The VMA the page is to be allocated for
+<span class="lineNum">     145 </span>            :  * @vaddr: The virtual address the page will be inserted into
+<span class="lineNum">     146 </span>            :  *
+<span class="lineNum">     147 </span>            :  * This function will allocate a page for a VMA but the caller is expected
+<span class="lineNum">     148 </span>            :  * to specify via movableflags whether the page will be movable in the
+<span class="lineNum">     149 </span>            :  * future or not
+<span class="lineNum">     150 </span>            :  *
+<span class="lineNum">     151 </span>            :  * An architecture may override this function by defining
+<span class="lineNum">     152 </span>            :  * __HAVE_ARCH_ALLOC_ZEROED_USER_HIGHPAGE and providing their own
+<span class="lineNum">     153 </span>            :  * implementation.
+<span class="lineNum">     154 </span>            :  */
+<span class="lineNum">     155 </span>            : static inline struct page *
+<span class="lineNum">     156 </span>            : __alloc_zeroed_user_highpage(gfp_t movableflags,
+<span class="lineNum">     157 </span>            :                         struct vm_area_struct *vma,
+<span class="lineNum">     158 </span>            :                         unsigned long vaddr)
+<span class="lineNum">     159 </span>            : {
+<span class="lineNum">     160 </span>            :         struct page *page = alloc_page_vma(GFP_HIGHUSER | movableflags,
+<span class="lineNum">     161 </span>            :                         vma, vaddr);
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            :         if (page)
+<span class="lineNum">     164 </span>            :                 clear_user_highpage(page, vaddr);
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            :         return page;
+<span class="lineNum">     167 </span>            : }
+<span class="lineNum">     168 </span>            : #endif
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            : /**
+<span class="lineNum">     171 </span>            :  * alloc_zeroed_user_highpage_movable - Allocate a zeroed HIGHMEM page for a VMA that the caller knows can move
+<span class="lineNum">     172 </span>            :  * @vma: The VMA the page is to be allocated for
+<span class="lineNum">     173 </span>            :  * @vaddr: The virtual address the page will be inserted into
+<span class="lineNum">     174 </span>            :  *
+<span class="lineNum">     175 </span>            :  * This function will allocate a page for a VMA that the caller knows will
+<span class="lineNum">     176 </span>            :  * be able to migrate in the future using move_pages() or reclaimed
+<span class="lineNum">     177 </span>            :  */
+<span class="lineNum">     178 </span>            : static inline struct page *
+<span class="lineNum">     179 </span>            : alloc_zeroed_user_highpage_movable(struct vm_area_struct *vma,
+<span class="lineNum">     180 </span>            :                                         unsigned long vaddr)
+<span class="lineNum">     181 </span>            : {
+<span class="lineNum">     182 </span>            :         return __alloc_zeroed_user_highpage(__GFP_MOVABLE, vma, vaddr);
+<span class="lineNum">     183 </span>            : }
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            : static inline void clear_highpage(struct page *page)
+<span class="lineNum">     186 </span>            : {
+<span class="lineNum">     187 </span>            :         void *kaddr = kmap_atomic(page);
+<span class="lineNum">     188 </span>            :         clear_page(kaddr);
+<span class="lineNum">     189 </span>            :         kunmap_atomic(kaddr);
+<a name="190"><span class="lineNum">     190 </span>            : }</a>
+<span class="lineNum">     191 </span>            : 
+<span class="lineNum">     192 </span><span class="lineCov">       2081 : static inline void zero_user_segments(struct page *page,</span>
+<span class="lineNum">     193 </span>            :         unsigned start1, unsigned end1,
+<span class="lineNum">     194 </span>            :         unsigned start2, unsigned end2)
+<span class="lineNum">     195 </span>            : {
+<span class="lineNum">     196 </span>            :         void *kaddr = kmap_atomic(page);
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineCov">       2081 :         BUG_ON(end1 &gt; PAGE_SIZE || end2 &gt; PAGE_SIZE);</span>
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineCov">       2081 :         if (end1 &gt; start1)</span>
+<span class="lineNum">     201 </span><span class="lineCov">       2081 :                 memset(kaddr + start1, 0, end1 - start1);</span>
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineCov">       2081 :         if (end2 &gt; start2)</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :                 memset(kaddr + start2, 0, end2 - start2);</span>
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            :         kunmap_atomic(kaddr);
+<span class="lineNum">     207 </span>            :         flush_dcache_page(page);
+<span class="lineNum">     208 </span><span class="lineCov">       2081 : }</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span>            : static inline void zero_user_segment(struct page *page,
+<span class="lineNum">     211 </span>            :         unsigned start, unsigned end)
+<span class="lineNum">     212 </span>            : {
+<span class="lineNum">     213 </span><span class="lineCov">       2081 :         zero_user_segments(page, start, end, 0, 0);</span>
+<span class="lineNum">     214 </span>            : }
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            : static inline void zero_user(struct page *page,
+<span class="lineNum">     217 </span>            :         unsigned start, unsigned size)
+<span class="lineNum">     218 </span>            : {
+<span class="lineNum">     219 </span>            :         zero_user_segments(page, start, start + size, 0, 0);
+<span class="lineNum">     220 </span>            : }
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            : #ifndef __HAVE_ARCH_COPY_USER_HIGHPAGE
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span>            : static inline void copy_user_highpage(struct page *to, struct page *from,
+<span class="lineNum">     225 </span>            :         unsigned long vaddr, struct vm_area_struct *vma)
+<span class="lineNum">     226 </span>            : {
+<span class="lineNum">     227 </span>            :         char *vfrom, *vto;
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span>            :         vfrom = kmap_atomic(from);
+<span class="lineNum">     230 </span>            :         vto = kmap_atomic(to);
+<span class="lineNum">     231 </span>            :         copy_user_page(vto, vfrom, vaddr, to);
+<span class="lineNum">     232 </span>            :         kunmap_atomic(vto);
+<span class="lineNum">     233 </span>            :         kunmap_atomic(vfrom);
+<span class="lineNum">     234 </span>            : }
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span>            : #endif
+<span class="lineNum">     237 </span>            : 
+<span class="lineNum">     238 </span>            : static inline void copy_highpage(struct page *to, struct page *from)
+<span class="lineNum">     239 </span>            : {
+<span class="lineNum">     240 </span>            :         char *vfrom, *vto;
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span>            :         vfrom = kmap_atomic(from);
+<span class="lineNum">     243 </span>            :         vto = kmap_atomic(to);
+<span class="lineNum">     244 </span>            :         copy_page(vto, vfrom);
+<span class="lineNum">     245 </span>            :         kunmap_atomic(vto);
+<span class="lineNum">     246 </span>            :         kunmap_atomic(vfrom);
+<span class="lineNum">     247 </span>            : }
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            : #endif /* _LINUX_HIGHMEM_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

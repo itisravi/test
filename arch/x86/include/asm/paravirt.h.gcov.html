@@ -1,0 +1,1066 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - arch/x86/include/asm/paravirt.h</title>
+  <link rel="stylesheet" type="text/css" href="../../../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../../../index.html">top level</a> - <a href="index.html">arch/x86/include/asm</a> - paravirt.h<span style="font-size: 80%;"> (source / <a href="paravirt.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">6</td>
+            <td class="headerCovTableEntryLo">16.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr><td><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _ASM_X86_PARAVIRT_H</a>
+<span class="lineNum">       2 </span>            : #define _ASM_X86_PARAVIRT_H
+<span class="lineNum">       3 </span>            : /* Various instructions on x86 need to be replaced for
+<span class="lineNum">       4 </span>            :  * para-virtualization: those hooks are defined here. */
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : #ifdef CONFIG_PARAVIRT
+<span class="lineNum">       7 </span>            : #include &lt;asm/pgtable_types.h&gt;
+<span class="lineNum">       8 </span>            : #include &lt;asm/asm.h&gt;
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : #include &lt;asm/paravirt_types.h&gt;
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : #ifndef __ASSEMBLY__
+<span class="lineNum">      13 </span>            : #include &lt;linux/bug.h&gt;
+<span class="lineNum">      14 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">      15 </span>            : #include &lt;linux/cpumask.h&gt;
+<span class="lineNum">      16 </span>            : 
+<span class="lineNum">      17 </span>            : static inline int paravirt_enabled(void)
+<span class="lineNum">      18 </span>            : {
+<span class="lineNum">      19 </span>            :         return pv_info.paravirt_enabled;
+<span class="lineNum">      20 </span>            : }
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : static inline void load_sp0(struct tss_struct *tss,
+<span class="lineNum">      23 </span>            :                              struct thread_struct *thread)
+<span class="lineNum">      24 </span>            : {
+<span class="lineNum">      25 </span>            :         PVOP_VCALL2(pv_cpu_ops.load_sp0, tss, thread);
+<span class="lineNum">      26 </span>            : }
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : /* The paravirtualized CPUID instruction. */
+<span class="lineNum">      29 </span>            : static inline void __cpuid(unsigned int *eax, unsigned int *ebx,
+<span class="lineNum">      30 </span>            :                            unsigned int *ecx, unsigned int *edx)
+<span class="lineNum">      31 </span>            : {
+<span class="lineNum">      32 </span>            :         PVOP_VCALL4(pv_cpu_ops.cpuid, eax, ebx, ecx, edx);
+<span class="lineNum">      33 </span>            : }
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : /*
+<span class="lineNum">      36 </span>            :  * These special macros can be used to get or set a debugging register
+<span class="lineNum">      37 </span>            :  */
+<span class="lineNum">      38 </span>            : static inline unsigned long paravirt_get_debugreg(int reg)
+<span class="lineNum">      39 </span>            : {
+<span class="lineNum">      40 </span>            :         return PVOP_CALL1(unsigned long, pv_cpu_ops.get_debugreg, reg);
+<span class="lineNum">      41 </span>            : }
+<span class="lineNum">      42 </span>            : #define get_debugreg(var, reg) var = paravirt_get_debugreg(reg)
+<span class="lineNum">      43 </span>            : static inline void set_debugreg(unsigned long val, int reg)
+<span class="lineNum">      44 </span>            : {
+<span class="lineNum">      45 </span>            :         PVOP_VCALL2(pv_cpu_ops.set_debugreg, reg, val);
+<span class="lineNum">      46 </span>            : }
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : static inline void clts(void)
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span>            :         PVOP_VCALL0(pv_cpu_ops.clts);
+<span class="lineNum">      51 </span>            : }
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : static inline unsigned long read_cr0(void)
+<span class="lineNum">      54 </span>            : {
+<span class="lineNum">      55 </span>            :         return PVOP_CALL0(unsigned long, pv_cpu_ops.read_cr0);
+<span class="lineNum">      56 </span>            : }
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : static inline void write_cr0(unsigned long x)
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span>            :         PVOP_VCALL1(pv_cpu_ops.write_cr0, x);
+<span class="lineNum">      61 </span>            : }
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : static inline unsigned long read_cr2(void)
+<span class="lineNum">      64 </span>            : {
+<span class="lineNum">      65 </span>            :         return PVOP_CALL0(unsigned long, pv_mmu_ops.read_cr2);
+<span class="lineNum">      66 </span>            : }
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : static inline void write_cr2(unsigned long x)
+<span class="lineNum">      69 </span>            : {
+<span class="lineNum">      70 </span>            :         PVOP_VCALL1(pv_mmu_ops.write_cr2, x);
+<span class="lineNum">      71 </span>            : }
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : static inline unsigned long read_cr3(void)
+<span class="lineNum">      74 </span>            : {
+<span class="lineNum">      75 </span>            :         return PVOP_CALL0(unsigned long, pv_mmu_ops.read_cr3);
+<span class="lineNum">      76 </span>            : }
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : static inline void write_cr3(unsigned long x)
+<span class="lineNum">      79 </span>            : {
+<span class="lineNum">      80 </span>            :         PVOP_VCALL1(pv_mmu_ops.write_cr3, x);
+<span class="lineNum">      81 </span>            : }
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : static inline unsigned long read_cr4(void)
+<span class="lineNum">      84 </span>            : {
+<span class="lineNum">      85 </span>            :         return PVOP_CALL0(unsigned long, pv_cpu_ops.read_cr4);
+<span class="lineNum">      86 </span>            : }
+<span class="lineNum">      87 </span>            : static inline unsigned long read_cr4_safe(void)
+<span class="lineNum">      88 </span>            : {
+<span class="lineNum">      89 </span>            :         return PVOP_CALL0(unsigned long, pv_cpu_ops.read_cr4_safe);
+<span class="lineNum">      90 </span>            : }
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : static inline void write_cr4(unsigned long x)
+<span class="lineNum">      93 </span>            : {
+<span class="lineNum">      94 </span>            :         PVOP_VCALL1(pv_cpu_ops.write_cr4, x);
+<span class="lineNum">      95 </span>            : }
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            : #ifdef CONFIG_X86_64
+<span class="lineNum">      98 </span>            : static inline unsigned long read_cr8(void)
+<span class="lineNum">      99 </span>            : {
+<span class="lineNum">     100 </span>            :         return PVOP_CALL0(unsigned long, pv_cpu_ops.read_cr8);
+<span class="lineNum">     101 </span>            : }
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            : static inline void write_cr8(unsigned long x)
+<span class="lineNum">     104 </span>            : {
+<span class="lineNum">     105 </span>            :         PVOP_VCALL1(pv_cpu_ops.write_cr8, x);
+<span class="lineNum">     106 </span>            : }
+<span class="lineNum">     107 </span>            : #endif
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            : static inline void arch_safe_halt(void)
+<span class="lineNum">     110 </span>            : {
+<span class="lineNum">     111 </span>            :         PVOP_VCALL0(pv_irq_ops.safe_halt);
+<span class="lineNum">     112 </span>            : }
+<span class="lineNum">     113 </span>            : 
+<span class="lineNum">     114 </span>            : static inline void halt(void)
+<span class="lineNum">     115 </span>            : {
+<span class="lineNum">     116 </span>            :         PVOP_VCALL0(pv_irq_ops.halt);
+<span class="lineNum">     117 </span>            : }
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : static inline void wbinvd(void)
+<span class="lineNum">     120 </span>            : {
+<span class="lineNum">     121 </span>            :         PVOP_VCALL0(pv_cpu_ops.wbinvd);
+<span class="lineNum">     122 </span>            : }
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            : #define get_kernel_rpl()  (pv_info.kernel_rpl)
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            : static inline u64 paravirt_read_msr(unsigned msr, int *err)
+<span class="lineNum">     127 </span>            : {
+<span class="lineNum">     128 </span>            :         return PVOP_CALL2(u64, pv_cpu_ops.read_msr, msr, err);
+<span class="lineNum">     129 </span>            : }
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            : static inline int paravirt_write_msr(unsigned msr, unsigned low, unsigned high)
+<span class="lineNum">     132 </span>            : {
+<span class="lineNum">     133 </span>            :         return PVOP_CALL3(int, pv_cpu_ops.write_msr, msr, low, high);
+<span class="lineNum">     134 </span>            : }
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            : /* These should all do BUG_ON(_err), but our headers are too tangled. */
+<span class="lineNum">     137 </span>            : #define rdmsr(msr, val1, val2)                  \
+<span class="lineNum">     138 </span>            : do {                                            \
+<span class="lineNum">     139 </span>            :         int _err;                               \
+<span class="lineNum">     140 </span>            :         u64 _l = paravirt_read_msr(msr, &amp;_err);     \
+<span class="lineNum">     141 </span>            :         val1 = (u32)_l;                         \
+<span class="lineNum">     142 </span>            :         val2 = _l &gt;&gt; 32;                  \
+<span class="lineNum">     143 </span>            : } while (0)
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            : #define wrmsr(msr, val1, val2)                  \
+<span class="lineNum">     146 </span>            : do {                                            \
+<span class="lineNum">     147 </span>            :         paravirt_write_msr(msr, val1, val2);    \
+<span class="lineNum">     148 </span>            : } while (0)
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span>            : #define rdmsrl(msr, val)                        \
+<span class="lineNum">     151 </span>            : do {                                            \
+<span class="lineNum">     152 </span>            :         int _err;                               \
+<span class="lineNum">     153 </span>            :         val = paravirt_read_msr(msr, &amp;_err);        \
+<span class="lineNum">     154 </span>            : } while (0)
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : #define wrmsrl(msr, val)        wrmsr(msr, (u32)((u64)(val)), ((u64)(val))&gt;&gt;32)
+<span class="lineNum">     157 </span>            : #define wrmsr_safe(msr, a, b)   paravirt_write_msr(msr, a, b)
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            : /* rdmsr with exception handling */
+<span class="lineNum">     160 </span>            : #define rdmsr_safe(msr, a, b)                   \
+<span class="lineNum">     161 </span>            : ({                                              \
+<span class="lineNum">     162 </span>            :         int _err;                               \
+<span class="lineNum">     163 </span>            :         u64 _l = paravirt_read_msr(msr, &amp;_err);     \
+<span class="lineNum">     164 </span>            :         (*a) = (u32)_l;                         \
+<span class="lineNum">     165 </span>            :         (*b) = _l &gt;&gt; 32;                  \
+<span class="lineNum">     166 </span>            :         _err;                                   \
+<span class="lineNum">     167 </span>            : })
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            : static inline int rdmsrl_safe(unsigned msr, unsigned long long *p)
+<span class="lineNum">     170 </span>            : {
+<span class="lineNum">     171 </span>            :         int err;
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            :         *p = paravirt_read_msr(msr, &amp;err);
+<span class="lineNum">     174 </span>            :         return err;
+<span class="lineNum">     175 </span>            : }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : static inline u64 paravirt_read_tsc(void)
+<span class="lineNum">     178 </span>            : {
+<span class="lineNum">     179 </span>            :         return PVOP_CALL0(u64, pv_cpu_ops.read_tsc);
+<span class="lineNum">     180 </span>            : }
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            : #define rdtscl(low)                             \
+<span class="lineNum">     183 </span>            : do {                                            \
+<span class="lineNum">     184 </span>            :         u64 _l = paravirt_read_tsc();           \
+<span class="lineNum">     185 </span>            :         low = (int)_l;                          \
+<span class="lineNum">     186 </span>            : } while (0)
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            : #define rdtscll(val) (val = paravirt_read_tsc())
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : static inline unsigned long long paravirt_sched_clock(void)
+<span class="lineNum">     191 </span>            : {
+<span class="lineNum">     192 </span>            :         return PVOP_CALL0(unsigned long long, pv_time_ops.sched_clock);
+<span class="lineNum">     193 </span>            : }
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            : struct static_key;
+<span class="lineNum">     196 </span>            : extern struct static_key paravirt_steal_enabled;
+<span class="lineNum">     197 </span>            : extern struct static_key paravirt_steal_rq_enabled;
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span>            : static inline u64 paravirt_steal_clock(int cpu)
+<span class="lineNum">     200 </span>            : {
+<span class="lineNum">     201 </span>            :         return PVOP_CALL1(u64, pv_time_ops.steal_clock, cpu);
+<span class="lineNum">     202 </span>            : }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : static inline unsigned long long paravirt_read_pmc(int counter)
+<span class="lineNum">     205 </span>            : {
+<span class="lineNum">     206 </span>            :         return PVOP_CALL1(u64, pv_cpu_ops.read_pmc, counter);
+<span class="lineNum">     207 </span>            : }
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            : #define rdpmc(counter, low, high)               \
+<span class="lineNum">     210 </span>            : do {                                            \
+<span class="lineNum">     211 </span>            :         u64 _l = paravirt_read_pmc(counter);    \
+<span class="lineNum">     212 </span>            :         low = (u32)_l;                          \
+<span class="lineNum">     213 </span>            :         high = _l &gt;&gt; 32;                  \
+<span class="lineNum">     214 </span>            : } while (0)
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            : #define rdpmcl(counter, val) ((val) = paravirt_read_pmc(counter))
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            : static inline unsigned long long paravirt_rdtscp(unsigned int *aux)
+<span class="lineNum">     219 </span>            : {
+<span class="lineNum">     220 </span>            :         return PVOP_CALL1(u64, pv_cpu_ops.read_tscp, aux);
+<span class="lineNum">     221 </span>            : }
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span>            : #define rdtscp(low, high, aux)                          \
+<span class="lineNum">     224 </span>            : do {                                                    \
+<span class="lineNum">     225 </span>            :         int __aux;                                      \
+<span class="lineNum">     226 </span>            :         unsigned long __val = paravirt_rdtscp(&amp;__aux);      \
+<span class="lineNum">     227 </span>            :         (low) = (u32)__val;                             \
+<span class="lineNum">     228 </span>            :         (high) = (u32)(__val &gt;&gt; 32);                      \
+<span class="lineNum">     229 </span>            :         (aux) = __aux;                                  \
+<span class="lineNum">     230 </span>            : } while (0)
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            : #define rdtscpll(val, aux)                              \
+<span class="lineNum">     233 </span>            : do {                                                    \
+<span class="lineNum">     234 </span>            :         unsigned long __aux;                            \
+<span class="lineNum">     235 </span>            :         val = paravirt_rdtscp(&amp;__aux);                      \
+<span class="lineNum">     236 </span>            :         (aux) = __aux;                                  \
+<span class="lineNum">     237 </span>            : } while (0)
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            : static inline void paravirt_alloc_ldt(struct desc_struct *ldt, unsigned entries)
+<span class="lineNum">     240 </span>            : {
+<span class="lineNum">     241 </span>            :         PVOP_VCALL2(pv_cpu_ops.alloc_ldt, ldt, entries);
+<span class="lineNum">     242 </span>            : }
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span>            : static inline void paravirt_free_ldt(struct desc_struct *ldt, unsigned entries)
+<span class="lineNum">     245 </span>            : {
+<span class="lineNum">     246 </span>            :         PVOP_VCALL2(pv_cpu_ops.free_ldt, ldt, entries);
+<span class="lineNum">     247 </span>            : }
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            : static inline void load_TR_desc(void)
+<span class="lineNum">     250 </span>            : {
+<span class="lineNum">     251 </span>            :         PVOP_VCALL0(pv_cpu_ops.load_tr_desc);
+<span class="lineNum">     252 </span>            : }
+<span class="lineNum">     253 </span>            : static inline void load_gdt(const struct desc_ptr *dtr)
+<span class="lineNum">     254 </span>            : {
+<span class="lineNum">     255 </span>            :         PVOP_VCALL1(pv_cpu_ops.load_gdt, dtr);
+<span class="lineNum">     256 </span>            : }
+<span class="lineNum">     257 </span>            : static inline void load_idt(const struct desc_ptr *dtr)
+<span class="lineNum">     258 </span>            : {
+<span class="lineNum">     259 </span>            :         PVOP_VCALL1(pv_cpu_ops.load_idt, dtr);
+<span class="lineNum">     260 </span>            : }
+<span class="lineNum">     261 </span>            : static inline void set_ldt(const void *addr, unsigned entries)
+<span class="lineNum">     262 </span>            : {
+<span class="lineNum">     263 </span>            :         PVOP_VCALL2(pv_cpu_ops.set_ldt, addr, entries);
+<span class="lineNum">     264 </span>            : }
+<span class="lineNum">     265 </span>            : static inline void store_idt(struct desc_ptr *dtr)
+<span class="lineNum">     266 </span>            : {
+<span class="lineNum">     267 </span>            :         PVOP_VCALL1(pv_cpu_ops.store_idt, dtr);
+<span class="lineNum">     268 </span>            : }
+<span class="lineNum">     269 </span>            : static inline unsigned long paravirt_store_tr(void)
+<span class="lineNum">     270 </span>            : {
+<span class="lineNum">     271 </span>            :         return PVOP_CALL0(unsigned long, pv_cpu_ops.store_tr);
+<span class="lineNum">     272 </span>            : }
+<span class="lineNum">     273 </span>            : #define store_tr(tr)    ((tr) = paravirt_store_tr())
+<span class="lineNum">     274 </span>            : static inline void load_TLS(struct thread_struct *t, unsigned cpu)
+<span class="lineNum">     275 </span>            : {
+<span class="lineNum">     276 </span>            :         PVOP_VCALL2(pv_cpu_ops.load_tls, t, cpu);
+<span class="lineNum">     277 </span>            : }
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span>            : #ifdef CONFIG_X86_64
+<span class="lineNum">     280 </span>            : static inline void load_gs_index(unsigned int gs)
+<span class="lineNum">     281 </span>            : {
+<span class="lineNum">     282 </span>            :         PVOP_VCALL1(pv_cpu_ops.load_gs_index, gs);
+<span class="lineNum">     283 </span>            : }
+<span class="lineNum">     284 </span>            : #endif
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            : static inline void write_ldt_entry(struct desc_struct *dt, int entry,
+<span class="lineNum">     287 </span>            :                                    const void *desc)
+<span class="lineNum">     288 </span>            : {
+<span class="lineNum">     289 </span>            :         PVOP_VCALL3(pv_cpu_ops.write_ldt_entry, dt, entry, desc);
+<span class="lineNum">     290 </span>            : }
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span>            : static inline void write_gdt_entry(struct desc_struct *dt, int entry,
+<span class="lineNum">     293 </span>            :                                    void *desc, int type)
+<span class="lineNum">     294 </span>            : {
+<span class="lineNum">     295 </span>            :         PVOP_VCALL4(pv_cpu_ops.write_gdt_entry, dt, entry, desc, type);
+<span class="lineNum">     296 </span>            : }
+<span class="lineNum">     297 </span>            : 
+<span class="lineNum">     298 </span>            : static inline void write_idt_entry(gate_desc *dt, int entry, const gate_desc *g)
+<span class="lineNum">     299 </span>            : {
+<span class="lineNum">     300 </span>            :         PVOP_VCALL3(pv_cpu_ops.write_idt_entry, dt, entry, g);
+<span class="lineNum">     301 </span>            : }
+<span class="lineNum">     302 </span>            : static inline void set_iopl_mask(unsigned mask)
+<span class="lineNum">     303 </span>            : {
+<span class="lineNum">     304 </span>            :         PVOP_VCALL1(pv_cpu_ops.set_iopl_mask, mask);
+<span class="lineNum">     305 </span>            : }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            : /* The paravirtualized I/O functions */
+<span class="lineNum">     308 </span>            : static inline void slow_down_io(void)
+<span class="lineNum">     309 </span>            : {
+<span class="lineNum">     310 </span>            :         pv_cpu_ops.io_delay();
+<span class="lineNum">     311 </span>            : #ifdef REALLY_SLOW_IO
+<span class="lineNum">     312 </span>            :         pv_cpu_ops.io_delay();
+<span class="lineNum">     313 </span>            :         pv_cpu_ops.io_delay();
+<span class="lineNum">     314 </span>            :         pv_cpu_ops.io_delay();
+<span class="lineNum">     315 </span>            : #endif
+<span class="lineNum">     316 </span>            : }
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            : #ifdef CONFIG_SMP
+<span class="lineNum">     319 </span>            : static inline void startup_ipi_hook(int phys_apicid, unsigned long start_eip,
+<span class="lineNum">     320 </span>            :                                     unsigned long start_esp)
+<span class="lineNum">     321 </span>            : {
+<span class="lineNum">     322 </span>            :         PVOP_VCALL3(pv_apic_ops.startup_ipi_hook,
+<span class="lineNum">     323 </span>            :                     phys_apicid, start_eip, start_esp);
+<span class="lineNum">     324 </span>            : }
+<span class="lineNum">     325 </span>            : #endif
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span>            : static inline void paravirt_activate_mm(struct mm_struct *prev,
+<span class="lineNum">     328 </span>            :                                         struct mm_struct *next)
+<span class="lineNum">     329 </span>            : {
+<span class="lineNum">     330 </span>            :         PVOP_VCALL2(pv_mmu_ops.activate_mm, prev, next);
+<span class="lineNum">     331 </span>            : }
+<span class="lineNum">     332 </span>            : 
+<span class="lineNum">     333 </span>            : static inline void arch_dup_mmap(struct mm_struct *oldmm,
+<span class="lineNum">     334 </span>            :                                  struct mm_struct *mm)
+<span class="lineNum">     335 </span>            : {
+<span class="lineNum">     336 </span>            :         PVOP_VCALL2(pv_mmu_ops.dup_mmap, oldmm, mm);
+<span class="lineNum">     337 </span>            : }
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span>            : static inline void arch_exit_mmap(struct mm_struct *mm)
+<span class="lineNum">     340 </span>            : {
+<span class="lineNum">     341 </span>            :         PVOP_VCALL1(pv_mmu_ops.exit_mmap, mm);
+<span class="lineNum">     342 </span>            : }
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            : static inline void __flush_tlb(void)
+<span class="lineNum">     345 </span>            : {
+<span class="lineNum">     346 </span>            :         PVOP_VCALL0(pv_mmu_ops.flush_tlb_user);
+<span class="lineNum">     347 </span>            : }
+<span class="lineNum">     348 </span>            : static inline void __flush_tlb_global(void)
+<span class="lineNum">     349 </span>            : {
+<span class="lineNum">     350 </span>            :         PVOP_VCALL0(pv_mmu_ops.flush_tlb_kernel);
+<span class="lineNum">     351 </span>            : }
+<span class="lineNum">     352 </span>            : static inline void __flush_tlb_single(unsigned long addr)
+<span class="lineNum">     353 </span>            : {
+<span class="lineNum">     354 </span>            :         PVOP_VCALL1(pv_mmu_ops.flush_tlb_single, addr);
+<span class="lineNum">     355 </span>            : }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span>            : static inline void flush_tlb_others(const struct cpumask *cpumask,
+<span class="lineNum">     358 </span>            :                                     struct mm_struct *mm,
+<span class="lineNum">     359 </span>            :                                     unsigned long start,
+<span class="lineNum">     360 </span>            :                                     unsigned long end)
+<span class="lineNum">     361 </span>            : {
+<span class="lineNum">     362 </span>            :         PVOP_VCALL4(pv_mmu_ops.flush_tlb_others, cpumask, mm, start, end);
+<span class="lineNum">     363 </span>            : }
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span>            : static inline int paravirt_pgd_alloc(struct mm_struct *mm)
+<span class="lineNum">     366 </span>            : {
+<span class="lineNum">     367 </span>            :         return PVOP_CALL1(int, pv_mmu_ops.pgd_alloc, mm);
+<span class="lineNum">     368 </span>            : }
+<span class="lineNum">     369 </span>            : 
+<span class="lineNum">     370 </span>            : static inline void paravirt_pgd_free(struct mm_struct *mm, pgd_t *pgd)
+<span class="lineNum">     371 </span>            : {
+<span class="lineNum">     372 </span>            :         PVOP_VCALL2(pv_mmu_ops.pgd_free, mm, pgd);
+<span class="lineNum">     373 </span>            : }
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span>            : static inline void paravirt_alloc_pte(struct mm_struct *mm, unsigned long pfn)
+<span class="lineNum">     376 </span>            : {
+<span class="lineNum">     377 </span>            :         PVOP_VCALL2(pv_mmu_ops.alloc_pte, mm, pfn);
+<span class="lineNum">     378 </span>            : }
+<span class="lineNum">     379 </span>            : static inline void paravirt_release_pte(unsigned long pfn)
+<span class="lineNum">     380 </span>            : {
+<span class="lineNum">     381 </span>            :         PVOP_VCALL1(pv_mmu_ops.release_pte, pfn);
+<span class="lineNum">     382 </span>            : }
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : static inline void paravirt_alloc_pmd(struct mm_struct *mm, unsigned long pfn)
+<span class="lineNum">     385 </span>            : {
+<span class="lineNum">     386 </span>            :         PVOP_VCALL2(pv_mmu_ops.alloc_pmd, mm, pfn);
+<span class="lineNum">     387 </span>            : }
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span>            : static inline void paravirt_release_pmd(unsigned long pfn)
+<span class="lineNum">     390 </span>            : {
+<span class="lineNum">     391 </span>            :         PVOP_VCALL1(pv_mmu_ops.release_pmd, pfn);
+<span class="lineNum">     392 </span>            : }
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            : static inline void paravirt_alloc_pud(struct mm_struct *mm, unsigned long pfn)
+<span class="lineNum">     395 </span>            : {
+<span class="lineNum">     396 </span>            :         PVOP_VCALL2(pv_mmu_ops.alloc_pud, mm, pfn);
+<span class="lineNum">     397 </span>            : }
+<span class="lineNum">     398 </span>            : static inline void paravirt_release_pud(unsigned long pfn)
+<span class="lineNum">     399 </span>            : {
+<span class="lineNum">     400 </span>            :         PVOP_VCALL1(pv_mmu_ops.release_pud, pfn);
+<span class="lineNum">     401 </span>            : }
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span>            : static inline void pte_update(struct mm_struct *mm, unsigned long addr,
+<span class="lineNum">     404 </span>            :                               pte_t *ptep)
+<span class="lineNum">     405 </span>            : {
+<span class="lineNum">     406 </span>            :         PVOP_VCALL3(pv_mmu_ops.pte_update, mm, addr, ptep);
+<span class="lineNum">     407 </span>            : }
+<span class="lineNum">     408 </span>            : static inline void pmd_update(struct mm_struct *mm, unsigned long addr,
+<span class="lineNum">     409 </span>            :                               pmd_t *pmdp)
+<span class="lineNum">     410 </span>            : {
+<span class="lineNum">     411 </span>            :         PVOP_VCALL3(pv_mmu_ops.pmd_update, mm, addr, pmdp);
+<span class="lineNum">     412 </span>            : }
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span>            : static inline void pte_update_defer(struct mm_struct *mm, unsigned long addr,
+<span class="lineNum">     415 </span>            :                                     pte_t *ptep)
+<span class="lineNum">     416 </span>            : {
+<span class="lineNum">     417 </span>            :         PVOP_VCALL3(pv_mmu_ops.pte_update_defer, mm, addr, ptep);
+<span class="lineNum">     418 </span>            : }
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span>            : static inline void pmd_update_defer(struct mm_struct *mm, unsigned long addr,
+<span class="lineNum">     421 </span>            :                                     pmd_t *pmdp)
+<span class="lineNum">     422 </span>            : {
+<span class="lineNum">     423 </span>            :         PVOP_VCALL3(pv_mmu_ops.pmd_update_defer, mm, addr, pmdp);
+<span class="lineNum">     424 </span>            : }
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span>            : static inline pte_t __pte(pteval_t val)
+<span class="lineNum">     427 </span>            : {
+<span class="lineNum">     428 </span>            :         pteval_t ret;
+<span class="lineNum">     429 </span>            : 
+<span class="lineNum">     430 </span>            :         if (sizeof(pteval_t) &gt; sizeof(long))
+<span class="lineNum">     431 </span>            :                 ret = PVOP_CALLEE2(pteval_t,
+<span class="lineNum">     432 </span>            :                                    pv_mmu_ops.make_pte,
+<span class="lineNum">     433 </span>            :                                    val, (u64)val &gt;&gt; 32);
+<span class="lineNum">     434 </span>            :         else
+<span class="lineNum">     435 </span>            :                 ret = PVOP_CALLEE1(pteval_t,
+<span class="lineNum">     436 </span>            :                                    pv_mmu_ops.make_pte,
+<span class="lineNum">     437 </span>            :                                    val);
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span>            :         return (pte_t) { .pte = ret };
+<span class="lineNum">     440 </span>            : }
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span>            : static inline pteval_t pte_val(pte_t pte)
+<span class="lineNum">     443 </span>            : {
+<span class="lineNum">     444 </span>            :         pteval_t ret;
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span>            :         if (sizeof(pteval_t) &gt; sizeof(long))
+<span class="lineNum">     447 </span>            :                 ret = PVOP_CALLEE2(pteval_t, pv_mmu_ops.pte_val,
+<span class="lineNum">     448 </span>            :                                    pte.pte, (u64)pte.pte &gt;&gt; 32);
+<span class="lineNum">     449 </span>            :         else
+<span class="lineNum">     450 </span>            :                 ret = PVOP_CALLEE1(pteval_t, pv_mmu_ops.pte_val,
+<span class="lineNum">     451 </span>            :                                    pte.pte);
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            :         return ret;
+<span class="lineNum">     454 </span>            : }
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span>            : static inline pgd_t __pgd(pgdval_t val)
+<span class="lineNum">     457 </span>            : {
+<span class="lineNum">     458 </span>            :         pgdval_t ret;
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span>            :         if (sizeof(pgdval_t) &gt; sizeof(long))
+<span class="lineNum">     461 </span>            :                 ret = PVOP_CALLEE2(pgdval_t, pv_mmu_ops.make_pgd,
+<span class="lineNum">     462 </span>            :                                    val, (u64)val &gt;&gt; 32);
+<span class="lineNum">     463 </span>            :         else
+<span class="lineNum">     464 </span>            :                 ret = PVOP_CALLEE1(pgdval_t, pv_mmu_ops.make_pgd,
+<span class="lineNum">     465 </span>            :                                    val);
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            :         return (pgd_t) { ret };
+<span class="lineNum">     468 </span>            : }
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span>            : static inline pgdval_t pgd_val(pgd_t pgd)
+<span class="lineNum">     471 </span>            : {
+<span class="lineNum">     472 </span>            :         pgdval_t ret;
+<span class="lineNum">     473 </span>            : 
+<span class="lineNum">     474 </span>            :         if (sizeof(pgdval_t) &gt; sizeof(long))
+<span class="lineNum">     475 </span>            :                 ret =  PVOP_CALLEE2(pgdval_t, pv_mmu_ops.pgd_val,
+<span class="lineNum">     476 </span>            :                                     pgd.pgd, (u64)pgd.pgd &gt;&gt; 32);
+<span class="lineNum">     477 </span>            :         else
+<span class="lineNum">     478 </span>            :                 ret =  PVOP_CALLEE1(pgdval_t, pv_mmu_ops.pgd_val,
+<span class="lineNum">     479 </span>            :                                     pgd.pgd);
+<span class="lineNum">     480 </span>            : 
+<span class="lineNum">     481 </span>            :         return ret;
+<span class="lineNum">     482 </span>            : }
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            : #define  __HAVE_ARCH_PTEP_MODIFY_PROT_TRANSACTION
+<span class="lineNum">     485 </span>            : static inline pte_t ptep_modify_prot_start(struct mm_struct *mm, unsigned long addr,
+<span class="lineNum">     486 </span>            :                                            pte_t *ptep)
+<span class="lineNum">     487 </span>            : {
+<span class="lineNum">     488 </span>            :         pteval_t ret;
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span>            :         ret = PVOP_CALL3(pteval_t, pv_mmu_ops.ptep_modify_prot_start,
+<span class="lineNum">     491 </span>            :                          mm, addr, ptep);
+<span class="lineNum">     492 </span>            : 
+<span class="lineNum">     493 </span>            :         return (pte_t) { .pte = ret };
+<span class="lineNum">     494 </span>            : }
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span>            : static inline void ptep_modify_prot_commit(struct mm_struct *mm, unsigned long addr,
+<span class="lineNum">     497 </span>            :                                            pte_t *ptep, pte_t pte)
+<span class="lineNum">     498 </span>            : {
+<span class="lineNum">     499 </span>            :         if (sizeof(pteval_t) &gt; sizeof(long))
+<span class="lineNum">     500 </span>            :                 /* 5 arg words */
+<span class="lineNum">     501 </span>            :                 pv_mmu_ops.ptep_modify_prot_commit(mm, addr, ptep, pte);
+<span class="lineNum">     502 </span>            :         else
+<span class="lineNum">     503 </span>            :                 PVOP_VCALL4(pv_mmu_ops.ptep_modify_prot_commit,
+<span class="lineNum">     504 </span>            :                             mm, addr, ptep, pte.pte);
+<span class="lineNum">     505 </span>            : }
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span>            : static inline void set_pte(pte_t *ptep, pte_t pte)
+<span class="lineNum">     508 </span>            : {
+<span class="lineNum">     509 </span>            :         if (sizeof(pteval_t) &gt; sizeof(long))
+<span class="lineNum">     510 </span>            :                 PVOP_VCALL3(pv_mmu_ops.set_pte, ptep,
+<span class="lineNum">     511 </span>            :                             pte.pte, (u64)pte.pte &gt;&gt; 32);
+<span class="lineNum">     512 </span>            :         else
+<span class="lineNum">     513 </span>            :                 PVOP_VCALL2(pv_mmu_ops.set_pte, ptep,
+<span class="lineNum">     514 </span>            :                             pte.pte);
+<span class="lineNum">     515 </span>            : }
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span>            : static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+<span class="lineNum">     518 </span>            :                               pte_t *ptep, pte_t pte)
+<span class="lineNum">     519 </span>            : {
+<span class="lineNum">     520 </span>            :         if (sizeof(pteval_t) &gt; sizeof(long))
+<span class="lineNum">     521 </span>            :                 /* 5 arg words */
+<span class="lineNum">     522 </span>            :                 pv_mmu_ops.set_pte_at(mm, addr, ptep, pte);
+<span class="lineNum">     523 </span>            :         else
+<span class="lineNum">     524 </span>            :                 PVOP_VCALL4(pv_mmu_ops.set_pte_at, mm, addr, ptep, pte.pte);
+<span class="lineNum">     525 </span>            : }
+<span class="lineNum">     526 </span>            : 
+<span class="lineNum">     527 </span>            : static inline void set_pmd_at(struct mm_struct *mm, unsigned long addr,
+<span class="lineNum">     528 </span>            :                               pmd_t *pmdp, pmd_t pmd)
+<span class="lineNum">     529 </span>            : {
+<span class="lineNum">     530 </span>            :         if (sizeof(pmdval_t) &gt; sizeof(long))
+<span class="lineNum">     531 </span>            :                 /* 5 arg words */
+<span class="lineNum">     532 </span>            :                 pv_mmu_ops.set_pmd_at(mm, addr, pmdp, pmd);
+<span class="lineNum">     533 </span>            :         else
+<span class="lineNum">     534 </span>            :                 PVOP_VCALL4(pv_mmu_ops.set_pmd_at, mm, addr, pmdp,
+<span class="lineNum">     535 </span>            :                             native_pmd_val(pmd));
+<span class="lineNum">     536 </span>            : }
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span>            : static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
+<span class="lineNum">     539 </span>            : {
+<span class="lineNum">     540 </span>            :         pmdval_t val = native_pmd_val(pmd);
+<span class="lineNum">     541 </span>            : 
+<span class="lineNum">     542 </span>            :         if (sizeof(pmdval_t) &gt; sizeof(long))
+<span class="lineNum">     543 </span>            :                 PVOP_VCALL3(pv_mmu_ops.set_pmd, pmdp, val, (u64)val &gt;&gt; 32);
+<span class="lineNum">     544 </span>            :         else
+<span class="lineNum">     545 </span>            :                 PVOP_VCALL2(pv_mmu_ops.set_pmd, pmdp, val);
+<span class="lineNum">     546 </span>            : }
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span>            : #if PAGETABLE_LEVELS &gt;= 3
+<span class="lineNum">     549 </span>            : static inline pmd_t __pmd(pmdval_t val)
+<span class="lineNum">     550 </span>            : {
+<span class="lineNum">     551 </span>            :         pmdval_t ret;
+<span class="lineNum">     552 </span>            : 
+<span class="lineNum">     553 </span>            :         if (sizeof(pmdval_t) &gt; sizeof(long))
+<span class="lineNum">     554 </span>            :                 ret = PVOP_CALLEE2(pmdval_t, pv_mmu_ops.make_pmd,
+<span class="lineNum">     555 </span>            :                                    val, (u64)val &gt;&gt; 32);
+<span class="lineNum">     556 </span>            :         else
+<span class="lineNum">     557 </span>            :                 ret = PVOP_CALLEE1(pmdval_t, pv_mmu_ops.make_pmd,
+<span class="lineNum">     558 </span>            :                                    val);
+<span class="lineNum">     559 </span>            : 
+<span class="lineNum">     560 </span>            :         return (pmd_t) { ret };
+<span class="lineNum">     561 </span>            : }
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span>            : static inline pmdval_t pmd_val(pmd_t pmd)
+<span class="lineNum">     564 </span>            : {
+<span class="lineNum">     565 </span>            :         pmdval_t ret;
+<span class="lineNum">     566 </span>            : 
+<span class="lineNum">     567 </span>            :         if (sizeof(pmdval_t) &gt; sizeof(long))
+<span class="lineNum">     568 </span>            :                 ret =  PVOP_CALLEE2(pmdval_t, pv_mmu_ops.pmd_val,
+<span class="lineNum">     569 </span>            :                                     pmd.pmd, (u64)pmd.pmd &gt;&gt; 32);
+<span class="lineNum">     570 </span>            :         else
+<span class="lineNum">     571 </span>            :                 ret =  PVOP_CALLEE1(pmdval_t, pv_mmu_ops.pmd_val,
+<span class="lineNum">     572 </span>            :                                     pmd.pmd);
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span>            :         return ret;
+<span class="lineNum">     575 </span>            : }
+<span class="lineNum">     576 </span>            : 
+<span class="lineNum">     577 </span>            : static inline void set_pud(pud_t *pudp, pud_t pud)
+<span class="lineNum">     578 </span>            : {
+<span class="lineNum">     579 </span>            :         pudval_t val = native_pud_val(pud);
+<span class="lineNum">     580 </span>            : 
+<span class="lineNum">     581 </span>            :         if (sizeof(pudval_t) &gt; sizeof(long))
+<span class="lineNum">     582 </span>            :                 PVOP_VCALL3(pv_mmu_ops.set_pud, pudp,
+<span class="lineNum">     583 </span>            :                             val, (u64)val &gt;&gt; 32);
+<span class="lineNum">     584 </span>            :         else
+<span class="lineNum">     585 </span>            :                 PVOP_VCALL2(pv_mmu_ops.set_pud, pudp,
+<span class="lineNum">     586 </span>            :                             val);
+<span class="lineNum">     587 </span>            : }
+<span class="lineNum">     588 </span>            : #if PAGETABLE_LEVELS == 4
+<span class="lineNum">     589 </span>            : static inline pud_t __pud(pudval_t val)
+<span class="lineNum">     590 </span>            : {
+<span class="lineNum">     591 </span>            :         pudval_t ret;
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span>            :         if (sizeof(pudval_t) &gt; sizeof(long))
+<span class="lineNum">     594 </span>            :                 ret = PVOP_CALLEE2(pudval_t, pv_mmu_ops.make_pud,
+<span class="lineNum">     595 </span>            :                                    val, (u64)val &gt;&gt; 32);
+<span class="lineNum">     596 </span>            :         else
+<span class="lineNum">     597 </span>            :                 ret = PVOP_CALLEE1(pudval_t, pv_mmu_ops.make_pud,
+<span class="lineNum">     598 </span>            :                                    val);
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span>            :         return (pud_t) { ret };
+<span class="lineNum">     601 </span>            : }
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            : static inline pudval_t pud_val(pud_t pud)
+<span class="lineNum">     604 </span>            : {
+<span class="lineNum">     605 </span>            :         pudval_t ret;
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span>            :         if (sizeof(pudval_t) &gt; sizeof(long))
+<span class="lineNum">     608 </span>            :                 ret =  PVOP_CALLEE2(pudval_t, pv_mmu_ops.pud_val,
+<span class="lineNum">     609 </span>            :                                     pud.pud, (u64)pud.pud &gt;&gt; 32);
+<span class="lineNum">     610 </span>            :         else
+<span class="lineNum">     611 </span>            :                 ret =  PVOP_CALLEE1(pudval_t, pv_mmu_ops.pud_val,
+<span class="lineNum">     612 </span>            :                                     pud.pud);
+<span class="lineNum">     613 </span>            : 
+<span class="lineNum">     614 </span>            :         return ret;
+<span class="lineNum">     615 </span>            : }
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span>            : static inline void set_pgd(pgd_t *pgdp, pgd_t pgd)
+<span class="lineNum">     618 </span>            : {
+<span class="lineNum">     619 </span>            :         pgdval_t val = native_pgd_val(pgd);
+<span class="lineNum">     620 </span>            : 
+<span class="lineNum">     621 </span>            :         if (sizeof(pgdval_t) &gt; sizeof(long))
+<span class="lineNum">     622 </span>            :                 PVOP_VCALL3(pv_mmu_ops.set_pgd, pgdp,
+<span class="lineNum">     623 </span>            :                             val, (u64)val &gt;&gt; 32);
+<span class="lineNum">     624 </span>            :         else
+<span class="lineNum">     625 </span>            :                 PVOP_VCALL2(pv_mmu_ops.set_pgd, pgdp,
+<span class="lineNum">     626 </span>            :                             val);
+<span class="lineNum">     627 </span>            : }
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span>            : static inline void pgd_clear(pgd_t *pgdp)
+<span class="lineNum">     630 </span>            : {
+<span class="lineNum">     631 </span>            :         set_pgd(pgdp, __pgd(0));
+<span class="lineNum">     632 </span>            : }
+<span class="lineNum">     633 </span>            : 
+<span class="lineNum">     634 </span>            : static inline void pud_clear(pud_t *pudp)
+<span class="lineNum">     635 </span>            : {
+<span class="lineNum">     636 </span>            :         set_pud(pudp, __pud(0));
+<span class="lineNum">     637 </span>            : }
+<span class="lineNum">     638 </span>            : 
+<span class="lineNum">     639 </span>            : #endif  /* PAGETABLE_LEVELS == 4 */
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span>            : #endif  /* PAGETABLE_LEVELS &gt;= 3 */
+<span class="lineNum">     642 </span>            : 
+<span class="lineNum">     643 </span>            : #ifdef CONFIG_X86_PAE
+<span class="lineNum">     644 </span>            : /* Special-case pte-setting operations for PAE, which can't update a
+<span class="lineNum">     645 </span>            :    64-bit pte atomically */
+<span class="lineNum">     646 </span>            : static inline void set_pte_atomic(pte_t *ptep, pte_t pte)
+<span class="lineNum">     647 </span>            : {
+<span class="lineNum">     648 </span>            :         PVOP_VCALL3(pv_mmu_ops.set_pte_atomic, ptep,
+<span class="lineNum">     649 </span>            :                     pte.pte, pte.pte &gt;&gt; 32);
+<span class="lineNum">     650 </span>            : }
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span>            : static inline void pte_clear(struct mm_struct *mm, unsigned long addr,
+<span class="lineNum">     653 </span>            :                              pte_t *ptep)
+<span class="lineNum">     654 </span>            : {
+<span class="lineNum">     655 </span>            :         PVOP_VCALL3(pv_mmu_ops.pte_clear, mm, addr, ptep);
+<span class="lineNum">     656 </span>            : }
+<span class="lineNum">     657 </span>            : 
+<span class="lineNum">     658 </span>            : static inline void pmd_clear(pmd_t *pmdp)
+<span class="lineNum">     659 </span>            : {
+<span class="lineNum">     660 </span>            :         PVOP_VCALL1(pv_mmu_ops.pmd_clear, pmdp);
+<span class="lineNum">     661 </span>            : }
+<span class="lineNum">     662 </span>            : #else  /* !CONFIG_X86_PAE */
+<span class="lineNum">     663 </span>            : static inline void set_pte_atomic(pte_t *ptep, pte_t pte)
+<span class="lineNum">     664 </span>            : {
+<span class="lineNum">     665 </span>            :         set_pte(ptep, pte);
+<span class="lineNum">     666 </span>            : }
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span>            : static inline void pte_clear(struct mm_struct *mm, unsigned long addr,
+<span class="lineNum">     669 </span>            :                              pte_t *ptep)
+<span class="lineNum">     670 </span>            : {
+<span class="lineNum">     671 </span>            :         set_pte_at(mm, addr, ptep, __pte(0));
+<span class="lineNum">     672 </span>            : }
+<span class="lineNum">     673 </span>            : 
+<span class="lineNum">     674 </span>            : static inline void pmd_clear(pmd_t *pmdp)
+<span class="lineNum">     675 </span>            : {
+<span class="lineNum">     676 </span>            :         set_pmd(pmdp, __pmd(0));
+<span class="lineNum">     677 </span>            : }
+<span class="lineNum">     678 </span>            : #endif  /* CONFIG_X86_PAE */
+<span class="lineNum">     679 </span>            : 
+<span class="lineNum">     680 </span>            : #define  __HAVE_ARCH_START_CONTEXT_SWITCH
+<span class="lineNum">     681 </span>            : static inline void arch_start_context_switch(struct task_struct *prev)
+<span class="lineNum">     682 </span>            : {
+<span class="lineNum">     683 </span>            :         PVOP_VCALL1(pv_cpu_ops.start_context_switch, prev);
+<span class="lineNum">     684 </span>            : }
+<span class="lineNum">     685 </span>            : 
+<span class="lineNum">     686 </span>            : static inline void arch_end_context_switch(struct task_struct *next)
+<span class="lineNum">     687 </span>            : {
+<span class="lineNum">     688 </span>            :         PVOP_VCALL1(pv_cpu_ops.end_context_switch, next);
+<span class="lineNum">     689 </span>            : }
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span>            : #define  __HAVE_ARCH_ENTER_LAZY_MMU_MODE
+<span class="lineNum">     692 </span>            : static inline void arch_enter_lazy_mmu_mode(void)
+<span class="lineNum">     693 </span>            : {
+<span class="lineNum">     694 </span>            :         PVOP_VCALL0(pv_mmu_ops.lazy_mode.enter);
+<span class="lineNum">     695 </span>            : }
+<span class="lineNum">     696 </span>            : 
+<span class="lineNum">     697 </span>            : static inline void arch_leave_lazy_mmu_mode(void)
+<span class="lineNum">     698 </span>            : {
+<span class="lineNum">     699 </span>            :         PVOP_VCALL0(pv_mmu_ops.lazy_mode.leave);
+<span class="lineNum">     700 </span>            : }
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span>            : static inline void arch_flush_lazy_mmu_mode(void)
+<span class="lineNum">     703 </span>            : {
+<span class="lineNum">     704 </span>            :         PVOP_VCALL0(pv_mmu_ops.lazy_mode.flush);
+<span class="lineNum">     705 </span>            : }
+<span class="lineNum">     706 </span>            : 
+<span class="lineNum">     707 </span>            : static inline void __set_fixmap(unsigned /* enum fixed_addresses */ idx,
+<span class="lineNum">     708 </span>            :                                 phys_addr_t phys, pgprot_t flags)
+<span class="lineNum">     709 </span>            : {
+<span class="lineNum">     710 </span>            :         pv_mmu_ops.set_fixmap(idx, phys, flags);
+<span class="lineNum">     711 </span>            : }
+<span class="lineNum">     712 </span>            : 
+<span class="lineNum">     713 </span>            : #if defined(CONFIG_SMP) &amp;&amp; defined(CONFIG_PARAVIRT_SPINLOCKS)
+<span class="lineNum">     714 </span>            : 
+<span class="lineNum">     715 </span>            : static __always_inline void __ticket_lock_spinning(struct arch_spinlock *lock,
+<span class="lineNum">     716 </span>            :                                                         __ticket_t ticket)
+<span class="lineNum">     717 </span>            : {
+<span class="lineNum">     718 </span>            :         PVOP_VCALLEE2(pv_lock_ops.lock_spinning, lock, ticket);
+<span class="lineNum">     719 </span>            : }
+<span class="lineNum">     720 </span>            : 
+<span class="lineNum">     721 </span>            : static __always_inline void __ticket_unlock_kick(struct arch_spinlock *lock,
+<span class="lineNum">     722 </span>            :                                                         __ticket_t ticket)
+<span class="lineNum">     723 </span>            : {
+<span class="lineNum">     724 </span>            :         PVOP_VCALL2(pv_lock_ops.unlock_kick, lock, ticket);
+<span class="lineNum">     725 </span>            : }
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span>            : #endif
+<span class="lineNum">     728 </span>            : 
+<span class="lineNum">     729 </span>            : #ifdef CONFIG_X86_32
+<span class="lineNum">     730 </span>            : #define PV_SAVE_REGS &quot;pushl %ecx; pushl %edx;&quot;
+<span class="lineNum">     731 </span>            : #define PV_RESTORE_REGS &quot;popl %edx; popl %ecx;&quot;
+<span class="lineNum">     732 </span>            : 
+<span class="lineNum">     733 </span>            : /* save and restore all caller-save registers, except return value */
+<span class="lineNum">     734 </span>            : #define PV_SAVE_ALL_CALLER_REGS         &quot;pushl %ecx;&quot;
+<span class="lineNum">     735 </span>            : #define PV_RESTORE_ALL_CALLER_REGS      &quot;popl  %ecx;&quot;
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span>            : #define PV_FLAGS_ARG &quot;0&quot;
+<span class="lineNum">     738 </span>            : #define PV_EXTRA_CLOBBERS
+<span class="lineNum">     739 </span>            : #define PV_VEXTRA_CLOBBERS
+<span class="lineNum">     740 </span>            : #else
+<span class="lineNum">     741 </span>            : /* save and restore all caller-save registers, except return value */
+<span class="lineNum">     742 </span>            : #define PV_SAVE_ALL_CALLER_REGS                                         \
+<span class="lineNum">     743 </span>            :         &quot;push %rcx;&quot;                                                  \
+<span class="lineNum">     744 </span>            :         &quot;push %rdx;&quot;                                                  \
+<span class="lineNum">     745 </span>            :         &quot;push %rsi;&quot;                                                  \
+<span class="lineNum">     746 </span>            :         &quot;push %rdi;&quot;                                                  \
+<span class="lineNum">     747 </span>            :         &quot;push %r8;&quot;                                                   \
+<span class="lineNum">     748 </span>            :         &quot;push %r9;&quot;                                                   \
+<span class="lineNum">     749 </span>            :         &quot;push %r10;&quot;                                                  \
+<span class="lineNum">     750 </span>            :         &quot;push %r11;&quot;
+<span class="lineNum">     751 </span>            : #define PV_RESTORE_ALL_CALLER_REGS                                      \
+<span class="lineNum">     752 </span>            :         &quot;pop %r11;&quot;                                                   \
+<span class="lineNum">     753 </span>            :         &quot;pop %r10;&quot;                                                   \
+<span class="lineNum">     754 </span>            :         &quot;pop %r9;&quot;                                                    \
+<span class="lineNum">     755 </span>            :         &quot;pop %r8;&quot;                                                    \
+<span class="lineNum">     756 </span>            :         &quot;pop %rdi;&quot;                                                   \
+<span class="lineNum">     757 </span>            :         &quot;pop %rsi;&quot;                                                   \
+<span class="lineNum">     758 </span>            :         &quot;pop %rdx;&quot;                                                   \
+<span class="lineNum">     759 </span>            :         &quot;pop %rcx;&quot;
+<span class="lineNum">     760 </span>            : 
+<span class="lineNum">     761 </span>            : /* We save some registers, but all of them, that's too much. We clobber all
+<span class="lineNum">     762 </span>            :  * caller saved registers but the argument parameter */
+<span class="lineNum">     763 </span>            : #define PV_SAVE_REGS &quot;pushq %%rdi;&quot;
+<span class="lineNum">     764 </span>            : #define PV_RESTORE_REGS &quot;popq %%rdi;&quot;
+<span class="lineNum">     765 </span>            : #define PV_EXTRA_CLOBBERS EXTRA_CLOBBERS, &quot;rcx&quot; , &quot;rdx&quot;, &quot;rsi&quot;
+<span class="lineNum">     766 </span>            : #define PV_VEXTRA_CLOBBERS EXTRA_CLOBBERS, &quot;rdi&quot;, &quot;rcx&quot; , &quot;rdx&quot;, &quot;rsi&quot;
+<span class="lineNum">     767 </span>            : #define PV_FLAGS_ARG &quot;D&quot;
+<span class="lineNum">     768 </span>            : #endif
+<span class="lineNum">     769 </span>            : 
+<span class="lineNum">     770 </span>            : /*
+<span class="lineNum">     771 </span>            :  * Generate a thunk around a function which saves all caller-save
+<span class="lineNum">     772 </span>            :  * registers except for the return value.  This allows C functions to
+<span class="lineNum">     773 </span>            :  * be called from assembler code where fewer than normal registers are
+<span class="lineNum">     774 </span>            :  * available.  It may also help code generation around calls from C
+<span class="lineNum">     775 </span>            :  * code if the common case doesn't use many registers.
+<span class="lineNum">     776 </span>            :  *
+<span class="lineNum">     777 </span>            :  * When a callee is wrapped in a thunk, the caller can assume that all
+<span class="lineNum">     778 </span>            :  * arg regs and all scratch registers are preserved across the
+<span class="lineNum">     779 </span>            :  * call. The return value in rax/eax will not be saved, even for void
+<span class="lineNum">     780 </span>            :  * functions.
+<span class="lineNum">     781 </span>            :  */
+<span class="lineNum">     782 </span>            : #define PV_CALLEE_SAVE_REGS_THUNK(func)                                 \
+<span class="lineNum">     783 </span>            :         extern typeof(func) __raw_callee_save_##func;                   \
+<span class="lineNum">     784 </span>            :                                                                         \
+<span class="lineNum">     785 </span>            :         asm(&quot;.pushsection .text;&quot;                                     \
+<span class="lineNum">     786 </span>            :             &quot;.globl __raw_callee_save_&quot; #func &quot; ; &quot;                 \
+<span class="lineNum">     787 </span>            :             &quot;__raw_callee_save_&quot; #func &quot;: &quot;                         \
+<span class="lineNum">     788 </span>            :             PV_SAVE_ALL_CALLER_REGS                                     \
+<span class="lineNum">     789 </span>            :             &quot;call &quot; #func &quot;;&quot;                                               \
+<span class="lineNum">     790 </span>            :             PV_RESTORE_ALL_CALLER_REGS                                  \
+<span class="lineNum">     791 </span>            :             &quot;ret;&quot;                                                    \
+<span class="lineNum">     792 </span>            :             &quot;.popsection&quot;)
+<span class="lineNum">     793 </span>            : 
+<span class="lineNum">     794 </span>            : /* Get a reference to a callee-save function */
+<span class="lineNum">     795 </span>            : #define PV_CALLEE_SAVE(func)                                            \
+<span class="lineNum">     796 </span>            :         ((struct paravirt_callee_save) { __raw_callee_save_##func })
+<span class="lineNum">     797 </span>            : 
+<span class="lineNum">     798 </span>            : /* Promise that &quot;func&quot; already uses the right calling convention */
+<span class="lineNum">     799 </span>            : #define __PV_IS_CALLEE_SAVE(func)                       \
+<span class="lineNum">     800 </span>            :         ((struct paravirt_callee_save) { func })
+<span class="lineNum">     801 </span>            : 
+<a name="802"><span class="lineNum">     802 </span>            : static inline notrace unsigned long arch_local_save_flags(void)</a>
+<span class="lineNum">     803 </span>            : {
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :         return PVOP_CALLEE0(unsigned long, pv_irq_ops.save_fl);</span>
+<span class="lineNum">     805 </span>            : }
+<span class="lineNum">     806 </span>            : 
+<span class="lineNum">     807 </span>            : static inline notrace void arch_local_irq_restore(unsigned long f)
+<span class="lineNum">     808 </span>            : {
+<span class="lineNum">     809 </span><span class="lineNoCov">          0 :         PVOP_VCALLEE1(pv_irq_ops.restore_fl, f);</span>
+<span class="lineNum">     810 </span>            : }
+<span class="lineNum">     811 </span>            : 
+<span class="lineNum">     812 </span>            : static inline notrace void arch_local_irq_disable(void)
+<span class="lineNum">     813 </span>            : {
+<span class="lineNum">     814 </span><span class="lineNoCov">          0 :         PVOP_VCALLEE0(pv_irq_ops.irq_disable);</span>
+<span class="lineNum">     815 </span>            : }
+<span class="lineNum">     816 </span>            : 
+<span class="lineNum">     817 </span>            : static inline notrace void arch_local_irq_enable(void)
+<span class="lineNum">     818 </span>            : {
+<span class="lineNum">     819 </span><span class="lineCov">    2361085 :         PVOP_VCALLEE0(pv_irq_ops.irq_enable);</span>
+<span class="lineNum">     820 </span>            : }
+<span class="lineNum">     821 </span>            : 
+<span class="lineNum">     822 </span><span class="lineNoCov">          0 : static inline notrace unsigned long arch_local_irq_save(void)</span>
+<span class="lineNum">     823 </span>            : {
+<span class="lineNum">     824 </span>            :         unsigned long f;
+<span class="lineNum">     825 </span>            : 
+<span class="lineNum">     826 </span>            :         f = arch_local_save_flags();
+<span class="lineNum">     827 </span>            :         arch_local_irq_disable();
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :         return f;</span>
+<span class="lineNum">     829 </span>            : }
+<span class="lineNum">     830 </span>            : 
+<span class="lineNum">     831 </span>            : 
+<span class="lineNum">     832 </span>            : /* Make sure as little as possible of this mess escapes. */
+<span class="lineNum">     833 </span>            : #undef PARAVIRT_CALL
+<span class="lineNum">     834 </span>            : #undef __PVOP_CALL
+<span class="lineNum">     835 </span>            : #undef __PVOP_VCALL
+<span class="lineNum">     836 </span>            : #undef PVOP_VCALL0
+<span class="lineNum">     837 </span>            : #undef PVOP_CALL0
+<span class="lineNum">     838 </span>            : #undef PVOP_VCALL1
+<span class="lineNum">     839 </span>            : #undef PVOP_CALL1
+<span class="lineNum">     840 </span>            : #undef PVOP_VCALL2
+<span class="lineNum">     841 </span>            : #undef PVOP_CALL2
+<span class="lineNum">     842 </span>            : #undef PVOP_VCALL3
+<span class="lineNum">     843 </span>            : #undef PVOP_CALL3
+<span class="lineNum">     844 </span>            : #undef PVOP_VCALL4
+<span class="lineNum">     845 </span>            : #undef PVOP_CALL4
+<span class="lineNum">     846 </span>            : 
+<span class="lineNum">     847 </span>            : extern void default_banner(void);
+<span class="lineNum">     848 </span>            : 
+<span class="lineNum">     849 </span>            : #else  /* __ASSEMBLY__ */
+<span class="lineNum">     850 </span>            : 
+<span class="lineNum">     851 </span>            : #define _PVSITE(ptype, clobbers, ops, word, algn)       \
+<span class="lineNum">     852 </span>            : 771:;                                           \
+<span class="lineNum">     853 </span>            :         ops;                                    \
+<span class="lineNum">     854 </span>            : 772:;                                           \
+<span class="lineNum">     855 </span>            :         .pushsection .parainstructions,&quot;a&quot;;   \
+<span class="lineNum">     856 </span>            :          .align algn;                           \
+<span class="lineNum">     857 </span>            :          word 771b;                             \
+<span class="lineNum">     858 </span>            :          .byte ptype;                           \
+<span class="lineNum">     859 </span>            :          .byte 772b-771b;                       \
+<span class="lineNum">     860 </span>            :          .short clobbers;                       \
+<span class="lineNum">     861 </span>            :         .popsection
+<span class="lineNum">     862 </span>            : 
+<span class="lineNum">     863 </span>            : 
+<span class="lineNum">     864 </span>            : #define COND_PUSH(set, mask, reg)                       \
+<span class="lineNum">     865 </span>            :         .if ((~(set)) &amp; mask); push %reg; .endif
+<span class="lineNum">     866 </span>            : #define COND_POP(set, mask, reg)                        \
+<span class="lineNum">     867 </span>            :         .if ((~(set)) &amp; mask); pop %reg; .endif
+<span class="lineNum">     868 </span>            : 
+<span class="lineNum">     869 </span>            : #ifdef CONFIG_X86_64
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span>            : #define PV_SAVE_REGS(set)                       \
+<span class="lineNum">     872 </span>            :         COND_PUSH(set, CLBR_RAX, rax);          \
+<span class="lineNum">     873 </span>            :         COND_PUSH(set, CLBR_RCX, rcx);          \
+<span class="lineNum">     874 </span>            :         COND_PUSH(set, CLBR_RDX, rdx);          \
+<span class="lineNum">     875 </span>            :         COND_PUSH(set, CLBR_RSI, rsi);          \
+<span class="lineNum">     876 </span>            :         COND_PUSH(set, CLBR_RDI, rdi);          \
+<span class="lineNum">     877 </span>            :         COND_PUSH(set, CLBR_R8, r8);            \
+<span class="lineNum">     878 </span>            :         COND_PUSH(set, CLBR_R9, r9);            \
+<span class="lineNum">     879 </span>            :         COND_PUSH(set, CLBR_R10, r10);          \
+<span class="lineNum">     880 </span>            :         COND_PUSH(set, CLBR_R11, r11)
+<span class="lineNum">     881 </span>            : #define PV_RESTORE_REGS(set)                    \
+<span class="lineNum">     882 </span>            :         COND_POP(set, CLBR_R11, r11);           \
+<span class="lineNum">     883 </span>            :         COND_POP(set, CLBR_R10, r10);           \
+<span class="lineNum">     884 </span>            :         COND_POP(set, CLBR_R9, r9);             \
+<span class="lineNum">     885 </span>            :         COND_POP(set, CLBR_R8, r8);             \
+<span class="lineNum">     886 </span>            :         COND_POP(set, CLBR_RDI, rdi);           \
+<span class="lineNum">     887 </span>            :         COND_POP(set, CLBR_RSI, rsi);           \
+<span class="lineNum">     888 </span>            :         COND_POP(set, CLBR_RDX, rdx);           \
+<span class="lineNum">     889 </span>            :         COND_POP(set, CLBR_RCX, rcx);           \
+<span class="lineNum">     890 </span>            :         COND_POP(set, CLBR_RAX, rax)
+<span class="lineNum">     891 </span>            : 
+<span class="lineNum">     892 </span>            : #define PARA_PATCH(struct, off)        ((PARAVIRT_PATCH_##struct + (off)) / 8)
+<span class="lineNum">     893 </span>            : #define PARA_SITE(ptype, clobbers, ops) _PVSITE(ptype, clobbers, ops, .quad, 8)
+<span class="lineNum">     894 </span>            : #define PARA_INDIRECT(addr)     *addr(%rip)
+<span class="lineNum">     895 </span>            : #else
+<span class="lineNum">     896 </span>            : #define PV_SAVE_REGS(set)                       \
+<span class="lineNum">     897 </span>            :         COND_PUSH(set, CLBR_EAX, eax);          \
+<span class="lineNum">     898 </span>            :         COND_PUSH(set, CLBR_EDI, edi);          \
+<span class="lineNum">     899 </span>            :         COND_PUSH(set, CLBR_ECX, ecx);          \
+<span class="lineNum">     900 </span>            :         COND_PUSH(set, CLBR_EDX, edx)
+<span class="lineNum">     901 </span>            : #define PV_RESTORE_REGS(set)                    \
+<span class="lineNum">     902 </span>            :         COND_POP(set, CLBR_EDX, edx);           \
+<span class="lineNum">     903 </span>            :         COND_POP(set, CLBR_ECX, ecx);           \
+<span class="lineNum">     904 </span>            :         COND_POP(set, CLBR_EDI, edi);           \
+<span class="lineNum">     905 </span>            :         COND_POP(set, CLBR_EAX, eax)
+<span class="lineNum">     906 </span>            : 
+<span class="lineNum">     907 </span>            : #define PARA_PATCH(struct, off)        ((PARAVIRT_PATCH_##struct + (off)) / 4)
+<span class="lineNum">     908 </span>            : #define PARA_SITE(ptype, clobbers, ops) _PVSITE(ptype, clobbers, ops, .long, 4)
+<span class="lineNum">     909 </span>            : #define PARA_INDIRECT(addr)     *%cs:addr
+<span class="lineNum">     910 </span>            : #endif
+<span class="lineNum">     911 </span>            : 
+<span class="lineNum">     912 </span>            : #define INTERRUPT_RETURN                                                \
+<span class="lineNum">     913 </span>            :         PARA_SITE(PARA_PATCH(pv_cpu_ops, PV_CPU_iret), CLBR_NONE,       \
+<span class="lineNum">     914 </span>            :                   jmp PARA_INDIRECT(pv_cpu_ops+PV_CPU_iret))
+<span class="lineNum">     915 </span>            : 
+<span class="lineNum">     916 </span>            : #define DISABLE_INTERRUPTS(clobbers)                                    \
+<span class="lineNum">     917 </span>            :         PARA_SITE(PARA_PATCH(pv_irq_ops, PV_IRQ_irq_disable), clobbers, \
+<span class="lineNum">     918 </span>            :                   PV_SAVE_REGS(clobbers | CLBR_CALLEE_SAVE);            \
+<span class="lineNum">     919 </span>            :                   call PARA_INDIRECT(pv_irq_ops+PV_IRQ_irq_disable);    \
+<span class="lineNum">     920 </span>            :                   PV_RESTORE_REGS(clobbers | CLBR_CALLEE_SAVE);)
+<span class="lineNum">     921 </span>            : 
+<span class="lineNum">     922 </span>            : #define ENABLE_INTERRUPTS(clobbers)                                     \
+<span class="lineNum">     923 </span>            :         PARA_SITE(PARA_PATCH(pv_irq_ops, PV_IRQ_irq_enable), clobbers,  \
+<span class="lineNum">     924 </span>            :                   PV_SAVE_REGS(clobbers | CLBR_CALLEE_SAVE);            \
+<span class="lineNum">     925 </span>            :                   call PARA_INDIRECT(pv_irq_ops+PV_IRQ_irq_enable);     \
+<span class="lineNum">     926 </span>            :                   PV_RESTORE_REGS(clobbers | CLBR_CALLEE_SAVE);)
+<span class="lineNum">     927 </span>            : 
+<span class="lineNum">     928 </span>            : #define USERGS_SYSRET32                                                 \
+<span class="lineNum">     929 </span>            :         PARA_SITE(PARA_PATCH(pv_cpu_ops, PV_CPU_usergs_sysret32),       \
+<span class="lineNum">     930 </span>            :                   CLBR_NONE,                                            \
+<span class="lineNum">     931 </span>            :                   jmp PARA_INDIRECT(pv_cpu_ops+PV_CPU_usergs_sysret32))
+<span class="lineNum">     932 </span>            : 
+<span class="lineNum">     933 </span>            : #ifdef CONFIG_X86_32
+<span class="lineNum">     934 </span>            : #define GET_CR0_INTO_EAX                                \
+<span class="lineNum">     935 </span>            :         push %ecx; push %edx;                           \
+<span class="lineNum">     936 </span>            :         call PARA_INDIRECT(pv_cpu_ops+PV_CPU_read_cr0); \
+<span class="lineNum">     937 </span>            :         pop %edx; pop %ecx
+<span class="lineNum">     938 </span>            : 
+<span class="lineNum">     939 </span>            : #define ENABLE_INTERRUPTS_SYSEXIT                                       \
+<span class="lineNum">     940 </span>            :         PARA_SITE(PARA_PATCH(pv_cpu_ops, PV_CPU_irq_enable_sysexit),    \
+<span class="lineNum">     941 </span>            :                   CLBR_NONE,                                            \
+<span class="lineNum">     942 </span>            :                   jmp PARA_INDIRECT(pv_cpu_ops+PV_CPU_irq_enable_sysexit))
+<span class="lineNum">     943 </span>            : 
+<span class="lineNum">     944 </span>            : 
+<span class="lineNum">     945 </span>            : #else   /* !CONFIG_X86_32 */
+<span class="lineNum">     946 </span>            : 
+<span class="lineNum">     947 </span>            : /*
+<span class="lineNum">     948 </span>            :  * If swapgs is used while the userspace stack is still current,
+<span class="lineNum">     949 </span>            :  * there's no way to call a pvop.  The PV replacement *must* be
+<span class="lineNum">     950 </span>            :  * inlined, or the swapgs instruction must be trapped and emulated.
+<span class="lineNum">     951 </span>            :  */
+<span class="lineNum">     952 </span>            : #define SWAPGS_UNSAFE_STACK                                             \
+<span class="lineNum">     953 </span>            :         PARA_SITE(PARA_PATCH(pv_cpu_ops, PV_CPU_swapgs), CLBR_NONE,     \
+<span class="lineNum">     954 </span>            :                   swapgs)
+<span class="lineNum">     955 </span>            : 
+<span class="lineNum">     956 </span>            : /*
+<span class="lineNum">     957 </span>            :  * Note: swapgs is very special, and in practise is either going to be
+<span class="lineNum">     958 </span>            :  * implemented with a single &quot;swapgs&quot; instruction or something very
+<span class="lineNum">     959 </span>            :  * special.  Either way, we don't need to save any registers for
+<span class="lineNum">     960 </span>            :  * it.
+<span class="lineNum">     961 </span>            :  */
+<span class="lineNum">     962 </span>            : #define SWAPGS                                                          \
+<span class="lineNum">     963 </span>            :         PARA_SITE(PARA_PATCH(pv_cpu_ops, PV_CPU_swapgs), CLBR_NONE,     \
+<span class="lineNum">     964 </span>            :                   call PARA_INDIRECT(pv_cpu_ops+PV_CPU_swapgs)          \
+<span class="lineNum">     965 </span>            :                  )
+<span class="lineNum">     966 </span>            : 
+<span class="lineNum">     967 </span>            : #define GET_CR2_INTO_RAX                                \
+<span class="lineNum">     968 </span>            :         call PARA_INDIRECT(pv_mmu_ops+PV_MMU_read_cr2)
+<span class="lineNum">     969 </span>            : 
+<span class="lineNum">     970 </span>            : #define PARAVIRT_ADJUST_EXCEPTION_FRAME                                 \
+<span class="lineNum">     971 </span>            :         PARA_SITE(PARA_PATCH(pv_irq_ops, PV_IRQ_adjust_exception_frame), \
+<span class="lineNum">     972 </span>            :                   CLBR_NONE,                                            \
+<span class="lineNum">     973 </span>            :                   call PARA_INDIRECT(pv_irq_ops+PV_IRQ_adjust_exception_frame))
+<span class="lineNum">     974 </span>            : 
+<span class="lineNum">     975 </span>            : #define USERGS_SYSRET64                                                 \
+<span class="lineNum">     976 </span>            :         PARA_SITE(PARA_PATCH(pv_cpu_ops, PV_CPU_usergs_sysret64),       \
+<span class="lineNum">     977 </span>            :                   CLBR_NONE,                                            \
+<span class="lineNum">     978 </span>            :                   jmp PARA_INDIRECT(pv_cpu_ops+PV_CPU_usergs_sysret64))
+<span class="lineNum">     979 </span>            : 
+<span class="lineNum">     980 </span>            : #define ENABLE_INTERRUPTS_SYSEXIT32                                     \
+<span class="lineNum">     981 </span>            :         PARA_SITE(PARA_PATCH(pv_cpu_ops, PV_CPU_irq_enable_sysexit),    \
+<span class="lineNum">     982 </span>            :                   CLBR_NONE,                                            \
+<span class="lineNum">     983 </span>            :                   jmp PARA_INDIRECT(pv_cpu_ops+PV_CPU_irq_enable_sysexit))
+<span class="lineNum">     984 </span>            : #endif  /* CONFIG_X86_32 */
+<span class="lineNum">     985 </span>            : 
+<span class="lineNum">     986 </span>            : #endif /* __ASSEMBLY__ */
+<span class="lineNum">     987 </span>            : #else  /* CONFIG_PARAVIRT */
+<span class="lineNum">     988 </span>            : # define default_banner x86_init_noop
+<span class="lineNum">     989 </span>            : #endif /* !CONFIG_PARAVIRT */
+<span class="lineNum">     990 </span>            : #endif /* _ASM_X86_PARAVIRT_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

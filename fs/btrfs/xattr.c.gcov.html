@@ -1,0 +1,528 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/xattr.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - xattr.c<span style="font-size: 80%;"> (source / <a href="xattr.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">129</td>
+            <td class="headerCovTableEntry">156</td>
+            <td class="headerCovTableEntryMed">82.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntryHi">90.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2007 Red Hat.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;linux/init.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/fs.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/slab.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;linux/rwsem.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;linux/xattr.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;linux/security.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;linux/posix_acl_xattr.h&gt;
+<span class="lineNum">      26 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;btrfs_inode.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;transaction.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;xattr.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;disk-io.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;props.h&quot;
+<a name="32"><span class="lineNum">      32 </span>            : </a>
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span><span class="lineCov">     106552 : ssize_t __btrfs_getxattr(struct inode *inode, const char *name,</span>
+<span class="lineNum">      35 </span>            :                                 void *buffer, size_t size)
+<span class="lineNum">      36 </span>            : {
+<span class="lineNum">      37 </span>            :         struct btrfs_dir_item *di;
+<span class="lineNum">      38 </span><span class="lineCov">     106552 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">      39 </span>            :         struct btrfs_path *path;
+<span class="lineNum">      40 </span>            :         struct extent_buffer *leaf;
+<span class="lineNum">      41 </span>            :         int ret = 0;
+<span class="lineNum">      42 </span>            :         unsigned long data_ptr;
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineCov">     106552 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">      45 </span><span class="lineCov">     106551 :         if (!path)</span>
+<span class="lineNum">      46 </span>            :                 return -ENOMEM;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            :         /* lookup the xattr by name */
+<span class="lineNum">      49 </span><span class="lineCov">     213102 :         di = btrfs_lookup_xattr(NULL, root, path, btrfs_ino(inode), name,</span>
+<span class="lineNum">      50 </span><span class="lineCov">     106551 :                                 strlen(name), 0);</span>
+<span class="lineNum">      51 </span><span class="lineCov">     106552 :         if (!di) {</span>
+<span class="lineNum">      52 </span>            :                 ret = -ENODATA;
+<span class="lineNum">      53 </span>            :                 goto out;
+<span class="lineNum">      54 </span><span class="lineCov">         75 :         } else if (IS_ERR(di)) {</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :                 ret = PTR_ERR(di);</span>
+<span class="lineNum">      56 </span><span class="lineNoCov">          0 :                 goto out;</span>
+<span class="lineNum">      57 </span>            :         }
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span><span class="lineCov">         75 :         leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">      60 </span>            :         /* if size is 0, that means we want the size of the attr */
+<span class="lineNum">      61 </span><span class="lineCov">         75 :         if (!size) {</span>
+<span class="lineNum">      62 </span><span class="lineCov">         22 :                 ret = btrfs_dir_data_len(leaf, di);</span>
+<span class="lineNum">      63 </span><span class="lineCov">         22 :                 goto out;</span>
+<span class="lineNum">      64 </span>            :         }
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            :         /* now get the data out of our dir_item */
+<span class="lineNum">      67 </span><span class="lineCov">         53 :         if (btrfs_dir_data_len(leaf, di) &gt; size) {</span>
+<span class="lineNum">      68 </span>            :                 ret = -ERANGE;
+<span class="lineNum">      69 </span>            :                 goto out;
+<span class="lineNum">      70 </span>            :         }
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :         /*
+<span class="lineNum">      73 </span>            :          * The way things are packed into the leaf is like this
+<span class="lineNum">      74 </span>            :          * |struct btrfs_dir_item|name|data|
+<span class="lineNum">      75 </span>            :          * where name is the xattr name, so security.foo, and data is the
+<span class="lineNum">      76 </span>            :          * content of the xattr.  data_ptr points to the location in memory
+<span class="lineNum">      77 </span>            :          * where the data starts in the in memory leaf
+<span class="lineNum">      78 </span>            :          */
+<span class="lineNum">      79 </span><span class="lineCov">         53 :         data_ptr = (unsigned long)((char *)(di + 1) +</span>
+<span class="lineNum">      80 </span>            :                                    btrfs_dir_name_len(leaf, di));
+<span class="lineNum">      81 </span><span class="lineCov">         53 :         read_extent_buffer(leaf, buffer, data_ptr,</span>
+<span class="lineNum">      82 </span>            :                            btrfs_dir_data_len(leaf, di));
+<span class="lineNum">      83 </span><span class="lineCov">         53 :         ret = btrfs_dir_data_len(leaf, di);</span>
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : out:
+<span class="lineNum">      86 </span><span class="lineCov">     106552 :         btrfs_free_path(path);</span>
+<span class="lineNum">      87 </span><span class="lineCov">     106548 :         return ret;</span>
+<a name="88"><span class="lineNum">      88 </span>            : }</a>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span><span class="lineCov">        352 : static int do_setxattr(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">      91 </span>            :                        struct inode *inode, const char *name,
+<span class="lineNum">      92 </span>            :                        const void *value, size_t size, int flags)
+<span class="lineNum">      93 </span>            : {
+<span class="lineNum">      94 </span>            :         struct btrfs_dir_item *di;
+<span class="lineNum">      95 </span><span class="lineCov">        352 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">      96 </span>            :         struct btrfs_path *path;
+<span class="lineNum">      97 </span><span class="lineCov">        352 :         size_t name_len = strlen(name);</span>
+<span class="lineNum">      98 </span>            :         int ret = 0;
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineCov">        352 :         if (name_len + size &gt; BTRFS_MAX_XATTR_SIZE(root))</span>
+<span class="lineNum">     101 </span>            :                 return -ENOSPC;
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineCov">        352 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">     104 </span><span class="lineCov">        352 :         if (!path)</span>
+<span class="lineNum">     105 </span>            :                 return -ENOMEM;
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span><span class="lineCov">        352 :         if (flags &amp; XATTR_REPLACE) {</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :                 di = btrfs_lookup_xattr(trans, root, path, btrfs_ino(inode), name,</span>
+<span class="lineNum">     109 </span>            :                                         name_len, -1);
+<span class="lineNum">     110 </span><span class="lineNoCov">          0 :                 if (IS_ERR(di)) {</span>
+<span class="lineNum">     111 </span><span class="lineNoCov">          0 :                         ret = PTR_ERR(di);</span>
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :                         goto out;</span>
+<span class="lineNum">     113 </span><span class="lineNoCov">          0 :                 } else if (!di) {</span>
+<span class="lineNum">     114 </span>            :                         ret = -ENODATA;
+<span class="lineNum">     115 </span>            :                         goto out;
+<span class="lineNum">     116 </span>            :                 }
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :                 ret = btrfs_delete_one_dir_name(trans, root, path, di);</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :                 if (ret)</span>
+<span class="lineNum">     119 </span>            :                         goto out;
+<span class="lineNum">     120 </span><span class="lineNoCov">          0 :                 btrfs_release_path(path);</span>
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            :                 /*
+<span class="lineNum">     123 </span>            :                  * remove the attribute
+<span class="lineNum">     124 </span>            :                  */
+<span class="lineNum">     125 </span><span class="lineNoCov">          0 :                 if (!value)</span>
+<span class="lineNum">     126 </span>            :                         goto out;
+<span class="lineNum">     127 </span>            :         } else {
+<span class="lineNum">     128 </span><span class="lineCov">        704 :                 di = btrfs_lookup_xattr(NULL, root, path, btrfs_ino(inode),</span>
+<span class="lineNum">     129 </span>            :                                         name, name_len, 0);
+<span class="lineNum">     130 </span><span class="lineCov">        352 :                 if (IS_ERR(di)) {</span>
+<span class="lineNum">     131 </span><span class="lineNoCov">          0 :                         ret = PTR_ERR(di);</span>
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :                         goto out;</span>
+<span class="lineNum">     133 </span>            :                 }
+<span class="lineNum">     134 </span><span class="lineCov">        352 :                 if (!di &amp;&amp; !value)</span>
+<span class="lineNum">     135 </span>            :                         goto out;
+<span class="lineNum">     136 </span><span class="lineCov">        338 :                 btrfs_release_path(path);</span>
+<span class="lineNum">     137 </span>            :         }
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            : again:
+<span class="lineNum">     140 </span><span class="lineCov">        748 :         ret = btrfs_insert_xattr_item(trans, root, path, btrfs_ino(inode),</span>
+<span class="lineNum">     141 </span>            :                                       name, name_len, value, size);
+<span class="lineNum">     142 </span>            :         /*
+<span class="lineNum">     143 </span>            :          * If we're setting an xattr to a new value but the new value is say
+<span class="lineNum">     144 </span>            :          * exactly BTRFS_MAX_XATTR_SIZE, we could end up with EOVERFLOW getting
+<span class="lineNum">     145 </span>            :          * back from split_leaf.  This is because it thinks we'll be extending
+<span class="lineNum">     146 </span>            :          * the existing item size, but we're asking for enough space to add the
+<span class="lineNum">     147 </span>            :          * item itself.  So if we get EOVERFLOW just set ret to EEXIST and let
+<span class="lineNum">     148 </span>            :          * the rest of the function figure it out.
+<span class="lineNum">     149 </span>            :          */
+<span class="lineNum">     150 </span><span class="lineCov">        374 :         if (ret == -EOVERFLOW)</span>
+<span class="lineNum">     151 </span>            :                 ret = -EEXIST;
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineCov">        374 :         if (ret == -EEXIST) {</span>
+<span class="lineNum">     154 </span><span class="lineCov">         40 :                 if (flags &amp; XATTR_CREATE)</span>
+<span class="lineNum">     155 </span>            :                         goto out;
+<span class="lineNum">     156 </span>            :                 /*
+<span class="lineNum">     157 </span>            :                  * We can't use the path we already have since we won't have the
+<span class="lineNum">     158 </span>            :                  * proper locking for a delete, so release the path and
+<span class="lineNum">     159 </span>            :                  * re-lookup to delete the thing.
+<span class="lineNum">     160 </span>            :                  */
+<span class="lineNum">     161 </span><span class="lineCov">         40 :                 btrfs_release_path(path);</span>
+<span class="lineNum">     162 </span><span class="lineCov">         40 :                 di = btrfs_lookup_xattr(trans, root, path, btrfs_ino(inode),</span>
+<span class="lineNum">     163 </span>            :                                         name, name_len, -1);
+<span class="lineNum">     164 </span><span class="lineCov">         40 :                 if (IS_ERR(di)) {</span>
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                         ret = PTR_ERR(di);</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :                         goto out;</span>
+<span class="lineNum">     167 </span><span class="lineCov">         40 :                 } else if (!di) {</span>
+<span class="lineNum">     168 </span>            :                         /* Shouldn't happen but just in case... */
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                         btrfs_release_path(path);</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                         goto again;</span>
+<span class="lineNum">     171 </span>            :                 }
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineCov">         40 :                 ret = btrfs_delete_one_dir_name(trans, root, path, di);</span>
+<span class="lineNum">     174 </span><span class="lineCov">         40 :                 if (ret)</span>
+<span class="lineNum">     175 </span>            :                         goto out;
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            :                 /*
+<span class="lineNum">     178 </span>            :                  * We have a value to set, so go back and try to insert it now.
+<span class="lineNum">     179 </span>            :                  */
+<span class="lineNum">     180 </span><span class="lineCov">         40 :                 if (value) {</span>
+<span class="lineNum">     181 </span><span class="lineCov">         36 :                         btrfs_release_path(path);</span>
+<span class="lineNum">     182 </span><span class="lineCov">         36 :                         goto again;</span>
+<span class="lineNum">     183 </span>            :                 }
+<span class="lineNum">     184 </span>            :         }
+<span class="lineNum">     185 </span>            : out:
+<span class="lineNum">     186 </span><span class="lineCov">        352 :         btrfs_free_path(path);</span>
+<span class="lineNum">     187 </span><span class="lineCov">        352 :         return ret;</span>
+<span class="lineNum">     188 </span>            : }
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            : /*
+<a name="191"><span class="lineNum">     191 </span>            :  * @value: &quot;&quot; makes the attribute to empty, NULL removes it</a>
+<span class="lineNum">     192 </span>            :  */
+<span class="lineNum">     193 </span><span class="lineCov">        352 : int __btrfs_setxattr(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     194 </span>            :                      struct inode *inode, const char *name,
+<span class="lineNum">     195 </span>            :                      const void *value, size_t size, int flags)
+<span class="lineNum">     196 </span>            : {
+<span class="lineNum">     197 </span><span class="lineCov">        352 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     198 </span>            :         int ret;
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineCov">        352 :         if (trans)</span>
+<span class="lineNum">     201 </span><span class="lineCov">        283 :                 return do_setxattr(trans, inode, name, value, size, flags);</span>
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineCov">         69 :         trans = btrfs_start_transaction(root, 2);</span>
+<span class="lineNum">     204 </span><span class="lineCov">         69 :         if (IS_ERR(trans))</span>
+<span class="lineNum">     205 </span><span class="lineNoCov">          0 :                 return PTR_ERR(trans);</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineCov">         69 :         ret = do_setxattr(trans, inode, name, value, size, flags);</span>
+<span class="lineNum">     208 </span><span class="lineCov">         69 :         if (ret)</span>
+<span class="lineNum">     209 </span>            :                 goto out;
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span>            :         inode_inc_iversion(inode);
+<span class="lineNum">     212 </span><span class="lineCov">         69 :         inode-&gt;i_ctime = CURRENT_TIME;</span>
+<span class="lineNum">     213 </span>            :         set_bit(BTRFS_INODE_COPY_EVERYTHING, &amp;BTRFS_I(inode)-&gt;runtime_flags);
+<span class="lineNum">     214 </span><span class="lineCov">         69 :         ret = btrfs_update_inode(trans, root, inode);</span>
+<span class="lineNum">     215 </span><span class="lineCov">         69 :         BUG_ON(ret);</span>
+<span class="lineNum">     216 </span>            : out:
+<span class="lineNum">     217 </span><span class="lineCov">         69 :         btrfs_end_transaction(trans, root);</span>
+<span class="lineNum">     218 </span><span class="lineCov">         69 :         return ret;</span>
+<a name="219"><span class="lineNum">     219 </span>            : }</a>
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span><span class="lineCov">        270 : ssize_t btrfs_listxattr(struct dentry *dentry, char *buffer, size_t size)</span>
+<span class="lineNum">     222 </span>            : {
+<span class="lineNum">     223 </span>            :         struct btrfs_key key, found_key;
+<span class="lineNum">     224 </span><span class="lineCov">        270 :         struct inode *inode = dentry-&gt;d_inode;</span>
+<span class="lineNum">     225 </span><span class="lineCov">        270 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     226 </span>            :         struct btrfs_path *path;
+<span class="lineNum">     227 </span><span class="lineCov">        542 :         struct extent_buffer *leaf;</span>
+<span class="lineNum">     228 </span>            :         struct btrfs_dir_item *di;
+<span class="lineNum">     229 </span>            :         int ret = 0, slot;
+<span class="lineNum">     230 </span>            :         size_t total_size = 0, size_left = size;
+<span class="lineNum">     231 </span>            :         unsigned long name_ptr;
+<span class="lineNum">     232 </span>            :         size_t name_len;
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            :         /*
+<span class="lineNum">     235 </span>            :          * ok we want all objects associated with this id.
+<span class="lineNum">     236 </span>            :          * NOTE: we set key.offset = 0; because we want to start with the
+<span class="lineNum">     237 </span>            :          * first xattr that we find and walk forward
+<span class="lineNum">     238 </span>            :          */
+<span class="lineNum">     239 </span><span class="lineCov">        270 :         key.objectid = btrfs_ino(inode);</span>
+<span class="lineNum">     240 </span>            :         btrfs_set_key_type(&amp;key, BTRFS_XATTR_ITEM_KEY);
+<span class="lineNum">     241 </span><span class="lineCov">        270 :         key.offset = 0;</span>
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span><span class="lineCov">        270 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">     244 </span><span class="lineCov">        270 :         if (!path)</span>
+<span class="lineNum">     245 </span>            :                 return -ENOMEM;
+<span class="lineNum">     246 </span><span class="lineCov">        270 :         path-&gt;reada = 2;</span>
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span>            :         /* search for our xattrs */
+<span class="lineNum">     249 </span><span class="lineCov">        270 :         ret = btrfs_search_slot(NULL, root, &amp;key, path, 0, 0);</span>
+<span class="lineNum">     250 </span><span class="lineCov">        270 :         if (ret &lt; 0)</span>
+<span class="lineNum">     251 </span>            :                 goto err;
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            :         while (1) {
+<span class="lineNum">     254 </span><span class="lineCov">        542 :                 leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     255 </span><span class="lineCov">        542 :                 slot = path-&gt;slots[0];</span>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            :                 /* this is where we start walking through the path */
+<span class="lineNum">     258 </span><span class="lineCov">       1084 :                 if (slot &gt;= btrfs_header_nritems(leaf)) {</span>
+<span class="lineNum">     259 </span>            :                         /*
+<span class="lineNum">     260 </span>            :                          * if we've reached the last slot in this leaf we need
+<span class="lineNum">     261 </span>            :                          * to go to the next leaf and reset everything
+<span class="lineNum">     262 </span>            :                          */
+<span class="lineNum">     263 </span><span class="lineCov">          2 :                         ret = btrfs_next_leaf(root, path);</span>
+<span class="lineNum">     264 </span><span class="lineCov">          2 :                         if (ret &lt; 0)</span>
+<span class="lineNum">     265 </span>            :                                 goto err;
+<span class="lineNum">     266 </span><span class="lineCov">          2 :                         else if (ret &gt; 0)</span>
+<span class="lineNum">     267 </span>            :                                 break;
+<span class="lineNum">     268 </span><span class="lineCov">          2 :                         continue;</span>
+<span class="lineNum">     269 </span>            :                 }
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineCov">        540 :                 btrfs_item_key_to_cpu(leaf, &amp;found_key, slot);</span>
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span>            :                 /* check to make sure this item is what we want */
+<span class="lineNum">     274 </span><span class="lineCov">        540 :                 if (found_key.objectid != key.objectid)</span>
+<span class="lineNum">     275 </span>            :                         break;
+<span class="lineNum">     276 </span><span class="lineCov">        540 :                 if (btrfs_key_type(&amp;found_key) != BTRFS_XATTR_ITEM_KEY)</span>
+<span class="lineNum">     277 </span>            :                         break;
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineCov">        270 :                 di = btrfs_item_ptr(leaf, slot, struct btrfs_dir_item);</span>
+<span class="lineNum">     280 </span><span class="lineCov">        270 :                 if (verify_dir_item(root, leaf, di))</span>
+<span class="lineNum">     281 </span>            :                         goto next;
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span><span class="lineCov">        270 :                 name_len = btrfs_dir_name_len(leaf, di);</span>
+<span class="lineNum">     284 </span><span class="lineCov">        270 :                 total_size += name_len + 1;</span>
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            :                 /* we are just looking for how big our buffer needs to be */
+<span class="lineNum">     287 </span><span class="lineCov">        270 :                 if (!size)</span>
+<span class="lineNum">     288 </span>            :                         goto next;
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineCov">        135 :                 if (!buffer || (name_len + 1) &gt; size_left) {</span>
+<span class="lineNum">     291 </span>            :                         ret = -ERANGE;
+<span class="lineNum">     292 </span>            :                         goto err;
+<span class="lineNum">     293 </span>            :                 }
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineCov">        135 :                 name_ptr = (unsigned long)(di + 1);</span>
+<span class="lineNum">     296 </span><span class="lineCov">        135 :                 read_extent_buffer(leaf, buffer, name_ptr, name_len);</span>
+<span class="lineNum">     297 </span><span class="lineCov">        135 :                 buffer[name_len] = '\0';</span>
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span><span class="lineCov">        135 :                 size_left -= name_len + 1;</span>
+<span class="lineNum">     300 </span><span class="lineCov">        135 :                 buffer += name_len + 1;</span>
+<span class="lineNum">     301 </span>            : next:
+<span class="lineNum">     302 </span><span class="lineCov">        270 :                 path-&gt;slots[0]++;</span>
+<span class="lineNum">     303 </span>            :         }
+<span class="lineNum">     304 </span><span class="lineCov">        270 :         ret = total_size;</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            : err:
+<span class="lineNum">     307 </span><span class="lineCov">        270 :         btrfs_free_path(path);</span>
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineCov">        270 :         return ret;</span>
+<span class="lineNum">     310 </span>            : }
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span>            : /*
+<span class="lineNum">     313 </span>            :  * List of handlers for synthetic system.* attributes.  All real ondisk
+<span class="lineNum">     314 </span>            :  * attributes are handled directly.
+<span class="lineNum">     315 </span>            :  */
+<span class="lineNum">     316 </span>            : const struct xattr_handler *btrfs_xattr_handlers[] = {
+<span class="lineNum">     317 </span>            : #ifdef CONFIG_BTRFS_FS_POSIX_ACL
+<span class="lineNum">     318 </span>            :         &amp;posix_acl_access_xattr_handler,
+<span class="lineNum">     319 </span>            :         &amp;posix_acl_default_xattr_handler,
+<span class="lineNum">     320 </span>            : #endif
+<span class="lineNum">     321 </span>            :         NULL,
+<span class="lineNum">     322 </span>            : };
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            : /*
+<span class="lineNum">     325 </span>            :  * Check if the attribute is in a supported namespace.
+<span class="lineNum">     326 </span>            :  *
+<span class="lineNum">     327 </span>            :  * This applied after the check for the synthetic attributes in the system
+<a name="328"><span class="lineNum">     328 </span>            :  * namespace.</a>
+<span class="lineNum">     329 </span>            :  */
+<span class="lineNum">     330 </span><span class="lineCov">     106481 : static bool btrfs_is_valid_xattr(const char *name)</span>
+<span class="lineNum">     331 </span>            : {
+<span class="lineNum">     332 </span><span class="lineCov">     212962 :         return !strncmp(name, XATTR_SECURITY_PREFIX,</span>
+<span class="lineNum">     333 </span><span class="lineCov">         75 :                         XATTR_SECURITY_PREFIX_LEN) ||</span>
+<span class="lineNum">     334 </span><span class="lineCov">        150 :                !strncmp(name, XATTR_SYSTEM_PREFIX, XATTR_SYSTEM_PREFIX_LEN) ||</span>
+<span class="lineNum">     335 </span><span class="lineCov">        150 :                !strncmp(name, XATTR_TRUSTED_PREFIX, XATTR_TRUSTED_PREFIX_LEN) ||</span>
+<span class="lineNum">     336 </span><span class="lineCov">     106624 :                !strncmp(name, XATTR_USER_PREFIX, XATTR_USER_PREFIX_LEN) ||</span>
+<span class="lineNum">     337 </span><span class="lineCov">         68 :                 !strncmp(name, XATTR_BTRFS_PREFIX, XATTR_BTRFS_PREFIX_LEN);</span>
+<a name="338"><span class="lineNum">     338 </span>            : }</a>
+<span class="lineNum">     339 </span>            : 
+<span class="lineNum">     340 </span><span class="lineCov">     106618 : ssize_t btrfs_getxattr(struct dentry *dentry, const char *name,</span>
+<span class="lineNum">     341 </span>            :                        void *buffer, size_t size)
+<span class="lineNum">     342 </span>            : {
+<span class="lineNum">     343 </span>            :         /*
+<span class="lineNum">     344 </span>            :          * If this is a request for a synthetic attribute in the system.*
+<span class="lineNum">     345 </span>            :          * namespace use the generic infrastructure to resolve a handler
+<span class="lineNum">     346 </span>            :          * for it via sb-&gt;s_xattr.
+<span class="lineNum">     347 </span>            :          */
+<span class="lineNum">     348 </span><span class="lineCov">     106618 :         if (!strncmp(name, XATTR_SYSTEM_PREFIX, XATTR_SYSTEM_PREFIX_LEN))</span>
+<span class="lineNum">     349 </span><span class="lineCov">        189 :                 return generic_getxattr(dentry, name, buffer, size);</span>
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineCov">     106429 :         if (!btrfs_is_valid_xattr(name))</span>
+<span class="lineNum">     352 </span>            :                 return -EOPNOTSUPP;
+<span class="lineNum">     353 </span><span class="lineCov">     106427 :         return __btrfs_getxattr(dentry-&gt;d_inode, name, buffer, size);</span>
+<a name="354"><span class="lineNum">     354 </span>            : }</a>
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineCov">         67 : int btrfs_setxattr(struct dentry *dentry, const char *name, const void *value,</span>
+<span class="lineNum">     357 </span>            :                    size_t size, int flags)
+<span class="lineNum">     358 </span>            : {
+<span class="lineNum">     359 </span><span class="lineCov">         67 :         struct btrfs_root *root = BTRFS_I(dentry-&gt;d_inode)-&gt;root;</span>
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            :         /*
+<span class="lineNum">     362 </span>            :          * The permission on security.* and system.* is not checked
+<span class="lineNum">     363 </span>            :          * in permission().
+<span class="lineNum">     364 </span>            :          */
+<span class="lineNum">     365 </span><span class="lineCov">         67 :         if (btrfs_root_readonly(root))</span>
+<span class="lineNum">     366 </span>            :                 return -EROFS;
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            :         /*
+<span class="lineNum">     369 </span>            :          * If this is a request for a synthetic attribute in the system.*
+<span class="lineNum">     370 </span>            :          * namespace use the generic infrastructure to resolve a handler
+<span class="lineNum">     371 </span>            :          * for it via sb-&gt;s_xattr.
+<span class="lineNum">     372 </span>            :          */
+<span class="lineNum">     373 </span><span class="lineCov">         67 :         if (!strncmp(name, XATTR_SYSTEM_PREFIX, XATTR_SYSTEM_PREFIX_LEN))</span>
+<span class="lineNum">     374 </span><span class="lineCov">         14 :                 return generic_setxattr(dentry, name, value, size, flags);</span>
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineCov">         53 :         if (!btrfs_is_valid_xattr(name))</span>
+<span class="lineNum">     377 </span>            :                 return -EOPNOTSUPP;
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span><span class="lineCov">         53 :         if (!strncmp(name, XATTR_BTRFS_PREFIX, XATTR_BTRFS_PREFIX_LEN))</span>
+<span class="lineNum">     380 </span><span class="lineCov">         15 :                 return btrfs_set_prop(dentry-&gt;d_inode, name,</span>
+<span class="lineNum">     381 </span>            :                                       value, size, flags);
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineCov">         38 :         if (size == 0)</span>
+<span class="lineNum">     384 </span>            :                 value = &quot;&quot;;  /* empty EA, do not remove */
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineCov">         38 :         return __btrfs_setxattr(NULL, dentry-&gt;d_inode, name, value, size,</span>
+<span class="lineNum">     387 </span>            :                                 flags);
+<a name="388"><span class="lineNum">     388 </span>            : }</a>
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span><span class="lineNoCov">          0 : int btrfs_removexattr(struct dentry *dentry, const char *name)</span>
+<span class="lineNum">     391 </span>            : {
+<span class="lineNum">     392 </span><span class="lineNoCov">          0 :         struct btrfs_root *root = BTRFS_I(dentry-&gt;d_inode)-&gt;root;</span>
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span>            :         /*
+<span class="lineNum">     395 </span>            :          * The permission on security.* and system.* is not checked
+<span class="lineNum">     396 </span>            :          * in permission().
+<span class="lineNum">     397 </span>            :          */
+<span class="lineNum">     398 </span><span class="lineNoCov">          0 :         if (btrfs_root_readonly(root))</span>
+<span class="lineNum">     399 </span>            :                 return -EROFS;
+<span class="lineNum">     400 </span>            : 
+<span class="lineNum">     401 </span>            :         /*
+<span class="lineNum">     402 </span>            :          * If this is a request for a synthetic attribute in the system.*
+<span class="lineNum">     403 </span>            :          * namespace use the generic infrastructure to resolve a handler
+<span class="lineNum">     404 </span>            :          * for it via sb-&gt;s_xattr.
+<span class="lineNum">     405 </span>            :          */
+<span class="lineNum">     406 </span><span class="lineNoCov">          0 :         if (!strncmp(name, XATTR_SYSTEM_PREFIX, XATTR_SYSTEM_PREFIX_LEN))</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :                 return generic_removexattr(dentry, name);</span>
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         if (!btrfs_is_valid_xattr(name))</span>
+<span class="lineNum">     410 </span>            :                 return -EOPNOTSUPP;
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :         if (!strncmp(name, XATTR_BTRFS_PREFIX, XATTR_BTRFS_PREFIX_LEN))</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :                 return btrfs_set_prop(dentry-&gt;d_inode, name,</span>
+<span class="lineNum">     414 </span>            :                                       NULL, 0, XATTR_REPLACE);
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         return __btrfs_setxattr(NULL, dentry-&gt;d_inode, name, NULL, 0,</span>
+<span class="lineNum">     417 </span>            :                                 XATTR_REPLACE);
+<a name="418"><span class="lineNum">     418 </span>            : }</a>
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span><span class="lineCov">        272 : static int btrfs_initxattrs(struct inode *inode,</span>
+<span class="lineNum">     421 </span>            :                             const struct xattr *xattr_array, void *fs_info)
+<span class="lineNum">     422 </span>            : {
+<span class="lineNum">     423 </span>            :         const struct xattr *xattr;
+<span class="lineNum">     424 </span>            :         struct btrfs_trans_handle *trans = fs_info;
+<span class="lineNum">     425 </span>            :         char *name;
+<span class="lineNum">     426 </span>            :         int err = 0;
+<span class="lineNum">     427 </span>            : 
+<span class="lineNum">     428 </span><span class="lineCov">        544 :         for (xattr = xattr_array; xattr-&gt;name != NULL; xattr++) {</span>
+<span class="lineNum">     429 </span><span class="lineCov">        272 :                 name = kmalloc(XATTR_SECURITY_PREFIX_LEN +</span>
+<span class="lineNum">     430 </span><span class="lineCov">        272 :                                strlen(xattr-&gt;name) + 1, GFP_NOFS);</span>
+<span class="lineNum">     431 </span><span class="lineCov">        272 :                 if (!name) {</span>
+<span class="lineNum">     432 </span>            :                         err = -ENOMEM;
+<span class="lineNum">     433 </span>            :                         break;
+<span class="lineNum">     434 </span>            :                 }
+<span class="lineNum">     435 </span><span class="lineCov">        272 :                 strcpy(name, XATTR_SECURITY_PREFIX);</span>
+<span class="lineNum">     436 </span><span class="lineCov">        272 :                 strcpy(name + XATTR_SECURITY_PREFIX_LEN, xattr-&gt;name);</span>
+<span class="lineNum">     437 </span><span class="lineCov">        544 :                 err = __btrfs_setxattr(trans, inode, name,</span>
+<span class="lineNum">     438 </span><span class="lineCov">        272 :                                        xattr-&gt;value, xattr-&gt;value_len, 0);</span>
+<span class="lineNum">     439 </span><span class="lineCov">        272 :                 kfree(name);</span>
+<span class="lineNum">     440 </span><span class="lineCov">        272 :                 if (err &lt; 0)</span>
+<span class="lineNum">     441 </span>            :                         break;
+<span class="lineNum">     442 </span>            :         }
+<span class="lineNum">     443 </span><span class="lineCov">        272 :         return err;</span>
+<a name="444"><span class="lineNum">     444 </span>            : }</a>
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span><span class="lineCov">      20423 : int btrfs_xattr_security_init(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     447 </span>            :                               struct inode *inode, struct inode *dir,
+<span class="lineNum">     448 </span>            :                               const struct qstr *qstr)
+<span class="lineNum">     449 </span>            : {
+<span class="lineNum">     450 </span><span class="lineCov">      20423 :         return security_inode_init_security(inode, dir, qstr,</span>
+<span class="lineNum">     451 </span>            :                                             &amp;btrfs_initxattrs, trans);
+<span class="lineNum">     452 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

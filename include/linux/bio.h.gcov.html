@@ -1,0 +1,815 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/bio.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - bio.h<span style="font-size: 80%;"> (source / <a href="bio.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryMed">77.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * 2.5 block I/O model
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * Copyright (C) 2001 Jens Axboe &lt;axboe@suse.de&gt;
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * This program is free software; you can redistribute it and/or modify
+<span class="lineNum">       7 </span>            :  * it under the terms of the GNU General Public License version 2 as
+<span class="lineNum">       8 </span>            :  * published by the Free Software Foundation.
+<span class="lineNum">       9 </span>            :  *
+<span class="lineNum">      10 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">      11 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      14 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * You should have received a copy of the GNU General Public Licens
+<span class="lineNum">      17 </span>            :  * along with this program; if not, write to the Free Software
+<span class="lineNum">      18 </span>            :  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : #ifndef __LINUX_BIO_H
+<span class="lineNum">      21 </span>            : #define __LINUX_BIO_H
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &lt;linux/highmem.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;linux/mempool.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;linux/ioprio.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;linux/bug.h&gt;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : #ifdef CONFIG_BLOCK
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            : #include &lt;asm/io.h&gt;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : /* struct bio, bio_vec and BIO_* flags are defined in blk_types.h */
+<span class="lineNum">      33 </span>            : #include &lt;linux/blk_types.h&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #define BIO_DEBUG
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            : #ifdef BIO_DEBUG
+<span class="lineNum">      38 </span>            : #define BIO_BUG_ON      BUG_ON
+<span class="lineNum">      39 </span>            : #else
+<span class="lineNum">      40 </span>            : #define BIO_BUG_ON
+<span class="lineNum">      41 </span>            : #endif
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : #define BIO_MAX_PAGES           256
+<span class="lineNum">      44 </span>            : #define BIO_MAX_SIZE            (BIO_MAX_PAGES &lt;&lt; PAGE_CACHE_SHIFT)
+<span class="lineNum">      45 </span>            : #define BIO_MAX_SECTORS         (BIO_MAX_SIZE &gt;&gt; 9)
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : /*
+<span class="lineNum">      48 </span>            :  * upper 16 bits of bi_rw define the io priority of this bio
+<span class="lineNum">      49 </span>            :  */
+<span class="lineNum">      50 </span>            : #define BIO_PRIO_SHIFT  (8 * sizeof(unsigned long) - IOPRIO_BITS)
+<span class="lineNum">      51 </span>            : #define bio_prio(bio)   ((bio)-&gt;bi_rw &gt;&gt; BIO_PRIO_SHIFT)
+<span class="lineNum">      52 </span>            : #define bio_prio_valid(bio)     ioprio_valid(bio_prio(bio))
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : #define bio_set_prio(bio, prio)         do {                    \
+<span class="lineNum">      55 </span>            :         WARN_ON(prio &gt;= (1 &lt;&lt; IOPRIO_BITS));                   \
+<span class="lineNum">      56 </span>            :         (bio)-&gt;bi_rw &amp;= ((1UL &lt;&lt; BIO_PRIO_SHIFT) - 1);             \
+<span class="lineNum">      57 </span>            :         (bio)-&gt;bi_rw |= ((unsigned long) (prio) &lt;&lt; BIO_PRIO_SHIFT);    \
+<span class="lineNum">      58 </span>            : } while (0)
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : /*
+<span class="lineNum">      61 </span>            :  * various member access, note that bio_data should of course not be used
+<span class="lineNum">      62 </span>            :  * on highmem page vectors
+<span class="lineNum">      63 </span>            :  */
+<span class="lineNum">      64 </span>            : #define __bvec_iter_bvec(bvec, iter)    (&amp;(bvec)[(iter).bi_idx])
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : #define bvec_iter_page(bvec, iter)                              \
+<span class="lineNum">      67 </span>            :         (__bvec_iter_bvec((bvec), (iter))-&gt;bv_page)
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            : #define bvec_iter_len(bvec, iter)                               \
+<span class="lineNum">      70 </span>            :         min((iter).bi_size,                                     \
+<span class="lineNum">      71 </span>            :             __bvec_iter_bvec((bvec), (iter))-&gt;bv_len - (iter).bi_bvec_done)
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : #define bvec_iter_offset(bvec, iter)                            \
+<span class="lineNum">      74 </span>            :         (__bvec_iter_bvec((bvec), (iter))-&gt;bv_offset + (iter).bi_bvec_done)
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            : #define bvec_iter_bvec(bvec, iter)                              \
+<span class="lineNum">      77 </span>            : ((struct bio_vec) {                                             \
+<span class="lineNum">      78 </span>            :         .bv_page        = bvec_iter_page((bvec), (iter)),       \
+<span class="lineNum">      79 </span>            :         .bv_len         = bvec_iter_len((bvec), (iter)),        \
+<span class="lineNum">      80 </span>            :         .bv_offset      = bvec_iter_offset((bvec), (iter)),     \
+<span class="lineNum">      81 </span>            : })
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : #define bio_iter_iovec(bio, iter)                               \
+<span class="lineNum">      84 </span>            :         bvec_iter_bvec((bio)-&gt;bi_io_vec, (iter))
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : #define bio_iter_page(bio, iter)                                \
+<span class="lineNum">      87 </span>            :         bvec_iter_page((bio)-&gt;bi_io_vec, (iter))
+<span class="lineNum">      88 </span>            : #define bio_iter_len(bio, iter)                                 \
+<span class="lineNum">      89 </span>            :         bvec_iter_len((bio)-&gt;bi_io_vec, (iter))
+<span class="lineNum">      90 </span>            : #define bio_iter_offset(bio, iter)                              \
+<span class="lineNum">      91 </span>            :         bvec_iter_offset((bio)-&gt;bi_io_vec, (iter))
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            : #define bio_page(bio)           bio_iter_page((bio), (bio)-&gt;bi_iter)
+<span class="lineNum">      94 </span>            : #define bio_offset(bio)         bio_iter_offset((bio), (bio)-&gt;bi_iter)
+<span class="lineNum">      95 </span>            : #define bio_iovec(bio)          bio_iter_iovec((bio), (bio)-&gt;bi_iter)
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            : #define bio_multiple_segments(bio)                              \
+<span class="lineNum">      98 </span>            :         ((bio)-&gt;bi_iter.bi_size != bio_iovec(bio).bv_len)
+<span class="lineNum">      99 </span>            : #define bio_sectors(bio)        ((bio)-&gt;bi_iter.bi_size &gt;&gt; 9)
+<span class="lineNum">     100 </span>            : #define bio_end_sector(bio)     ((bio)-&gt;bi_iter.bi_sector + bio_sectors((bio)))
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : /*
+<span class="lineNum">     103 </span>            :  * Check whether this bio carries any data or not. A NULL bio is allowed.
+<span class="lineNum">     104 </span>            :  */
+<span class="lineNum">     105 </span>            : static inline bool bio_has_data(struct bio *bio)
+<span class="lineNum">     106 </span>            : {
+<span class="lineNum">     107 </span>            :         if (bio &amp;&amp;
+<span class="lineNum">     108 </span>            :             bio-&gt;bi_iter.bi_size &amp;&amp;
+<span class="lineNum">     109 </span>            :             !(bio-&gt;bi_rw &amp; REQ_DISCARD))
+<span class="lineNum">     110 </span>            :                 return true;
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            :         return false;
+<span class="lineNum">     113 </span>            : }
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : static inline bool bio_is_rw(struct bio *bio)
+<span class="lineNum">     116 </span>            : {
+<span class="lineNum">     117 </span>            :         if (!bio_has_data(bio))
+<span class="lineNum">     118 </span>            :                 return false;
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            :         if (bio-&gt;bi_rw &amp; BIO_NO_ADVANCE_ITER_MASK)
+<span class="lineNum">     121 </span>            :                 return false;
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            :         return true;
+<span class="lineNum">     124 </span>            : }
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            : static inline bool bio_mergeable(struct bio *bio)
+<span class="lineNum">     127 </span>            : {
+<span class="lineNum">     128 </span>            :         if (bio-&gt;bi_rw &amp; REQ_NOMERGE_FLAGS)
+<span class="lineNum">     129 </span>            :                 return false;
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span>            :         return true;
+<span class="lineNum">     132 </span>            : }
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            : static inline unsigned int bio_cur_bytes(struct bio *bio)
+<span class="lineNum">     135 </span>            : {
+<span class="lineNum">     136 </span>            :         if (bio_has_data(bio))
+<span class="lineNum">     137 </span>            :                 return bio_iovec(bio).bv_len;
+<span class="lineNum">     138 </span>            :         else /* dataless requests such as discard */
+<span class="lineNum">     139 </span>            :                 return bio-&gt;bi_iter.bi_size;
+<span class="lineNum">     140 </span>            : }
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            : static inline void *bio_data(struct bio *bio)
+<span class="lineNum">     143 </span>            : {
+<span class="lineNum">     144 </span>            :         if (bio_has_data(bio))
+<span class="lineNum">     145 </span>            :                 return page_address(bio_page(bio)) + bio_offset(bio);
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :         return NULL;
+<span class="lineNum">     148 </span>            : }
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span>            : /*
+<span class="lineNum">     151 </span>            :  * will die
+<span class="lineNum">     152 </span>            :  */
+<span class="lineNum">     153 </span>            : #define bio_to_phys(bio)        (page_to_phys(bio_page((bio))) + (unsigned long) bio_offset((bio)))
+<span class="lineNum">     154 </span>            : #define bvec_to_phys(bv)        (page_to_phys((bv)-&gt;bv_page) + (unsigned long) (bv)-&gt;bv_offset)
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : /*
+<span class="lineNum">     157 </span>            :  * queues that have highmem support enabled may still need to revert to
+<span class="lineNum">     158 </span>            :  * PIO transfers occasionally and thus map high pages temporarily. For
+<span class="lineNum">     159 </span>            :  * permanent PIO fall back, user is probably better off disabling highmem
+<span class="lineNum">     160 </span>            :  * I/O completely on that queue (see ide-dma for example)
+<span class="lineNum">     161 </span>            :  */
+<span class="lineNum">     162 </span>            : #define __bio_kmap_atomic(bio, iter)                            \
+<span class="lineNum">     163 </span>            :         (kmap_atomic(bio_iter_iovec((bio), (iter)).bv_page) +   \
+<span class="lineNum">     164 </span>            :                 bio_iter_iovec((bio), (iter)).bv_offset)
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            : #define __bio_kunmap_atomic(addr)       kunmap_atomic(addr)
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            : /*
+<span class="lineNum">     169 </span>            :  * merge helpers etc
+<span class="lineNum">     170 </span>            :  */
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            : /* Default implementation of BIOVEC_PHYS_MERGEABLE */
+<span class="lineNum">     173 </span>            : #define __BIOVEC_PHYS_MERGEABLE(vec1, vec2)     \
+<span class="lineNum">     174 </span>            :         ((bvec_to_phys((vec1)) + (vec1)-&gt;bv_len) == bvec_to_phys((vec2)))
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : /*
+<span class="lineNum">     177 </span>            :  * allow arch override, for eg virtualized architectures (put in asm/io.h)
+<span class="lineNum">     178 </span>            :  */
+<span class="lineNum">     179 </span>            : #ifndef BIOVEC_PHYS_MERGEABLE
+<span class="lineNum">     180 </span>            : #define BIOVEC_PHYS_MERGEABLE(vec1, vec2)       \
+<span class="lineNum">     181 </span>            :         __BIOVEC_PHYS_MERGEABLE(vec1, vec2)
+<span class="lineNum">     182 </span>            : #endif
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            : #define __BIO_SEG_BOUNDARY(addr1, addr2, mask) \
+<span class="lineNum">     185 </span>            :         (((addr1) | (mask)) == (((addr2) - 1) | (mask)))
+<span class="lineNum">     186 </span>            : #define BIOVEC_SEG_BOUNDARY(q, b1, b2) \
+<span class="lineNum">     187 </span>            :         __BIO_SEG_BOUNDARY(bvec_to_phys((b1)), bvec_to_phys((b2)) + (b2)-&gt;bv_len, queue_segment_boundary((q)))
+<span class="lineNum">     188 </span>            : 
+<span class="lineNum">     189 </span>            : /*
+<span class="lineNum">     190 </span>            :  * Check if adding a bio_vec after bprv with offset would create a gap in
+<span class="lineNum">     191 </span>            :  * the SG list. Most drivers don't care about this, but some do.
+<span class="lineNum">     192 </span>            :  */
+<span class="lineNum">     193 </span>            : static inline bool bvec_gap_to_prev(struct bio_vec *bprv, unsigned int offset)
+<span class="lineNum">     194 </span>            : {
+<span class="lineNum">     195 </span>            :         return offset || ((bprv-&gt;bv_offset + bprv-&gt;bv_len) &amp; (PAGE_SIZE - 1));
+<span class="lineNum">     196 </span>            : }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : #define bio_io_error(bio) bio_endio((bio), -EIO)
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span>            : /*
+<span class="lineNum">     201 </span>            :  * drivers should _never_ use the all version - the bio may have been split
+<span class="lineNum">     202 </span>            :  * before it got to the driver and the driver won't own all of it
+<span class="lineNum">     203 </span>            :  */
+<span class="lineNum">     204 </span>            : #define bio_for_each_segment_all(bvl, bio, i)                           \
+<span class="lineNum">     205 </span>            :         for (i = 0, bvl = (bio)-&gt;bi_io_vec; i &lt; (bio)-&gt;bi_vcnt; i++, bvl++)
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span>            : static inline void bvec_iter_advance(struct bio_vec *bv, struct bvec_iter *iter,
+<span class="lineNum">     208 </span>            :                                      unsigned bytes)
+<span class="lineNum">     209 </span>            : {
+<span class="lineNum">     210 </span>            :         WARN_ONCE(bytes &gt; iter-&gt;bi_size,
+<span class="lineNum">     211 </span>            :                   &quot;Attempted to advance past end of bvec iter\n&quot;);
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            :         while (bytes) {
+<span class="lineNum">     214 </span>            :                 unsigned len = min(bytes, bvec_iter_len(bv, *iter));
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span>            :                 bytes -= len;
+<span class="lineNum">     217 </span>            :                 iter-&gt;bi_size -= len;
+<span class="lineNum">     218 </span>            :                 iter-&gt;bi_bvec_done += len;
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span>            :                 if (iter-&gt;bi_bvec_done == __bvec_iter_bvec(bv, *iter)-&gt;bv_len) {
+<span class="lineNum">     221 </span>            :                         iter-&gt;bi_bvec_done = 0;
+<span class="lineNum">     222 </span>            :                         iter-&gt;bi_idx++;
+<span class="lineNum">     223 </span>            :                 }
+<span class="lineNum">     224 </span>            :         }
+<span class="lineNum">     225 </span>            : }
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            : #define for_each_bvec(bvl, bio_vec, iter, start)                        \
+<span class="lineNum">     228 </span>            :         for (iter = (start);                                            \
+<span class="lineNum">     229 </span>            :              (iter).bi_size &amp;&amp;                                          \
+<span class="lineNum">     230 </span>            :                 ((bvl = bvec_iter_bvec((bio_vec), (iter))), 1); \
+<span class="lineNum">     231 </span>            :              bvec_iter_advance((bio_vec), &amp;(iter), (bvl).bv_len))
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            : static inline void bio_advance_iter(struct bio *bio, struct bvec_iter *iter,
+<span class="lineNum">     235 </span>            :                                     unsigned bytes)
+<span class="lineNum">     236 </span>            : {
+<span class="lineNum">     237 </span>            :         iter-&gt;bi_sector += bytes &gt;&gt; 9;
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            :         if (bio-&gt;bi_rw &amp; BIO_NO_ADVANCE_ITER_MASK)
+<span class="lineNum">     240 </span>            :                 iter-&gt;bi_size -= bytes;
+<span class="lineNum">     241 </span>            :         else
+<span class="lineNum">     242 </span>            :                 bvec_iter_advance(bio-&gt;bi_io_vec, iter, bytes);
+<span class="lineNum">     243 </span>            : }
+<span class="lineNum">     244 </span>            : 
+<span class="lineNum">     245 </span>            : #define __bio_for_each_segment(bvl, bio, iter, start)                   \
+<span class="lineNum">     246 </span>            :         for (iter = (start);                                            \
+<span class="lineNum">     247 </span>            :              (iter).bi_size &amp;&amp;                                          \
+<span class="lineNum">     248 </span>            :                 ((bvl = bio_iter_iovec((bio), (iter))), 1);             \
+<span class="lineNum">     249 </span>            :              bio_advance_iter((bio), &amp;(iter), (bvl).bv_len))
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            : #define bio_for_each_segment(bvl, bio, iter)                            \
+<span class="lineNum">     252 </span>            :         __bio_for_each_segment(bvl, bio, iter, (bio)-&gt;bi_iter)
+<span class="lineNum">     253 </span>            : 
+<span class="lineNum">     254 </span>            : #define bio_iter_last(bvec, iter) ((iter).bi_size == (bvec).bv_len)
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            : static inline unsigned bio_segments(struct bio *bio)
+<span class="lineNum">     257 </span>            : {
+<span class="lineNum">     258 </span>            :         unsigned segs = 0;
+<span class="lineNum">     259 </span>            :         struct bio_vec bv;
+<span class="lineNum">     260 </span>            :         struct bvec_iter iter;
+<span class="lineNum">     261 </span>            : 
+<span class="lineNum">     262 </span>            :         /*
+<span class="lineNum">     263 </span>            :          * We special case discard/write same, because they interpret bi_size
+<span class="lineNum">     264 </span>            :          * differently:
+<span class="lineNum">     265 </span>            :          */
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            :         if (bio-&gt;bi_rw &amp; REQ_DISCARD)
+<span class="lineNum">     268 </span>            :                 return 1;
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span>            :         if (bio-&gt;bi_rw &amp; REQ_WRITE_SAME)
+<span class="lineNum">     271 </span>            :                 return 1;
+<span class="lineNum">     272 </span>            : 
+<span class="lineNum">     273 </span>            :         bio_for_each_segment(bv, bio, iter)
+<span class="lineNum">     274 </span>            :                 segs++;
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span>            :         return segs;
+<span class="lineNum">     277 </span>            : }
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span>            : /*
+<span class="lineNum">     280 </span>            :  * get a reference to a bio, so it won't disappear. the intended use is
+<span class="lineNum">     281 </span>            :  * something like:
+<span class="lineNum">     282 </span>            :  *
+<span class="lineNum">     283 </span>            :  * bio_get(bio);
+<span class="lineNum">     284 </span>            :  * submit_bio(rw, bio);
+<span class="lineNum">     285 </span>            :  * if (bio-&gt;bi_flags ...)
+<span class="lineNum">     286 </span>            :  *      do_something
+<span class="lineNum">     287 </span>            :  * bio_put(bio);
+<span class="lineNum">     288 </span>            :  *
+<span class="lineNum">     289 </span>            :  * without the bio_get(), it could potentially complete I/O before submit_bio
+<span class="lineNum">     290 </span>            :  * returns. and then bio would be freed memory when if (bio-&gt;bi_flags ...)
+<span class="lineNum">     291 </span>            :  * runs
+<span class="lineNum">     292 </span>            :  */
+<span class="lineNum">     293 </span>            : #define bio_get(bio)    atomic_inc(&amp;(bio)-&gt;bi_cnt)
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            : #if defined(CONFIG_BLK_DEV_INTEGRITY)
+<span class="lineNum">     296 </span>            : /*
+<span class="lineNum">     297 </span>            :  * bio integrity payload
+<span class="lineNum">     298 </span>            :  */
+<span class="lineNum">     299 </span>            : struct bio_integrity_payload {
+<span class="lineNum">     300 </span>            :         struct bio              *bip_bio;       /* parent bio */
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :         struct bvec_iter        bip_iter;
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span>            :         /* kill - should just use bip_vec */
+<span class="lineNum">     305 </span>            :         void                    *bip_buf;       /* generated integrity data */
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            :         bio_end_io_t            *bip_end_io;    /* saved I/O completion fn */
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span>            :         unsigned short          bip_slab;       /* slab the bip came from */
+<span class="lineNum">     310 </span>            :         unsigned short          bip_vcnt;       /* # of integrity bio_vecs */
+<span class="lineNum">     311 </span>            :         unsigned short          bip_max_vcnt;   /* integrity bio_vec slots */
+<span class="lineNum">     312 </span>            :         unsigned                bip_owns_buf:1; /* should free bip_buf */
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span>            :         struct work_struct      bip_work;       /* I/O completion */
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            :         struct bio_vec          *bip_vec;
+<span class="lineNum">     317 </span>            :         struct bio_vec          bip_inline_vecs[0];/* embedded bvec array */
+<span class="lineNum">     318 </span>            : };
+<span class="lineNum">     319 </span>            : #endif /* CONFIG_BLK_DEV_INTEGRITY */
+<span class="lineNum">     320 </span>            : 
+<span class="lineNum">     321 </span>            : extern void bio_trim(struct bio *bio, int offset, int size);
+<span class="lineNum">     322 </span>            : extern struct bio *bio_split(struct bio *bio, int sectors,
+<span class="lineNum">     323 </span>            :                              gfp_t gfp, struct bio_set *bs);
+<span class="lineNum">     324 </span>            : 
+<span class="lineNum">     325 </span>            : /**
+<span class="lineNum">     326 </span>            :  * bio_next_split - get next @sectors from a bio, splitting if necessary
+<span class="lineNum">     327 </span>            :  * @bio:        bio to split
+<span class="lineNum">     328 </span>            :  * @sectors:    number of sectors to split from the front of @bio
+<span class="lineNum">     329 </span>            :  * @gfp:        gfp mask
+<span class="lineNum">     330 </span>            :  * @bs:         bio set to allocate from
+<span class="lineNum">     331 </span>            :  *
+<span class="lineNum">     332 </span>            :  * Returns a bio representing the next @sectors of @bio - if the bio is smaller
+<span class="lineNum">     333 </span>            :  * than @sectors, returns the original bio unchanged.
+<span class="lineNum">     334 </span>            :  */
+<span class="lineNum">     335 </span>            : static inline struct bio *bio_next_split(struct bio *bio, int sectors,
+<span class="lineNum">     336 </span>            :                                          gfp_t gfp, struct bio_set *bs)
+<span class="lineNum">     337 </span>            : {
+<span class="lineNum">     338 </span>            :         if (sectors &gt;= bio_sectors(bio))
+<span class="lineNum">     339 </span>            :                 return bio;
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span>            :         return bio_split(bio, sectors, gfp, bs);
+<span class="lineNum">     342 </span>            : }
+<span class="lineNum">     343 </span>            : 
+<span class="lineNum">     344 </span>            : extern struct bio_set *bioset_create(unsigned int, unsigned int);
+<span class="lineNum">     345 </span>            : extern void bioset_free(struct bio_set *);
+<span class="lineNum">     346 </span>            : extern mempool_t *biovec_create_pool(int pool_entries);
+<span class="lineNum">     347 </span>            : 
+<span class="lineNum">     348 </span>            : extern struct bio *bio_alloc_bioset(gfp_t, int, struct bio_set *);
+<span class="lineNum">     349 </span>            : extern void bio_put(struct bio *);
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            : extern void __bio_clone_fast(struct bio *, struct bio *);
+<span class="lineNum">     352 </span>            : extern struct bio *bio_clone_fast(struct bio *, gfp_t, struct bio_set *);
+<span class="lineNum">     353 </span>            : extern struct bio *bio_clone_bioset(struct bio *, gfp_t, struct bio_set *bs);
+<span class="lineNum">     354 </span>            : 
+<span class="lineNum">     355 </span>            : extern struct bio_set *fs_bio_set;
+<span class="lineNum">     356 </span>            : unsigned int bio_integrity_tag_size(struct bio *bio);
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            : static inline struct bio *bio_alloc(gfp_t gfp_mask, unsigned int nr_iovecs)
+<span class="lineNum">     359 </span>            : {
+<span class="lineNum">     360 </span>            :         return bio_alloc_bioset(gfp_mask, nr_iovecs, fs_bio_set);
+<span class="lineNum">     361 </span>            : }
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            : static inline struct bio *bio_clone(struct bio *bio, gfp_t gfp_mask)
+<span class="lineNum">     364 </span>            : {
+<span class="lineNum">     365 </span>            :         return bio_clone_bioset(bio, gfp_mask, fs_bio_set);
+<span class="lineNum">     366 </span>            : }
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            : static inline struct bio *bio_kmalloc(gfp_t gfp_mask, unsigned int nr_iovecs)
+<span class="lineNum">     369 </span>            : {
+<span class="lineNum">     370 </span>            :         return bio_alloc_bioset(gfp_mask, nr_iovecs, NULL);
+<span class="lineNum">     371 </span>            : }
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span>            : static inline struct bio *bio_clone_kmalloc(struct bio *bio, gfp_t gfp_mask)
+<span class="lineNum">     374 </span>            : {
+<span class="lineNum">     375 </span>            :         return bio_clone_bioset(bio, gfp_mask, NULL);
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span>            : }
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span>            : extern void bio_endio(struct bio *, int);
+<span class="lineNum">     380 </span>            : extern void bio_endio_nodec(struct bio *, int);
+<span class="lineNum">     381 </span>            : struct request_queue;
+<span class="lineNum">     382 </span>            : extern int bio_phys_segments(struct request_queue *, struct bio *);
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : extern int submit_bio_wait(int rw, struct bio *bio);
+<span class="lineNum">     385 </span>            : extern void bio_advance(struct bio *, unsigned);
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            : extern void bio_init(struct bio *);
+<span class="lineNum">     388 </span>            : extern void bio_reset(struct bio *);
+<span class="lineNum">     389 </span>            : void bio_chain(struct bio *, struct bio *);
+<span class="lineNum">     390 </span>            : 
+<span class="lineNum">     391 </span>            : extern int bio_add_page(struct bio *, struct page *, unsigned int,unsigned int);
+<span class="lineNum">     392 </span>            : extern int bio_add_pc_page(struct request_queue *, struct bio *, struct page *,
+<span class="lineNum">     393 </span>            :                            unsigned int, unsigned int);
+<span class="lineNum">     394 </span>            : extern int bio_get_nr_vecs(struct block_device *);
+<span class="lineNum">     395 </span>            : extern struct bio *bio_map_user(struct request_queue *, struct block_device *,
+<span class="lineNum">     396 </span>            :                                 unsigned long, unsigned int, int, gfp_t);
+<span class="lineNum">     397 </span>            : struct sg_iovec;
+<span class="lineNum">     398 </span>            : struct rq_map_data;
+<span class="lineNum">     399 </span>            : extern struct bio *bio_map_user_iov(struct request_queue *,
+<span class="lineNum">     400 </span>            :                                     struct block_device *,
+<span class="lineNum">     401 </span>            :                                     const struct sg_iovec *, int, int, gfp_t);
+<span class="lineNum">     402 </span>            : extern void bio_unmap_user(struct bio *);
+<span class="lineNum">     403 </span>            : extern struct bio *bio_map_kern(struct request_queue *, void *, unsigned int,
+<span class="lineNum">     404 </span>            :                                 gfp_t);
+<span class="lineNum">     405 </span>            : extern struct bio *bio_copy_kern(struct request_queue *, void *, unsigned int,
+<span class="lineNum">     406 </span>            :                                  gfp_t, int);
+<span class="lineNum">     407 </span>            : extern void bio_set_pages_dirty(struct bio *bio);
+<span class="lineNum">     408 </span>            : extern void bio_check_pages_dirty(struct bio *bio);
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span>            : #ifndef ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE
+<span class="lineNum">     411 </span>            : # error &quot;You should define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE for your platform&quot;
+<span class="lineNum">     412 </span>            : #endif
+<span class="lineNum">     413 </span>            : #if ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE
+<span class="lineNum">     414 </span>            : extern void bio_flush_dcache_pages(struct bio *bi);
+<span class="lineNum">     415 </span>            : #else
+<span class="lineNum">     416 </span>            : static inline void bio_flush_dcache_pages(struct bio *bi)
+<span class="lineNum">     417 </span>            : {
+<span class="lineNum">     418 </span>            : }
+<span class="lineNum">     419 </span>            : #endif
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span>            : extern void bio_copy_data(struct bio *dst, struct bio *src);
+<span class="lineNum">     422 </span>            : extern int bio_alloc_pages(struct bio *bio, gfp_t gfp);
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            : extern struct bio *bio_copy_user(struct request_queue *, struct rq_map_data *,
+<span class="lineNum">     425 </span>            :                                  unsigned long, unsigned int, int, gfp_t);
+<span class="lineNum">     426 </span>            : extern struct bio *bio_copy_user_iov(struct request_queue *,
+<span class="lineNum">     427 </span>            :                                      struct rq_map_data *,
+<span class="lineNum">     428 </span>            :                                      const struct sg_iovec *,
+<span class="lineNum">     429 </span>            :                                      int, int, gfp_t);
+<span class="lineNum">     430 </span>            : extern int bio_uncopy_user(struct bio *);
+<span class="lineNum">     431 </span>            : void zero_fill_bio(struct bio *bio);
+<span class="lineNum">     432 </span>            : extern struct bio_vec *bvec_alloc(gfp_t, int, unsigned long *, mempool_t *);
+<span class="lineNum">     433 </span>            : extern void bvec_free(mempool_t *, struct bio_vec *, unsigned int);
+<span class="lineNum">     434 </span>            : extern unsigned int bvec_nr_vecs(unsigned short idx);
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span>            : #ifdef CONFIG_BLK_CGROUP
+<span class="lineNum">     437 </span>            : int bio_associate_current(struct bio *bio);
+<span class="lineNum">     438 </span>            : void bio_disassociate_task(struct bio *bio);
+<span class="lineNum">     439 </span>            : #else   /* CONFIG_BLK_CGROUP */
+<span class="lineNum">     440 </span>            : static inline int bio_associate_current(struct bio *bio) { return -ENOENT; }
+<span class="lineNum">     441 </span>            : static inline void bio_disassociate_task(struct bio *bio) { }
+<span class="lineNum">     442 </span>            : #endif  /* CONFIG_BLK_CGROUP */
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span>            : #ifdef CONFIG_HIGHMEM
+<span class="lineNum">     445 </span>            : /*
+<span class="lineNum">     446 </span>            :  * remember never ever reenable interrupts between a bvec_kmap_irq and
+<span class="lineNum">     447 </span>            :  * bvec_kunmap_irq!
+<span class="lineNum">     448 </span>            :  */
+<span class="lineNum">     449 </span>            : static inline char *bvec_kmap_irq(struct bio_vec *bvec, unsigned long *flags)
+<span class="lineNum">     450 </span>            : {
+<span class="lineNum">     451 </span>            :         unsigned long addr;
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            :         /*
+<span class="lineNum">     454 </span>            :          * might not be a highmem page, but the preempt/irq count
+<span class="lineNum">     455 </span>            :          * balancing is a lot nicer this way
+<span class="lineNum">     456 </span>            :          */
+<span class="lineNum">     457 </span>            :         local_irq_save(*flags);
+<span class="lineNum">     458 </span>            :         addr = (unsigned long) kmap_atomic(bvec-&gt;bv_page);
+<span class="lineNum">     459 </span>            : 
+<span class="lineNum">     460 </span>            :         BUG_ON(addr &amp; ~PAGE_MASK);
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            :         return (char *) addr + bvec-&gt;bv_offset;
+<span class="lineNum">     463 </span>            : }
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            : static inline void bvec_kunmap_irq(char *buffer, unsigned long *flags)
+<span class="lineNum">     466 </span>            : {
+<span class="lineNum">     467 </span>            :         unsigned long ptr = (unsigned long) buffer &amp; PAGE_MASK;
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span>            :         kunmap_atomic((void *) ptr);
+<span class="lineNum">     470 </span>            :         local_irq_restore(*flags);
+<span class="lineNum">     471 </span>            : }
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            : #else
+<span class="lineNum">     474 </span>            : static inline char *bvec_kmap_irq(struct bio_vec *bvec, unsigned long *flags)
+<span class="lineNum">     475 </span>            : {
+<span class="lineNum">     476 </span>            :         return page_address(bvec-&gt;bv_page) + bvec-&gt;bv_offset;
+<span class="lineNum">     477 </span>            : }
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            : static inline void bvec_kunmap_irq(char *buffer, unsigned long *flags)
+<span class="lineNum">     480 </span>            : {
+<span class="lineNum">     481 </span>            :         *flags = 0;
+<span class="lineNum">     482 </span>            : }
+<span class="lineNum">     483 </span>            : #endif
+<span class="lineNum">     484 </span>            : 
+<span class="lineNum">     485 </span>            : static inline char *__bio_kmap_irq(struct bio *bio, struct bvec_iter iter,
+<span class="lineNum">     486 </span>            :                                    unsigned long *flags)
+<span class="lineNum">     487 </span>            : {
+<span class="lineNum">     488 </span>            :         return bvec_kmap_irq(&amp;bio_iter_iovec(bio, iter), flags);
+<span class="lineNum">     489 </span>            : }
+<span class="lineNum">     490 </span>            : #define __bio_kunmap_irq(buf, flags)    bvec_kunmap_irq(buf, flags)
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span>            : #define bio_kmap_irq(bio, flags) \
+<span class="lineNum">     493 </span>            :         __bio_kmap_irq((bio), (bio)-&gt;bi_iter, (flags))
+<span class="lineNum">     494 </span>            : #define bio_kunmap_irq(buf,flags)       __bio_kunmap_irq(buf, flags)
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span>            : /*
+<span class="lineNum">     497 </span>            :  * BIO list management for use by remapping drivers (e.g. DM or MD) and loop.
+<span class="lineNum">     498 </span>            :  *
+<span class="lineNum">     499 </span>            :  * A bio_list anchors a singly-linked list of bios chained through the bi_next
+<span class="lineNum">     500 </span>            :  * member of the bio.  The bio_list also caches the last list member to allow
+<span class="lineNum">     501 </span>            :  * fast access to the tail.
+<span class="lineNum">     502 </span>            :  */
+<span class="lineNum">     503 </span>            : struct bio_list {
+<span class="lineNum">     504 </span>            :         struct bio *head;
+<span class="lineNum">     505 </span>            :         struct bio *tail;
+<span class="lineNum">     506 </span>            : };
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span>            : static inline int bio_list_empty(const struct bio_list *bl)
+<span class="lineNum">     509 </span>            : {
+<span class="lineNum">     510 </span><span class="lineCov">         44 :         return bl-&gt;head == NULL;</span>
+<span class="lineNum">     511 </span>            : }
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span>            : static inline void bio_list_init(struct bio_list *bl)
+<span class="lineNum">     514 </span>            : {
+<span class="lineNum">     515 </span><span class="lineCov">         82 :         bl-&gt;head = bl-&gt;tail = NULL;</span>
+<span class="lineNum">     516 </span>            : }
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span>            : #define BIO_EMPTY_LIST  { NULL, NULL }
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span>            : #define bio_list_for_each(bio, bl) \
+<span class="lineNum">     521 </span>            :         for (bio = (bl)-&gt;head; bio; bio = bio-&gt;bi_next)
+<span class="lineNum">     522 </span>            : 
+<span class="lineNum">     523 </span>            : static inline unsigned bio_list_size(const struct bio_list *bl)
+<span class="lineNum">     524 </span>            : {
+<span class="lineNum">     525 </span>            :         unsigned sz = 0;
+<span class="lineNum">     526 </span>            :         struct bio *bio;
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span><span class="lineCov">        155 :         bio_list_for_each(bio, bl)</span>
+<span class="lineNum">     529 </span><span class="lineCov">        155 :                 sz++;</span>
+<span class="lineNum">     530 </span>            : 
+<span class="lineNum">     531 </span>            :         return sz;
+<span class="lineNum">     532 </span>            : }
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span>            : static inline void bio_list_add(struct bio_list *bl, struct bio *bio)
+<span class="lineNum">     535 </span>            : {
+<span class="lineNum">     536 </span><span class="lineCov">        193 :         bio-&gt;bi_next = NULL;</span>
+<span class="lineNum">     537 </span>            : 
+<span class="lineNum">     538 </span><span class="lineCov">        193 :         if (bl-&gt;tail)</span>
+<span class="lineNum">     539 </span><span class="lineCov">        113 :                 bl-&gt;tail-&gt;bi_next = bio;</span>
+<span class="lineNum">     540 </span>            :         else
+<span class="lineNum">     541 </span><span class="lineCov">         80 :                 bl-&gt;head = bio;</span>
+<span class="lineNum">     542 </span>            : 
+<span class="lineNum">     543 </span><span class="lineCov">        193 :         bl-&gt;tail = bio;</span>
+<span class="lineNum">     544 </span>            : }
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            : static inline void bio_list_add_head(struct bio_list *bl, struct bio *bio)
+<span class="lineNum">     547 </span>            : {
+<span class="lineNum">     548 </span>            :         bio-&gt;bi_next = bl-&gt;head;
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span>            :         bl-&gt;head = bio;
+<span class="lineNum">     551 </span>            : 
+<span class="lineNum">     552 </span>            :         if (!bl-&gt;tail)
+<span class="lineNum">     553 </span>            :                 bl-&gt;tail = bio;
+<span class="lineNum">     554 </span>            : }
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span>            : static inline void bio_list_merge(struct bio_list *bl, struct bio_list *bl2)
+<span class="lineNum">     557 </span>            : {
+<span class="lineNum">     558 </span><span class="lineNoCov">          0 :         if (!bl2-&gt;head)</span>
+<span class="lineNum">     559 </span>            :                 return;
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :         if (bl-&gt;tail)</span>
+<span class="lineNum">     562 </span><span class="lineNoCov">          0 :                 bl-&gt;tail-&gt;bi_next = bl2-&gt;head;</span>
+<span class="lineNum">     563 </span>            :         else
+<span class="lineNum">     564 </span><span class="lineNoCov">          0 :                 bl-&gt;head = bl2-&gt;head;</span>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span><span class="lineNoCov">          0 :         bl-&gt;tail = bl2-&gt;tail;</span>
+<span class="lineNum">     567 </span>            : }
+<span class="lineNum">     568 </span>            : 
+<span class="lineNum">     569 </span>            : static inline void bio_list_merge_head(struct bio_list *bl,
+<span class="lineNum">     570 </span>            :                                        struct bio_list *bl2)
+<span class="lineNum">     571 </span>            : {
+<span class="lineNum">     572 </span>            :         if (!bl2-&gt;head)
+<span class="lineNum">     573 </span>            :                 return;
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span>            :         if (bl-&gt;head)
+<span class="lineNum">     576 </span>            :                 bl2-&gt;tail-&gt;bi_next = bl-&gt;head;
+<span class="lineNum">     577 </span>            :         else
+<span class="lineNum">     578 </span>            :                 bl-&gt;tail = bl2-&gt;tail;
+<span class="lineNum">     579 </span>            : 
+<span class="lineNum">     580 </span>            :         bl-&gt;head = bl2-&gt;head;
+<span class="lineNum">     581 </span>            : }
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span>            : static inline struct bio *bio_list_peek(struct bio_list *bl)
+<span class="lineNum">     584 </span>            : {
+<span class="lineNum">     585 </span>            :         return bl-&gt;head;
+<span class="lineNum">     586 </span>            : }
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span>            : static inline struct bio *bio_list_pop(struct bio_list *bl)
+<span class="lineNum">     589 </span>            : {
+<span class="lineNum">     590 </span><span class="lineCov">        197 :         struct bio *bio = bl-&gt;head;</span>
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span><span class="lineCov">        197 :         if (bio) {</span>
+<span class="lineNum">     593 </span><span class="lineCov">        155 :                 bl-&gt;head = bl-&gt;head-&gt;bi_next;</span>
+<span class="lineNum">     594 </span><span class="lineCov">        155 :                 if (!bl-&gt;head)</span>
+<span class="lineNum">     595 </span><span class="lineCov">         42 :                         bl-&gt;tail = NULL;</span>
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span><span class="lineCov">        155 :                 bio-&gt;bi_next = NULL;</span>
+<span class="lineNum">     598 </span>            :         }
+<span class="lineNum">     599 </span>            : 
+<span class="lineNum">     600 </span>            :         return bio;
+<span class="lineNum">     601 </span>            : }
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            : static inline struct bio *bio_list_get(struct bio_list *bl)
+<span class="lineNum">     604 </span>            : {
+<span class="lineNum">     605 </span><span class="lineCov">         38 :         struct bio *bio = bl-&gt;head;</span>
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span><span class="lineCov">         38 :         bl-&gt;head = bl-&gt;tail = NULL;</span>
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span>            :         return bio;
+<span class="lineNum">     610 </span>            : }
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span>            : /*
+<span class="lineNum">     613 </span>            :  * bio_set is used to allow other portions of the IO system to
+<span class="lineNum">     614 </span>            :  * allocate their own private memory pools for bio and iovec structures.
+<span class="lineNum">     615 </span>            :  * These memory pools in turn all allocate from the bio_slab
+<span class="lineNum">     616 </span>            :  * and the bvec_slabs[].
+<span class="lineNum">     617 </span>            :  */
+<span class="lineNum">     618 </span>            : #define BIO_POOL_SIZE 2
+<span class="lineNum">     619 </span>            : #define BIOVEC_NR_POOLS 6
+<span class="lineNum">     620 </span>            : #define BIOVEC_MAX_IDX  (BIOVEC_NR_POOLS - 1)
+<span class="lineNum">     621 </span>            : 
+<span class="lineNum">     622 </span>            : struct bio_set {
+<span class="lineNum">     623 </span>            :         struct kmem_cache *bio_slab;
+<span class="lineNum">     624 </span>            :         unsigned int front_pad;
+<span class="lineNum">     625 </span>            : 
+<span class="lineNum">     626 </span>            :         mempool_t *bio_pool;
+<span class="lineNum">     627 </span>            :         mempool_t *bvec_pool;
+<span class="lineNum">     628 </span>            : #if defined(CONFIG_BLK_DEV_INTEGRITY)
+<span class="lineNum">     629 </span>            :         mempool_t *bio_integrity_pool;
+<span class="lineNum">     630 </span>            :         mempool_t *bvec_integrity_pool;
+<span class="lineNum">     631 </span>            : #endif
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span>            :         /*
+<span class="lineNum">     634 </span>            :          * Deadlock avoidance for stacking block drivers: see comments in
+<span class="lineNum">     635 </span>            :          * bio_alloc_bioset() for details
+<span class="lineNum">     636 </span>            :          */
+<span class="lineNum">     637 </span>            :         spinlock_t              rescue_lock;
+<span class="lineNum">     638 </span>            :         struct bio_list         rescue_list;
+<span class="lineNum">     639 </span>            :         struct work_struct      rescue_work;
+<span class="lineNum">     640 </span>            :         struct workqueue_struct *rescue_workqueue;
+<span class="lineNum">     641 </span>            : };
+<span class="lineNum">     642 </span>            : 
+<span class="lineNum">     643 </span>            : struct biovec_slab {
+<span class="lineNum">     644 </span>            :         int nr_vecs;
+<span class="lineNum">     645 </span>            :         char *name;
+<span class="lineNum">     646 </span>            :         struct kmem_cache *slab;
+<span class="lineNum">     647 </span>            : };
+<span class="lineNum">     648 </span>            : 
+<span class="lineNum">     649 </span>            : /*
+<span class="lineNum">     650 </span>            :  * a small number of entries is fine, not going to be performance critical.
+<span class="lineNum">     651 </span>            :  * basically we just need to survive
+<span class="lineNum">     652 </span>            :  */
+<span class="lineNum">     653 </span>            : #define BIO_SPLIT_ENTRIES 2
+<span class="lineNum">     654 </span>            : 
+<span class="lineNum">     655 </span>            : #if defined(CONFIG_BLK_DEV_INTEGRITY)
+<span class="lineNum">     656 </span>            : 
+<span class="lineNum">     657 </span>            : #define bip_for_each_vec(bvl, bip, iter)                                \
+<span class="lineNum">     658 </span>            :         for_each_bvec(bvl, (bip)-&gt;bip_vec, iter, (bip)-&gt;bip_iter)
+<span class="lineNum">     659 </span>            : 
+<span class="lineNum">     660 </span>            : #define bio_for_each_integrity_vec(_bvl, _bio, _iter)                   \
+<span class="lineNum">     661 </span>            :         for_each_bio(_bio)                                              \
+<span class="lineNum">     662 </span>            :                 bip_for_each_vec(_bvl, _bio-&gt;bi_integrity, _iter)
+<span class="lineNum">     663 </span>            : 
+<span class="lineNum">     664 </span>            : #define bio_integrity(bio) (bio-&gt;bi_integrity != NULL)
+<span class="lineNum">     665 </span>            : 
+<span class="lineNum">     666 </span>            : extern struct bio_integrity_payload *bio_integrity_alloc(struct bio *, gfp_t, unsigned int);
+<span class="lineNum">     667 </span>            : extern void bio_integrity_free(struct bio *);
+<span class="lineNum">     668 </span>            : extern int bio_integrity_add_page(struct bio *, struct page *, unsigned int, unsigned int);
+<span class="lineNum">     669 </span>            : extern int bio_integrity_enabled(struct bio *bio);
+<span class="lineNum">     670 </span>            : extern int bio_integrity_set_tag(struct bio *, void *, unsigned int);
+<span class="lineNum">     671 </span>            : extern int bio_integrity_get_tag(struct bio *, void *, unsigned int);
+<span class="lineNum">     672 </span>            : extern int bio_integrity_prep(struct bio *);
+<span class="lineNum">     673 </span>            : extern void bio_integrity_endio(struct bio *, int);
+<span class="lineNum">     674 </span>            : extern void bio_integrity_advance(struct bio *, unsigned int);
+<span class="lineNum">     675 </span>            : extern void bio_integrity_trim(struct bio *, unsigned int, unsigned int);
+<span class="lineNum">     676 </span>            : extern int bio_integrity_clone(struct bio *, struct bio *, gfp_t);
+<span class="lineNum">     677 </span>            : extern int bioset_integrity_create(struct bio_set *, int);
+<span class="lineNum">     678 </span>            : extern void bioset_integrity_free(struct bio_set *);
+<span class="lineNum">     679 </span>            : extern void bio_integrity_init(void);
+<span class="lineNum">     680 </span>            : 
+<span class="lineNum">     681 </span>            : #else /* CONFIG_BLK_DEV_INTEGRITY */
+<span class="lineNum">     682 </span>            : 
+<span class="lineNum">     683 </span>            : static inline int bio_integrity(struct bio *bio)
+<span class="lineNum">     684 </span>            : {
+<span class="lineNum">     685 </span>            :         return 0;
+<span class="lineNum">     686 </span>            : }
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span>            : static inline int bio_integrity_enabled(struct bio *bio)
+<span class="lineNum">     689 </span>            : {
+<span class="lineNum">     690 </span>            :         return 0;
+<span class="lineNum">     691 </span>            : }
+<span class="lineNum">     692 </span>            : 
+<span class="lineNum">     693 </span>            : static inline int bioset_integrity_create(struct bio_set *bs, int pool_size)
+<span class="lineNum">     694 </span>            : {
+<span class="lineNum">     695 </span>            :         return 0;
+<span class="lineNum">     696 </span>            : }
+<span class="lineNum">     697 </span>            : 
+<span class="lineNum">     698 </span>            : static inline void bioset_integrity_free (struct bio_set *bs)
+<span class="lineNum">     699 </span>            : {
+<span class="lineNum">     700 </span>            :         return;
+<span class="lineNum">     701 </span>            : }
+<span class="lineNum">     702 </span>            : 
+<span class="lineNum">     703 </span>            : static inline int bio_integrity_prep(struct bio *bio)
+<span class="lineNum">     704 </span>            : {
+<span class="lineNum">     705 </span>            :         return 0;
+<span class="lineNum">     706 </span>            : }
+<span class="lineNum">     707 </span>            : 
+<span class="lineNum">     708 </span>            : static inline void bio_integrity_free(struct bio *bio)
+<span class="lineNum">     709 </span>            : {
+<span class="lineNum">     710 </span>            :         return;
+<span class="lineNum">     711 </span>            : }
+<span class="lineNum">     712 </span>            : 
+<span class="lineNum">     713 </span>            : static inline int bio_integrity_clone(struct bio *bio, struct bio *bio_src,
+<span class="lineNum">     714 </span>            :                                       gfp_t gfp_mask)
+<span class="lineNum">     715 </span>            : {
+<span class="lineNum">     716 </span>            :         return 0;
+<span class="lineNum">     717 </span>            : }
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span>            : static inline void bio_integrity_advance(struct bio *bio,
+<span class="lineNum">     720 </span>            :                                          unsigned int bytes_done)
+<span class="lineNum">     721 </span>            : {
+<span class="lineNum">     722 </span>            :         return;
+<span class="lineNum">     723 </span>            : }
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span>            : static inline void bio_integrity_trim(struct bio *bio, unsigned int offset,
+<span class="lineNum">     726 </span>            :                                       unsigned int sectors)
+<span class="lineNum">     727 </span>            : {
+<span class="lineNum">     728 </span>            :         return;
+<span class="lineNum">     729 </span>            : }
+<span class="lineNum">     730 </span>            : 
+<span class="lineNum">     731 </span>            : static inline void bio_integrity_init(void)
+<span class="lineNum">     732 </span>            : {
+<span class="lineNum">     733 </span>            :         return;
+<span class="lineNum">     734 </span>            : }
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span>            : #endif /* CONFIG_BLK_DEV_INTEGRITY */
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span>            : #endif /* CONFIG_BLOCK */
+<span class="lineNum">     739 </span>            : #endif /* __LINUX_BIO_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

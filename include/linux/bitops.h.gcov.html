@@ -1,0 +1,323 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/bitops.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - bitops.h<span style="font-size: 80%;"> (source / <a href="bitops.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_BITOPS_H</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_BITOPS_H
+<span class="lineNum">       3 </span>            : #include &lt;asm/types.h&gt;
+<span class="lineNum">       4 </span>            : 
+<span class="lineNum">       5 </span>            : #ifdef  __KERNEL__
+<span class="lineNum">       6 </span>            : #define BIT(nr)                 (1UL &lt;&lt; (nr))
+<span class="lineNum">       7 </span>            : #define BIT_ULL(nr)             (1ULL &lt;&lt; (nr))
+<span class="lineNum">       8 </span>            : #define BIT_MASK(nr)            (1UL &lt;&lt; ((nr) % BITS_PER_LONG))
+<span class="lineNum">       9 </span>            : #define BIT_WORD(nr)            ((nr) / BITS_PER_LONG)
+<span class="lineNum">      10 </span>            : #define BIT_ULL_MASK(nr)        (1ULL &lt;&lt; ((nr) % BITS_PER_LONG_LONG))
+<span class="lineNum">      11 </span>            : #define BIT_ULL_WORD(nr)        ((nr) / BITS_PER_LONG_LONG)
+<span class="lineNum">      12 </span>            : #define BITS_PER_BYTE           8
+<span class="lineNum">      13 </span>            : #define BITS_TO_LONGS(nr)       DIV_ROUND_UP(nr, BITS_PER_BYTE * sizeof(long))
+<span class="lineNum">      14 </span>            : #endif
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : /*
+<span class="lineNum">      17 </span>            :  * Create a contiguous bitmask starting at bit position @l and ending at
+<span class="lineNum">      18 </span>            :  * position @h. For example
+<span class="lineNum">      19 </span>            :  * GENMASK_ULL(39, 21) gives us the 64bit vector 0x000000ffffe00000.
+<span class="lineNum">      20 </span>            :  */
+<span class="lineNum">      21 </span>            : #define GENMASK(h, l)           (((U32_C(1) &lt;&lt; ((h) - (l) + 1)) - 1) &lt;&lt; (l))
+<span class="lineNum">      22 </span>            : #define GENMASK_ULL(h, l)       (((U64_C(1) &lt;&lt; ((h) - (l) + 1)) - 1) &lt;&lt; (l))
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : extern unsigned int __sw_hweight8(unsigned int w);
+<span class="lineNum">      25 </span>            : extern unsigned int __sw_hweight16(unsigned int w);
+<span class="lineNum">      26 </span>            : extern unsigned int __sw_hweight32(unsigned int w);
+<span class="lineNum">      27 </span>            : extern unsigned long __sw_hweight64(__u64 w);
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : /*
+<span class="lineNum">      30 </span>            :  * Include this here because some architectures need generic_ffs/fls in
+<span class="lineNum">      31 </span>            :  * scope
+<span class="lineNum">      32 </span>            :  */
+<span class="lineNum">      33 </span>            : #include &lt;asm/bitops.h&gt;
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : /*
+<span class="lineNum">      36 </span>            :  * Provide __deprecated wrappers for the new interface, avoid flag day changes.
+<span class="lineNum">      37 </span>            :  * We need the ugly external functions to break header recursion hell.
+<span class="lineNum">      38 </span>            :  */
+<span class="lineNum">      39 </span>            : #ifndef smp_mb__before_clear_bit
+<span class="lineNum">      40 </span>            : static inline void __deprecated smp_mb__before_clear_bit(void)
+<span class="lineNum">      41 </span>            : {
+<span class="lineNum">      42 </span>            :         extern void __smp_mb__before_atomic(void);
+<span class="lineNum">      43 </span>            :         __smp_mb__before_atomic();
+<span class="lineNum">      44 </span>            : }
+<span class="lineNum">      45 </span>            : #endif
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : #ifndef smp_mb__after_clear_bit
+<span class="lineNum">      48 </span>            : static inline void __deprecated smp_mb__after_clear_bit(void)
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span>            :         extern void __smp_mb__after_atomic(void);
+<span class="lineNum">      51 </span>            :         __smp_mb__after_atomic();
+<span class="lineNum">      52 </span>            : }
+<span class="lineNum">      53 </span>            : #endif
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : #define for_each_set_bit(bit, addr, size) \
+<span class="lineNum">      56 </span>            :         for ((bit) = find_first_bit((addr), (size));            \
+<span class="lineNum">      57 </span>            :              (bit) &lt; (size);                                 \
+<span class="lineNum">      58 </span>            :              (bit) = find_next_bit((addr), (size), (bit) + 1))
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : /* same as for_each_set_bit() but use bit as value to start with */
+<span class="lineNum">      61 </span>            : #define for_each_set_bit_from(bit, addr, size) \
+<span class="lineNum">      62 </span>            :         for ((bit) = find_next_bit((addr), (size), (bit));      \
+<span class="lineNum">      63 </span>            :              (bit) &lt; (size);                                 \
+<span class="lineNum">      64 </span>            :              (bit) = find_next_bit((addr), (size), (bit) + 1))
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : #define for_each_clear_bit(bit, addr, size) \
+<span class="lineNum">      67 </span>            :         for ((bit) = find_first_zero_bit((addr), (size));       \
+<span class="lineNum">      68 </span>            :              (bit) &lt; (size);                                 \
+<span class="lineNum">      69 </span>            :              (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : /* same as for_each_clear_bit() but use bit as value to start with */
+<span class="lineNum">      72 </span>            : #define for_each_clear_bit_from(bit, addr, size) \
+<span class="lineNum">      73 </span>            :         for ((bit) = find_next_zero_bit((addr), (size), (bit)); \
+<span class="lineNum">      74 </span>            :              (bit) &lt; (size);                                 \
+<span class="lineNum">      75 </span>            :              (bit) = find_next_zero_bit((addr), (size), (bit) + 1))
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : static __inline__ int get_bitmask_order(unsigned int count)
+<span class="lineNum">      78 </span>            : {
+<span class="lineNum">      79 </span>            :         int order;
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            :         order = fls(count);
+<span class="lineNum">      82 </span>            :         return order;   /* We could be slightly more clever with -1 here... */
+<span class="lineNum">      83 </span>            : }
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : static __inline__ int get_count_order(unsigned int count)
+<span class="lineNum">      86 </span>            : {
+<span class="lineNum">      87 </span>            :         int order;
+<span class="lineNum">      88 </span>            : 
+<span class="lineNum">      89 </span>            :         order = fls(count) - 1;
+<span class="lineNum">      90 </span>            :         if (count &amp; (count - 1))
+<span class="lineNum">      91 </span>            :                 order++;
+<span class="lineNum">      92 </span>            :         return order;
+<a name="93"><span class="lineNum">      93 </span>            : }</a>
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineCov">       2947 : static inline unsigned long hweight_long(unsigned long w)</span>
+<span class="lineNum">      96 </span>            : {
+<span class="lineNum">      97 </span><span class="lineCov">       2947 :         return sizeof(w) == 4 ? hweight32(w) : hweight64(w);</span>
+<span class="lineNum">      98 </span>            : }
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            : /**
+<span class="lineNum">     101 </span>            :  * rol64 - rotate a 64-bit value left
+<span class="lineNum">     102 </span>            :  * @word: value to rotate
+<span class="lineNum">     103 </span>            :  * @shift: bits to roll
+<span class="lineNum">     104 </span>            :  */
+<span class="lineNum">     105 </span>            : static inline __u64 rol64(__u64 word, unsigned int shift)
+<span class="lineNum">     106 </span>            : {
+<span class="lineNum">     107 </span>            :         return (word &lt;&lt; shift) | (word &gt;&gt; (64 - shift));
+<span class="lineNum">     108 </span>            : }
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : /**
+<span class="lineNum">     111 </span>            :  * ror64 - rotate a 64-bit value right
+<span class="lineNum">     112 </span>            :  * @word: value to rotate
+<span class="lineNum">     113 </span>            :  * @shift: bits to roll
+<span class="lineNum">     114 </span>            :  */
+<span class="lineNum">     115 </span>            : static inline __u64 ror64(__u64 word, unsigned int shift)
+<span class="lineNum">     116 </span>            : {
+<span class="lineNum">     117 </span>            :         return (word &gt;&gt; shift) | (word &lt;&lt; (64 - shift));
+<span class="lineNum">     118 </span>            : }
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : /**
+<span class="lineNum">     121 </span>            :  * rol32 - rotate a 32-bit value left
+<span class="lineNum">     122 </span>            :  * @word: value to rotate
+<span class="lineNum">     123 </span>            :  * @shift: bits to roll
+<span class="lineNum">     124 </span>            :  */
+<span class="lineNum">     125 </span>            : static inline __u32 rol32(__u32 word, unsigned int shift)
+<span class="lineNum">     126 </span>            : {
+<span class="lineNum">     127 </span>            :         return (word &lt;&lt; shift) | (word &gt;&gt; (32 - shift));
+<span class="lineNum">     128 </span>            : }
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : /**
+<span class="lineNum">     131 </span>            :  * ror32 - rotate a 32-bit value right
+<span class="lineNum">     132 </span>            :  * @word: value to rotate
+<span class="lineNum">     133 </span>            :  * @shift: bits to roll
+<span class="lineNum">     134 </span>            :  */
+<span class="lineNum">     135 </span>            : static inline __u32 ror32(__u32 word, unsigned int shift)
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span>            :         return (word &gt;&gt; shift) | (word &lt;&lt; (32 - shift));
+<span class="lineNum">     138 </span>            : }
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : /**
+<span class="lineNum">     141 </span>            :  * rol16 - rotate a 16-bit value left
+<span class="lineNum">     142 </span>            :  * @word: value to rotate
+<span class="lineNum">     143 </span>            :  * @shift: bits to roll
+<span class="lineNum">     144 </span>            :  */
+<span class="lineNum">     145 </span>            : static inline __u16 rol16(__u16 word, unsigned int shift)
+<span class="lineNum">     146 </span>            : {
+<span class="lineNum">     147 </span>            :         return (word &lt;&lt; shift) | (word &gt;&gt; (16 - shift));
+<span class="lineNum">     148 </span>            : }
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span>            : /**
+<span class="lineNum">     151 </span>            :  * ror16 - rotate a 16-bit value right
+<span class="lineNum">     152 </span>            :  * @word: value to rotate
+<span class="lineNum">     153 </span>            :  * @shift: bits to roll
+<span class="lineNum">     154 </span>            :  */
+<span class="lineNum">     155 </span>            : static inline __u16 ror16(__u16 word, unsigned int shift)
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span>            :         return (word &gt;&gt; shift) | (word &lt;&lt; (16 - shift));
+<span class="lineNum">     158 </span>            : }
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            : /**
+<span class="lineNum">     161 </span>            :  * rol8 - rotate an 8-bit value left
+<span class="lineNum">     162 </span>            :  * @word: value to rotate
+<span class="lineNum">     163 </span>            :  * @shift: bits to roll
+<span class="lineNum">     164 </span>            :  */
+<span class="lineNum">     165 </span>            : static inline __u8 rol8(__u8 word, unsigned int shift)
+<span class="lineNum">     166 </span>            : {
+<span class="lineNum">     167 </span>            :         return (word &lt;&lt; shift) | (word &gt;&gt; (8 - shift));
+<span class="lineNum">     168 </span>            : }
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            : /**
+<span class="lineNum">     171 </span>            :  * ror8 - rotate an 8-bit value right
+<span class="lineNum">     172 </span>            :  * @word: value to rotate
+<span class="lineNum">     173 </span>            :  * @shift: bits to roll
+<span class="lineNum">     174 </span>            :  */
+<span class="lineNum">     175 </span>            : static inline __u8 ror8(__u8 word, unsigned int shift)
+<span class="lineNum">     176 </span>            : {
+<span class="lineNum">     177 </span>            :         return (word &gt;&gt; shift) | (word &lt;&lt; (8 - shift));
+<span class="lineNum">     178 </span>            : }
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            : /**
+<span class="lineNum">     181 </span>            :  * sign_extend32 - sign extend a 32-bit value using specified bit as sign-bit
+<span class="lineNum">     182 </span>            :  * @value: value to sign extend
+<span class="lineNum">     183 </span>            :  * @index: 0 based bit index (0&lt;=index&lt;32) to sign bit
+<span class="lineNum">     184 </span>            :  */
+<span class="lineNum">     185 </span>            : static inline __s32 sign_extend32(__u32 value, int index)
+<span class="lineNum">     186 </span>            : {
+<span class="lineNum">     187 </span>            :         __u8 shift = 31 - index;
+<span class="lineNum">     188 </span>            :         return (__s32)(value &lt;&lt; shift) &gt;&gt; shift;
+<span class="lineNum">     189 </span>            : }
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            : static inline unsigned fls_long(unsigned long l)
+<span class="lineNum">     192 </span>            : {
+<span class="lineNum">     193 </span>            :         if (sizeof(l) == 4)
+<span class="lineNum">     194 </span>            :                 return fls(l);
+<span class="lineNum">     195 </span>            :         return fls64(l);
+<span class="lineNum">     196 </span>            : }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : /**
+<span class="lineNum">     199 </span>            :  * __ffs64 - find first set bit in a 64 bit word
+<span class="lineNum">     200 </span>            :  * @word: The 64 bit word
+<span class="lineNum">     201 </span>            :  *
+<span class="lineNum">     202 </span>            :  * On 64 bit arches this is a synomyn for __ffs
+<span class="lineNum">     203 </span>            :  * The result is not defined if no bits are set, so check that @word
+<span class="lineNum">     204 </span>            :  * is non-zero before calling this.
+<span class="lineNum">     205 </span>            :  */
+<span class="lineNum">     206 </span>            : static inline unsigned long __ffs64(u64 word)
+<span class="lineNum">     207 </span>            : {
+<span class="lineNum">     208 </span>            : #if BITS_PER_LONG == 32
+<span class="lineNum">     209 </span>            :         if (((u32)word) == 0UL)
+<span class="lineNum">     210 </span>            :                 return __ffs((u32)(word &gt;&gt; 32)) + 32;
+<span class="lineNum">     211 </span>            : #elif BITS_PER_LONG != 64
+<span class="lineNum">     212 </span>            : #error BITS_PER_LONG not 32 or 64
+<span class="lineNum">     213 </span>            : #endif
+<span class="lineNum">     214 </span>            :         return __ffs((unsigned long)word);
+<span class="lineNum">     215 </span>            : }
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            : #ifdef __KERNEL__
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            : #ifndef set_mask_bits
+<span class="lineNum">     220 </span>            : #define set_mask_bits(ptr, _mask, _bits)        \
+<span class="lineNum">     221 </span>            : ({                                                              \
+<span class="lineNum">     222 </span>            :         const typeof(*ptr) mask = (_mask), bits = (_bits);      \
+<span class="lineNum">     223 </span>            :         typeof(*ptr) old, new;                                  \
+<span class="lineNum">     224 </span>            :                                                                 \
+<span class="lineNum">     225 </span>            :         do {                                                    \
+<span class="lineNum">     226 </span>            :                 old = ACCESS_ONCE(*ptr);                        \
+<span class="lineNum">     227 </span>            :                 new = (old &amp; ~mask) | bits;                 \
+<span class="lineNum">     228 </span>            :         } while (cmpxchg(ptr, old, new) != old);                \
+<span class="lineNum">     229 </span>            :                                                                 \
+<span class="lineNum">     230 </span>            :         new;                                                    \
+<span class="lineNum">     231 </span>            : })
+<span class="lineNum">     232 </span>            : #endif
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            : #ifndef find_last_bit
+<span class="lineNum">     235 </span>            : /**
+<span class="lineNum">     236 </span>            :  * find_last_bit - find the last set bit in a memory region
+<span class="lineNum">     237 </span>            :  * @addr: The address to start the search at
+<span class="lineNum">     238 </span>            :  * @size: The maximum size to search
+<span class="lineNum">     239 </span>            :  *
+<span class="lineNum">     240 </span>            :  * Returns the bit number of the first set bit, or size.
+<span class="lineNum">     241 </span>            :  */
+<span class="lineNum">     242 </span>            : extern unsigned long find_last_bit(const unsigned long *addr,
+<span class="lineNum">     243 </span>            :                                    unsigned long size);
+<span class="lineNum">     244 </span>            : #endif
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span>            : #endif /* __KERNEL__ */
+<span class="lineNum">     247 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

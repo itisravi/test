@@ -1,0 +1,198 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/cleancache.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - cleancache.h<span style="font-size: 80%;"> (source / <a href="cleancache.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_CLEANCACHE_H</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_CLEANCACHE_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;linux/fs.h&gt;
+<span class="lineNum">       5 </span>            : #include &lt;linux/exportfs.h&gt;
+<span class="lineNum">       6 </span>            : #include &lt;linux/mm.h&gt;
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #define CLEANCACHE_KEY_MAX 6
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : /*
+<span class="lineNum">      11 </span>            :  * cleancache requires every file with a page in cleancache to have a
+<span class="lineNum">      12 </span>            :  * unique key unless/until the file is removed/truncated.  For some
+<span class="lineNum">      13 </span>            :  * filesystems, the inode number is unique, but for &quot;modern&quot; filesystems
+<span class="lineNum">      14 </span>            :  * an exportable filehandle is required (see exportfs.h)
+<span class="lineNum">      15 </span>            :  */
+<span class="lineNum">      16 </span>            : struct cleancache_filekey {
+<span class="lineNum">      17 </span>            :         union {
+<span class="lineNum">      18 </span>            :                 ino_t ino;
+<span class="lineNum">      19 </span>            :                 __u32 fh[CLEANCACHE_KEY_MAX];
+<span class="lineNum">      20 </span>            :                 u32 key[CLEANCACHE_KEY_MAX];
+<span class="lineNum">      21 </span>            :         } u;
+<span class="lineNum">      22 </span>            : };
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            : struct cleancache_ops {
+<span class="lineNum">      25 </span>            :         int (*init_fs)(size_t);
+<span class="lineNum">      26 </span>            :         int (*init_shared_fs)(char *uuid, size_t);
+<span class="lineNum">      27 </span>            :         int (*get_page)(int, struct cleancache_filekey,
+<span class="lineNum">      28 </span>            :                         pgoff_t, struct page *);
+<span class="lineNum">      29 </span>            :         void (*put_page)(int, struct cleancache_filekey,
+<span class="lineNum">      30 </span>            :                         pgoff_t, struct page *);
+<span class="lineNum">      31 </span>            :         void (*invalidate_page)(int, struct cleancache_filekey, pgoff_t);
+<span class="lineNum">      32 </span>            :         void (*invalidate_inode)(int, struct cleancache_filekey);
+<span class="lineNum">      33 </span>            :         void (*invalidate_fs)(int);
+<span class="lineNum">      34 </span>            : };
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : extern struct cleancache_ops *
+<span class="lineNum">      37 </span>            :         cleancache_register_ops(struct cleancache_ops *ops);
+<span class="lineNum">      38 </span>            : extern void __cleancache_init_fs(struct super_block *);
+<span class="lineNum">      39 </span>            : extern void __cleancache_init_shared_fs(char *, struct super_block *);
+<span class="lineNum">      40 </span>            : extern int  __cleancache_get_page(struct page *);
+<span class="lineNum">      41 </span>            : extern void __cleancache_put_page(struct page *);
+<span class="lineNum">      42 </span>            : extern void __cleancache_invalidate_page(struct address_space *, struct page *);
+<span class="lineNum">      43 </span>            : extern void __cleancache_invalidate_inode(struct address_space *);
+<span class="lineNum">      44 </span>            : extern void __cleancache_invalidate_fs(struct super_block *);
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : #ifdef CONFIG_CLEANCACHE
+<span class="lineNum">      47 </span>            : #define cleancache_enabled (1)
+<a name="48"><span class="lineNum">      48 </span>            : static inline bool cleancache_fs_enabled(struct page *page)</a>
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span><span class="lineCov">     486456 :         return page-&gt;mapping-&gt;host-&gt;i_sb-&gt;cleancache_poolid &gt;= 0;</span>
+<span class="lineNum">      51 </span>            : }
+<span class="lineNum">      52 </span>            : static inline bool cleancache_fs_enabled_mapping(struct address_space *mapping)
+<span class="lineNum">      53 </span>            : {
+<span class="lineNum">      54 </span>            :         return mapping-&gt;host-&gt;i_sb-&gt;cleancache_poolid &gt;= 0;
+<span class="lineNum">      55 </span>            : }
+<span class="lineNum">      56 </span>            : #else
+<span class="lineNum">      57 </span>            : #define cleancache_enabled (0)
+<span class="lineNum">      58 </span>            : #define cleancache_fs_enabled(_page) (0)
+<span class="lineNum">      59 </span>            : #define cleancache_fs_enabled_mapping(_page) (0)
+<span class="lineNum">      60 </span>            : #endif
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : /*
+<span class="lineNum">      63 </span>            :  * The shim layer provided by these inline functions allows the compiler
+<span class="lineNum">      64 </span>            :  * to reduce all cleancache hooks to nothingness if CONFIG_CLEANCACHE
+<span class="lineNum">      65 </span>            :  * is disabled, to a single global variable check if CONFIG_CLEANCACHE
+<span class="lineNum">      66 </span>            :  * is enabled but no cleancache &quot;backend&quot; has dynamically enabled it,
+<span class="lineNum">      67 </span>            :  * and, for the most frequent cleancache ops, to a single global variable
+<span class="lineNum">      68 </span>            :  * check plus a superblock element comparison if CONFIG_CLEANCACHE is enabled
+<span class="lineNum">      69 </span>            :  * and a cleancache backend has dynamically enabled cleancache, but the
+<span class="lineNum">      70 </span>            :  * filesystem referenced by that cleancache op has not enabled cleancache.
+<span class="lineNum">      71 </span>            :  * As a result, CONFIG_CLEANCACHE can be enabled by default with essentially
+<span class="lineNum">      72 </span>            :  * no measurable performance impact.
+<span class="lineNum">      73 </span>            :  */
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            : static inline void cleancache_init_fs(struct super_block *sb)
+<span class="lineNum">      76 </span>            : {
+<span class="lineNum">      77 </span>            :         if (cleancache_enabled)
+<span class="lineNum">      78 </span>            :                 __cleancache_init_fs(sb);
+<span class="lineNum">      79 </span>            : }
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : static inline void cleancache_init_shared_fs(char *uuid, struct super_block *sb)
+<span class="lineNum">      82 </span>            : {
+<span class="lineNum">      83 </span>            :         if (cleancache_enabled)
+<span class="lineNum">      84 </span>            :                 __cleancache_init_shared_fs(uuid, sb);
+<span class="lineNum">      85 </span>            : }
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineCov">     486456 : static inline int cleancache_get_page(struct page *page)</span>
+<span class="lineNum">      88 </span>            : {
+<span class="lineNum">      89 </span>            :         int ret = -1;
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">     486456 :         if (cleancache_enabled &amp;&amp; cleancache_fs_enabled(page))</span>
+<span class="lineNum">      92 </span><span class="lineCov">     472988 :                 ret = __cleancache_get_page(page);</span>
+<span class="lineNum">      93 </span><span class="lineCov">     486456 :         return ret;</span>
+<span class="lineNum">      94 </span>            : }
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            : static inline void cleancache_put_page(struct page *page)
+<span class="lineNum">      97 </span>            : {
+<span class="lineNum">      98 </span>            :         if (cleancache_enabled &amp;&amp; cleancache_fs_enabled(page))
+<span class="lineNum">      99 </span>            :                 __cleancache_put_page(page);
+<span class="lineNum">     100 </span>            : }
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : static inline void cleancache_invalidate_page(struct address_space *mapping,
+<span class="lineNum">     103 </span>            :                                         struct page *page)
+<span class="lineNum">     104 </span>            : {
+<span class="lineNum">     105 </span>            :         /* careful... page-&gt;mapping is NULL sometimes when this is called */
+<span class="lineNum">     106 </span>            :         if (cleancache_enabled &amp;&amp; cleancache_fs_enabled_mapping(mapping))
+<span class="lineNum">     107 </span>            :                 __cleancache_invalidate_page(mapping, page);
+<span class="lineNum">     108 </span>            : }
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : static inline void cleancache_invalidate_inode(struct address_space *mapping)
+<span class="lineNum">     111 </span>            : {
+<span class="lineNum">     112 </span>            :         if (cleancache_enabled &amp;&amp; cleancache_fs_enabled_mapping(mapping))
+<span class="lineNum">     113 </span>            :                 __cleancache_invalidate_inode(mapping);
+<span class="lineNum">     114 </span>            : }
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            : static inline void cleancache_invalidate_fs(struct super_block *sb)
+<span class="lineNum">     117 </span>            : {
+<span class="lineNum">     118 </span>            :         if (cleancache_enabled)
+<span class="lineNum">     119 </span>            :                 __cleancache_invalidate_fs(sb);
+<span class="lineNum">     120 </span>            : }
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            : #endif /* _LINUX_CLEANCACHE_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

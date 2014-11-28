@@ -1,0 +1,584 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/extent_io.c - functions</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - extent_io.c<span style="font-size: 80%;"> (<a href="extent_io.c.gcov.html">source</a> / functions)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1502</td>
+            <td class="headerCovTableEntry">1970</td>
+            <td class="headerCovTableEntryMed">76.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">112</td>
+            <td class="headerCovTableEntry">128</td>
+            <td class="headerCovTableEntryMed">87.5 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <center>
+  <table width="60%" cellpadding=1 cellspacing=1 border=0>
+    <tr><td><br></td></tr>
+    <tr>
+      <td width="80%" class="tableHead">Function Name <span class="tableHeadSort"><img src="../../glass.png" width=10 height=14 alt="Sort by function name" title="Sort by function name" border=0></span></td>
+      <td width="20%" class="tableHead">Hit count <span class="tableHeadSort"><a href="extent_io.c.func-sort-c.html"><img src="../../updown.png" width=10 height=14 alt="Sort by hit count" title="Sort by hit count" border=0></a></span></td>
+    </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4443">__alloc_extent_buffer</a></td>
+              <td class="coverFnHi">61762</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1326">__do_contiguous_readpages</a></td>
+              <td class="coverFnHi">51609</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1022">__do_readpage</a></td>
+              <td class="coverFnHi">486456</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#266">__etree_search</a></td>
+              <td class="coverFnHi">3149917</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1326">__extent_read_full_page</a></td>
+              <td class="coverFnHi">36048</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2997">__extent_readpages</a></td>
+              <td class="coverFnHi">49223</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3363">__extent_writepage</a></td>
+              <td class="coverFnHi">1312964</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3201">__extent_writepage_io</a></td>
+              <td class="coverFnHi">1308893</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2761">__get_extent_map</a></td>
+              <td class="coverFnHi">462506</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#493">__set_extent_bit</a></td>
+              <td class="coverFnHi">1186226</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1550">__unlock_for_delalloc.isra.21</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4369">alloc_dummy_extent_buffer</a></td>
+              <td class="coverFnHi">1</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4652">alloc_extent_buffer</a></td>
+              <td class="coverFnHi">1268775</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#201">alloc_extent_state</a></td>
+              <td class="coverFnHi">2270839</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2739">attach_extent_buffer_page</a></td>
+              <td class="coverFnHi">192393</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1022">bio_readpage_error</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3605">btree_write_cache_pages</a></td>
+              <td class="coverFnHi">21234</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2591">btrfs_bio_alloc</a></td>
+              <td class="coverFnHi">122377</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2617">btrfs_bio_clone</a></td>
+              <td class="coverFnHi">90602</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4482">btrfs_clone_extent_buffer</a></td>
+              <td class="coverFnHi">731</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2624">btrfs_io_bio_alloc</a></td>
+              <td class="coverFnHi">183799</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4369">btrfs_release_extent_buffer</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4374">btrfs_release_extent_buffer_page</a></td>
+              <td class="coverFnHi">61460</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4369">btrfs_release_extent_buffer_rcu</a></td>
+              <td class="coverFnHi">61440</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#794">cache_state</a></td>
+              <td class="coverFnHi">1349025</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4539">check_buffer_tree_ref</a></td>
+              <td class="coverFnHi">4657738</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1952">check_page_uptodate</a></td>
+              <td class="coverFnHi">452</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2098">clean_io_failure</a></td>
+              <td class="coverFnHi">80536</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#336">clear_extent_bit</a></td>
+              <td class="coverFnHi">1100499</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1250">clear_extent_bits</a></td>
+              <td class="coverFnHi">3025</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4852">clear_extent_buffer_dirty</a></td>
+              <td class="coverFnHi">2006</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4901">clear_extent_buffer_uptodate</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1272">clear_extent_dirty</a></td>
+              <td class="coverFnHi">32303</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1294">clear_extent_uptodate</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#401">clear_state_bit</a></td>
+              <td class="coverFnHi">941819</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#542">convert_extent_bit</a></td>
+              <td class="coverFnHi">20035</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#5235">copy_extent_buffer</a></td>
+              <td class="coverFnHi">93062</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#5270">copy_pages</a></td>
+              <td class="coverFnHi">1476644</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4167">count_ext_ref</a></td>
+              <td class="coverFnHi">1120</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#336">count_range_bits</a></td>
+              <td class="coverFnHi">81161</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3523">end_bio_extent_buffer_writepage</a></td>
+              <td class="coverFnHi">27921</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2446">end_bio_extent_readpage</a></td>
+              <td class="coverFnHi">28580</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2384">end_bio_extent_writepage</a></td>
+              <td class="coverFnHi">65676</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3516">end_extent_buffer_writeback</a></td>
+              <td class="coverFnHi">57026</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2351">end_extent_writepage</a></td>
+              <td class="coverFnHi">1308880</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1022">endio_readpage_release_extent</a></td>
+              <td class="coverFnHi">29590</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4372">extent_buffer_under_io</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4932">extent_buffer_uptodate</a></td>
+              <td class="coverFnHi">3434517</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1727">extent_clear_unlock_delalloc</a></td>
+              <td class="coverFnHi">30095</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1348">extent_fiemap</a></td>
+              <td class="coverFnHi">344</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4020">extent_invalidatepage</a></td>
+              <td class="coverFnHi">1335</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#174">extent_io_exit</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#136">extent_io_init</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#191">extent_io_tree_init</a></td>
+              <td class="coverFnHi">57474</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#131">extent_io_tree_panic</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1358">extent_range_clear_dirty_for_io</a></td>
+              <td class="coverFnHi">155</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1374">extent_range_redirty_for_io</a></td>
+              <td class="coverFnHi">2</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3064">extent_read_full_page</a></td>
+              <td class="coverFnHi">27771</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3078">extent_read_full_page_nolock</a></td>
+              <td class="coverFnHi">64</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3971">extent_readpages</a></td>
+              <td class="coverFnHi">24097</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3742">extent_write_cache_pages.isra.23</a></td>
+              <td class="coverFnHi">38221</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3885">extent_write_full_page</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3905">extent_write_locked_range</a></td>
+              <td class="coverFnHi">81</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3949">extent_writepages</a></td>
+              <td class="coverFnHi">38223</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#336">find_delalloc_range</a></td>
+              <td class="coverFnHi">1312844</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4587">find_extent_buffer</a></td>
+              <td class="coverFnHi">3493030</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1449">find_first_extent_bit</a></td>
+              <td class="coverFnHi">123332</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#336">find_first_extent_bit_state</a></td>
+              <td class="coverFnHi">123332</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1348">find_lock_delalloc_range</a></td>
+              <td class="coverFnHi">1312842</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3864">flush_epd_write_bio</a></td>
+              <td class="coverFnHi">59814</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3879">flush_write_bio</a></td>
+              <td class="coverFnHi">21511</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4374">free_extent_buffer</a></td>
+              <td class="coverFnHi">7021982</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4374">free_extent_buffer_stale</a></td>
+              <td class="coverFnHi">53689</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#218">free_extent_state</a></td>
+              <td class="coverFnHi">4910880</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1253">free_io_failure.isra.24</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4131">get_extent_skip_holes</a></td>
+              <td class="coverFnHi">1030</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#336">get_state_private</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#418">insert_state</a></td>
+              <td class="coverFnHi">364809</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1579">lock_delalloc_pages</a></td>
+              <td class="coverFnHi">29879</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1324">lock_extent</a></td>
+              <td class="coverFnHi">2746</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1305">lock_extent_bits</a></td>
+              <td class="coverFnHi">463423</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3441">lock_extent_buffer_for_io</a></td>
+              <td class="coverFnHi">57106</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#5101">map_private_extent_buffer</a></td>
+              <td class="coverFnHi">41588982</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4572">mark_extent_buffer_accessed</a></td>
+              <td class="coverFnHi">3432902</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#5139">memcmp_extent_buffer</a></td>
+              <td class="coverFnHi">228578</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#5296">memcpy_extent_buffer</a></td>
+              <td class="coverFnHi">410701</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#5341">memmove_extent_buffer</a></td>
+              <td class="coverFnHi">743372</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#5206">memset_extent_buffer</a></td>
+              <td class="coverFnHi">28122</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2667">merge_bio.isra.20</a></td>
+              <td class="coverFnHi">1495689</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#342">merge_state</a></td>
+              <td class="coverFnHi">1834115</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#5033">read_extent_buffer</a></td>
+              <td class="coverFnHi">12262845</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4937">read_extent_buffer_pages</a></td>
+              <td class="coverFnHi">1209796</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#5064">read_extent_buffer_to_user</a></td>
+              <td class="coverFnHi">208</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4777">release_extent_buffer</a></td>
+              <td class="coverFnHi">4671365</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2072">repair_eb_io_failure</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2013">repair_io_failure</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1018">set_extent_bit</a></td>
+              <td class="coverFnHi">25258</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1022">set_extent_bits</a></td>
+              <td class="coverFnHi">3159</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4882">set_extent_buffer_dirty</a></td>
+              <td class="coverFnHi">1165610</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4917">set_extent_buffer_uptodate</a></td>
+              <td class="coverFnHi">61290</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1022">set_extent_defrag</a></td>
+              <td class="coverFnHi">1337</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1022">set_extent_delalloc</a></td>
+              <td class="coverFnHi">131791</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1022">set_extent_dirty</a></td>
+              <td class="coverFnHi">126731</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1022">set_extent_new</a></td>
+              <td class="coverFnHi">1384</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1022">set_extent_uptodate</a></td>
+              <td class="coverFnHi">452</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2751">set_page_extent_mapped</a></td>
+              <td class="coverFnHi">3158407</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1394">set_range_writeback.isra.22</a></td>
+              <td class="coverFnHi">1308912</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#394">set_state_bits</a></td>
+              <td class="coverFnHi">1242906</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#336">set_state_private</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#451">split_state</a></td>
+              <td class="coverFnHi">597916</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2680">submit_extent_page.isra.27</a></td>
+              <td class="coverFnHi">1566609</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#2640">submit_one_bio</a></td>
+              <td class="coverFnHi">122182</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#336">test_range_bit</a></td>
+              <td class="coverFnHi">353484</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#230">tree_insert</a></td>
+              <td class="coverFnHi">962717</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#319">tree_search_for_insert</a></td>
+              <td class="coverFnHi">3150213</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1329">try_lock_extent</a></td>
+              <td class="coverFnHi">3</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4374">try_release_extent_buffer</a></td>
+              <td class="coverFnHi">13164</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4084">try_release_extent_mapping</a></td>
+              <td class="coverFnHi">188224</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#4046">try_release_extent_state.isra.26</a></td>
+              <td class="coverFnHi">188224</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1352">unlock_extent</a></td>
+              <td class="coverFnHi">2967</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#1345">unlock_extent_cached</a></td>
+              <td class="coverFnHi">112703</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3092">update_nr_written.isra.19</a></td>
+              <td class="coverFnHi">1485946</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#336">wait_extent_bit</a></td>
+              <td class="coverFnHi">44</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3439">wait_on_extent_buffer_writeback</a></td>
+              <td class="coverFnLo">0</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#716">wait_on_state</a></td>
+              <td class="coverFnHi">56</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#5175">write_extent_buffer</a></td>
+              <td class="coverFnHi">897735</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3553">write_one_eb.isra.28</a></td>
+              <td class="coverFnHi">57026</td>
+            </tr>
+    <tr>
+              <td class="coverFn"><a href="extent_io.c.gcov.html#3112">writepage_delalloc.isra.25</a></td>
+              <td class="coverFnHi">1312952</td>
+            </tr>
+  </table>
+  <br>
+  </center>
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
