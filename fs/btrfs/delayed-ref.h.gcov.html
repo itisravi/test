@@ -1,0 +1,342 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/delayed-ref.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - delayed-ref.h<span style="font-size: 80%;"> (source / <a href="delayed-ref.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntryHi">95.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2008 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : #ifndef __DELAYED_REF__
+<span class="lineNum">      19 </span>            : #define __DELAYED_REF__
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : /* these are the possible values of struct btrfs_delayed_ref_node-&gt;action */
+<span class="lineNum">      22 </span>            : #define BTRFS_ADD_DELAYED_REF    1 /* add one backref to the tree */
+<span class="lineNum">      23 </span>            : #define BTRFS_DROP_DELAYED_REF   2 /* delete one backref from the tree */
+<span class="lineNum">      24 </span>            : #define BTRFS_ADD_DELAYED_EXTENT 3 /* record a full extent allocation */
+<span class="lineNum">      25 </span>            : #define BTRFS_UPDATE_DELAYED_HEAD 4 /* not changing ref count on head ref */
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : struct btrfs_delayed_ref_node {
+<span class="lineNum">      28 </span>            :         struct rb_node rb_node;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            :         /* the starting bytenr of the extent */
+<span class="lineNum">      31 </span>            :         u64 bytenr;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            :         /* the size of the extent */
+<span class="lineNum">      34 </span>            :         u64 num_bytes;
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            :         /* seq number to keep track of insertion order */
+<span class="lineNum">      37 </span>            :         u64 seq;
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            :         /* ref count on this data structure */
+<span class="lineNum">      40 </span>            :         atomic_t refs;
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            :         /*
+<span class="lineNum">      43 </span>            :          * how many refs is this entry adding or deleting.  For
+<span class="lineNum">      44 </span>            :          * head refs, this may be a negative number because it is keeping
+<span class="lineNum">      45 </span>            :          * track of the total mods done to the reference count.
+<span class="lineNum">      46 </span>            :          * For individual refs, this will always be a positive number
+<span class="lineNum">      47 </span>            :          *
+<span class="lineNum">      48 </span>            :          * It may be more than one, since it is possible for a single
+<span class="lineNum">      49 </span>            :          * parent to have more than one ref on an extent
+<span class="lineNum">      50 </span>            :          */
+<span class="lineNum">      51 </span>            :         int ref_mod;
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            :         unsigned int action:8;
+<span class="lineNum">      54 </span>            :         unsigned int type:8;
+<span class="lineNum">      55 </span>            :         unsigned int no_quota:1;
+<span class="lineNum">      56 </span>            :         /* is this node still in the rbtree? */
+<span class="lineNum">      57 </span>            :         unsigned int is_head:1;
+<span class="lineNum">      58 </span>            :         unsigned int in_tree:1;
+<span class="lineNum">      59 </span>            : };
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : struct btrfs_delayed_extent_op {
+<span class="lineNum">      62 </span>            :         struct btrfs_disk_key key;
+<span class="lineNum">      63 </span>            :         u64 flags_to_set;
+<span class="lineNum">      64 </span>            :         int level;
+<span class="lineNum">      65 </span>            :         unsigned int update_key:1;
+<span class="lineNum">      66 </span>            :         unsigned int update_flags:1;
+<span class="lineNum">      67 </span>            :         unsigned int is_data:1;
+<span class="lineNum">      68 </span>            : };
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : /*
+<span class="lineNum">      71 </span>            :  * the head refs are used to hold a lock on a given extent, which allows us
+<span class="lineNum">      72 </span>            :  * to make sure that only one process is running the delayed refs
+<span class="lineNum">      73 </span>            :  * at a time for a single extent.  They also store the sum of all the
+<span class="lineNum">      74 </span>            :  * reference count modifications we've queued up.
+<span class="lineNum">      75 </span>            :  */
+<span class="lineNum">      76 </span>            : struct btrfs_delayed_ref_head {
+<span class="lineNum">      77 </span>            :         struct btrfs_delayed_ref_node node;
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            :         /*
+<span class="lineNum">      80 </span>            :          * the mutex is held while running the refs, and it is also
+<span class="lineNum">      81 </span>            :          * held when checking the sum of reference modifications.
+<span class="lineNum">      82 </span>            :          */
+<span class="lineNum">      83 </span>            :         struct mutex mutex;
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            :         spinlock_t lock;
+<span class="lineNum">      86 </span>            :         struct rb_root ref_root;
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            :         struct rb_node href_node;
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :         struct btrfs_delayed_extent_op *extent_op;
+<span class="lineNum">      91 </span>            :         /*
+<span class="lineNum">      92 </span>            :          * when a new extent is allocated, it is just reserved in memory
+<span class="lineNum">      93 </span>            :          * The actual extent isn't inserted into the extent allocation tree
+<span class="lineNum">      94 </span>            :          * until the delayed ref is processed.  must_insert_reserved is
+<span class="lineNum">      95 </span>            :          * used to flag a delayed ref so the accounting can be updated
+<span class="lineNum">      96 </span>            :          * when a full insert is done.
+<span class="lineNum">      97 </span>            :          *
+<span class="lineNum">      98 </span>            :          * It is possible the extent will be freed before it is ever
+<span class="lineNum">      99 </span>            :          * inserted into the extent allocation tree.  In this case
+<span class="lineNum">     100 </span>            :          * we need to update the in ram accounting to properly reflect
+<span class="lineNum">     101 </span>            :          * the free has happened.
+<span class="lineNum">     102 </span>            :          */
+<span class="lineNum">     103 </span>            :         unsigned int must_insert_reserved:1;
+<span class="lineNum">     104 </span>            :         unsigned int is_data:1;
+<span class="lineNum">     105 </span>            :         unsigned int processing:1;
+<span class="lineNum">     106 </span>            : };
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : struct btrfs_delayed_tree_ref {
+<span class="lineNum">     109 </span>            :         struct btrfs_delayed_ref_node node;
+<span class="lineNum">     110 </span>            :         u64 root;
+<span class="lineNum">     111 </span>            :         u64 parent;
+<span class="lineNum">     112 </span>            :         int level;
+<span class="lineNum">     113 </span>            : };
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : struct btrfs_delayed_data_ref {
+<span class="lineNum">     116 </span>            :         struct btrfs_delayed_ref_node node;
+<span class="lineNum">     117 </span>            :         u64 root;
+<span class="lineNum">     118 </span>            :         u64 parent;
+<span class="lineNum">     119 </span>            :         u64 objectid;
+<span class="lineNum">     120 </span>            :         u64 offset;
+<span class="lineNum">     121 </span>            : };
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : struct btrfs_delayed_ref_root {
+<span class="lineNum">     124 </span>            :         /* head ref rbtree */
+<span class="lineNum">     125 </span>            :         struct rb_root href_root;
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            :         /* this spin lock protects the rbtree and the entries inside */
+<span class="lineNum">     128 </span>            :         spinlock_t lock;
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :         /* how many delayed ref updates we've queued, used by the
+<span class="lineNum">     131 </span>            :          * throttling code
+<span class="lineNum">     132 </span>            :          */
+<span class="lineNum">     133 </span>            :         atomic_t num_entries;
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :         /* total number of head nodes in tree */
+<span class="lineNum">     136 </span>            :         unsigned long num_heads;
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            :         /* total number of head nodes ready for processing */
+<span class="lineNum">     139 </span>            :         unsigned long num_heads_ready;
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            :         /*
+<span class="lineNum">     142 </span>            :          * set when the tree is flushing before a transaction commit,
+<span class="lineNum">     143 </span>            :          * used by the throttling code to decide if new updates need
+<span class="lineNum">     144 </span>            :          * to be run right away
+<span class="lineNum">     145 </span>            :          */
+<span class="lineNum">     146 </span>            :         int flushing;
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            :         u64 run_delayed_start;
+<span class="lineNum">     149 </span>            : };
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            : extern struct kmem_cache *btrfs_delayed_ref_head_cachep;
+<span class="lineNum">     152 </span>            : extern struct kmem_cache *btrfs_delayed_tree_ref_cachep;
+<span class="lineNum">     153 </span>            : extern struct kmem_cache *btrfs_delayed_data_ref_cachep;
+<span class="lineNum">     154 </span>            : extern struct kmem_cache *btrfs_delayed_extent_op_cachep;
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : int btrfs_delayed_ref_init(void);
+<span class="lineNum">     157 </span>            : void btrfs_delayed_ref_exit(void);
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            : static inline struct btrfs_delayed_extent_op *
+<span class="lineNum">     160 </span>            : btrfs_alloc_delayed_extent_op(void)
+<span class="lineNum">     161 </span>            : {
+<span class="lineNum">     162 </span><span class="lineCov">      56190 :         return kmem_cache_alloc(btrfs_delayed_extent_op_cachep, GFP_NOFS);</span>
+<span class="lineNum">     163 </span>            : }
+<span class="lineNum">     164 </span>            : 
+<span class="lineNum">     165 </span>            : static inline void
+<span class="lineNum">     166 </span>            : btrfs_free_delayed_extent_op(struct btrfs_delayed_extent_op *op)
+<span class="lineNum">     167 </span>            : {
+<span class="lineNum">     168 </span><span class="lineCov">     388879 :         if (op)</span>
+<span class="lineNum">     169 </span><span class="lineCov">      56224 :                 kmem_cache_free(btrfs_delayed_extent_op_cachep, op);</span>
+<a name="170"><span class="lineNum">     170 </span>            : }</a>
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span><span class="lineCov">     395053 : static inline void btrfs_put_delayed_ref(struct btrfs_delayed_ref_node *ref)</span>
+<span class="lineNum">     173 </span>            : {
+<span class="lineNum">     174 </span><span class="lineCov">     395053 :         WARN_ON(atomic_read(&amp;ref-&gt;refs) == 0);</span>
+<span class="lineNum">     175 </span><span class="lineCov">     790114 :         if (atomic_dec_and_test(&amp;ref-&gt;refs)) {</span>
+<span class="lineNum">     176 </span><span class="lineCov">     395051 :                 WARN_ON(ref-&gt;in_tree);</span>
+<span class="lineNum">     177 </span><span class="lineCov">     395053 :                 switch (ref-&gt;type) {</span>
+<span class="lineNum">     178 </span>            :                 case BTRFS_TREE_BLOCK_REF_KEY:
+<span class="lineNum">     179 </span>            :                 case BTRFS_SHARED_BLOCK_REF_KEY:
+<span class="lineNum">     180 </span><span class="lineCov">     108824 :                         kmem_cache_free(btrfs_delayed_tree_ref_cachep, ref);</span>
+<span class="lineNum">     181 </span><span class="lineCov">     108825 :                         break;</span>
+<span class="lineNum">     182 </span>            :                 case BTRFS_EXTENT_DATA_REF_KEY:
+<span class="lineNum">     183 </span>            :                 case BTRFS_SHARED_DATA_REF_KEY:
+<span class="lineNum">     184 </span><span class="lineCov">      92295 :                         kmem_cache_free(btrfs_delayed_data_ref_cachep, ref);</span>
+<span class="lineNum">     185 </span><span class="lineCov">      92295 :                         break;</span>
+<span class="lineNum">     186 </span>            :                 case 0:
+<span class="lineNum">     187 </span><span class="lineCov">     193934 :                         kmem_cache_free(btrfs_delayed_ref_head_cachep, ref);</span>
+<span class="lineNum">     188 </span><span class="lineCov">     193933 :                         break;</span>
+<span class="lineNum">     189 </span>            :                 default:
+<span class="lineNum">     190 </span><span class="lineNoCov">          0 :                         BUG();</span>
+<span class="lineNum">     191 </span>            :                 }
+<span class="lineNum">     192 </span>            :         }
+<span class="lineNum">     193 </span><span class="lineCov">     395063 : }</span>
+<span class="lineNum">     194 </span>            : 
+<span class="lineNum">     195 </span>            : int btrfs_add_delayed_tree_ref(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     196 </span>            :                                struct btrfs_trans_handle *trans,
+<span class="lineNum">     197 </span>            :                                u64 bytenr, u64 num_bytes, u64 parent,
+<span class="lineNum">     198 </span>            :                                u64 ref_root, int level, int action,
+<span class="lineNum">     199 </span>            :                                struct btrfs_delayed_extent_op *extent_op,
+<span class="lineNum">     200 </span>            :                                int no_quota);
+<span class="lineNum">     201 </span>            : int btrfs_add_delayed_data_ref(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     202 </span>            :                                struct btrfs_trans_handle *trans,
+<span class="lineNum">     203 </span>            :                                u64 bytenr, u64 num_bytes,
+<span class="lineNum">     204 </span>            :                                u64 parent, u64 ref_root,
+<span class="lineNum">     205 </span>            :                                u64 owner, u64 offset, int action,
+<span class="lineNum">     206 </span>            :                                struct btrfs_delayed_extent_op *extent_op,
+<span class="lineNum">     207 </span>            :                                int no_quota);
+<span class="lineNum">     208 </span>            : int btrfs_add_delayed_extent_op(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     209 </span>            :                                 struct btrfs_trans_handle *trans,
+<span class="lineNum">     210 </span>            :                                 u64 bytenr, u64 num_bytes,
+<span class="lineNum">     211 </span>            :                                 struct btrfs_delayed_extent_op *extent_op);
+<span class="lineNum">     212 </span>            : void btrfs_merge_delayed_refs(struct btrfs_trans_handle *trans,
+<span class="lineNum">     213 </span>            :                               struct btrfs_fs_info *fs_info,
+<span class="lineNum">     214 </span>            :                               struct btrfs_delayed_ref_root *delayed_refs,
+<span class="lineNum">     215 </span>            :                               struct btrfs_delayed_ref_head *head);
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            : struct btrfs_delayed_ref_head *
+<span class="lineNum">     218 </span>            : btrfs_find_delayed_ref_head(struct btrfs_trans_handle *trans, u64 bytenr);
+<span class="lineNum">     219 </span>            : int btrfs_delayed_ref_lock(struct btrfs_trans_handle *trans,
+<span class="lineNum">     220 </span>            :                            struct btrfs_delayed_ref_head *head);
+<span class="lineNum">     221 </span>            : static inline void btrfs_delayed_ref_unlock(struct btrfs_delayed_ref_head *head)
+<span class="lineNum">     222 </span>            : {
+<span class="lineNum">     223 </span><span class="lineCov">     191772 :         mutex_unlock(&amp;head-&gt;mutex);</span>
+<span class="lineNum">     224 </span>            : }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            : struct btrfs_delayed_ref_head *
+<span class="lineNum">     228 </span>            : btrfs_select_ref_head(struct btrfs_trans_handle *trans);
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span>            : int btrfs_check_delayed_seq(struct btrfs_fs_info *fs_info,
+<span class="lineNum">     231 </span>            :                             struct btrfs_delayed_ref_root *delayed_refs,
+<span class="lineNum">     232 </span>            :                             u64 seq);
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span>            : /*
+<span class="lineNum">     235 </span>            :  * a node might live in a head or a regular ref, this lets you
+<span class="lineNum">     236 </span>            :  * test for the proper type to use.
+<span class="lineNum">     237 </span>            :  */
+<span class="lineNum">     238 </span>            : static int btrfs_delayed_ref_is_head(struct btrfs_delayed_ref_node *node)
+<span class="lineNum">     239 </span>            : {
+<span class="lineNum">     240 </span><span class="lineCov">    1412377 :         return node-&gt;is_head;</span>
+<span class="lineNum">     241 </span>            : }
+<span class="lineNum">     242 </span>            : 
+<span class="lineNum">     243 </span>            : /*
+<span class="lineNum">     244 </span>            :  * helper functions to cast a node into its container
+<span class="lineNum">     245 </span>            :  */
+<span class="lineNum">     246 </span>            : static inline struct btrfs_delayed_tree_ref *
+<span class="lineNum">     247 </span>            : btrfs_delayed_node_to_tree_ref(struct btrfs_delayed_ref_node *node)
+<span class="lineNum">     248 </span>            : {
+<span class="lineNum">     249 </span><span class="lineCov">     224046 :         WARN_ON(btrfs_delayed_ref_is_head(node));</span>
+<span class="lineNum">     250 </span>            :         return container_of(node, struct btrfs_delayed_tree_ref, node);
+<span class="lineNum">     251 </span>            : }
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            : static inline struct btrfs_delayed_data_ref *
+<span class="lineNum">     254 </span>            : btrfs_delayed_node_to_data_ref(struct btrfs_delayed_ref_node *node)
+<span class="lineNum">     255 </span>            : {
+<span class="lineNum">     256 </span><span class="lineCov">     200604 :         WARN_ON(btrfs_delayed_ref_is_head(node));</span>
+<span class="lineNum">     257 </span>            :         return container_of(node, struct btrfs_delayed_data_ref, node);
+<span class="lineNum">     258 </span>            : }
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span>            : static inline struct btrfs_delayed_ref_head *
+<span class="lineNum">     261 </span>            : btrfs_delayed_node_to_head(struct btrfs_delayed_ref_node *node)
+<span class="lineNum">     262 </span>            : {
+<span class="lineNum">     263 </span><span class="lineCov">     432564 :         WARN_ON(!btrfs_delayed_ref_is_head(node));</span>
+<span class="lineNum">     264 </span>            :         return container_of(node, struct btrfs_delayed_ref_head, node);
+<span class="lineNum">     265 </span>            : }
+<span class="lineNum">     266 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

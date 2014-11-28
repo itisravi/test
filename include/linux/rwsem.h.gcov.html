@@ -1,0 +1,256 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/rwsem.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - rwsem.h<span style="font-size: 80%;"> (source / <a href="rwsem.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /* rwsem.h: R/W semaphores, public interface</a>
+<span class="lineNum">       2 </span>            :  *
+<span class="lineNum">       3 </span>            :  * Written by David Howells (dhowells@redhat.com).
+<span class="lineNum">       4 </span>            :  * Derived from asm-i386/semaphore.h
+<span class="lineNum">       5 </span>            :  */
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : #ifndef _LINUX_RWSEM_H
+<span class="lineNum">       8 </span>            : #define _LINUX_RWSEM_H
+<span class="lineNum">       9 </span>            : 
+<span class="lineNum">      10 </span>            : #include &lt;linux/linkage.h&gt;
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;linux/kernel.h&gt;
+<span class="lineNum">      14 </span>            : #include &lt;linux/list.h&gt;
+<span class="lineNum">      15 </span>            : #include &lt;linux/spinlock.h&gt;
+<span class="lineNum">      16 </span>            : #include &lt;linux/atomic.h&gt;
+<span class="lineNum">      17 </span>            : #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+<span class="lineNum">      18 </span>            : #include &lt;linux/osq_lock.h&gt;
+<span class="lineNum">      19 </span>            : #endif
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : struct rw_semaphore;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #ifdef CONFIG_RWSEM_GENERIC_SPINLOCK
+<span class="lineNum">      24 </span>            : #include &lt;linux/rwsem-spinlock.h&gt; /* use a generic implementation */
+<span class="lineNum">      25 </span>            : #else
+<span class="lineNum">      26 </span>            : /* All arch specific implementations share the same struct */
+<span class="lineNum">      27 </span>            : struct rw_semaphore {
+<span class="lineNum">      28 </span>            :         long count;
+<span class="lineNum">      29 </span>            :         struct list_head wait_list;
+<span class="lineNum">      30 </span>            :         raw_spinlock_t wait_lock;
+<span class="lineNum">      31 </span>            : #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+<span class="lineNum">      32 </span>            :         struct optimistic_spin_queue osq; /* spinner MCS lock */
+<span class="lineNum">      33 </span>            :         /*
+<span class="lineNum">      34 </span>            :          * Write owner. Used as a speculative check to see
+<span class="lineNum">      35 </span>            :          * if the owner is running on the cpu.
+<span class="lineNum">      36 </span>            :          */
+<span class="lineNum">      37 </span>            :         struct task_struct *owner;
+<span class="lineNum">      38 </span>            : #endif
+<span class="lineNum">      39 </span>            : #ifdef CONFIG_DEBUG_LOCK_ALLOC
+<span class="lineNum">      40 </span>            :         struct lockdep_map      dep_map;
+<span class="lineNum">      41 </span>            : #endif
+<span class="lineNum">      42 </span>            : };
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : extern struct rw_semaphore *rwsem_down_read_failed(struct rw_semaphore *sem);
+<span class="lineNum">      45 </span>            : extern struct rw_semaphore *rwsem_down_write_failed(struct rw_semaphore *sem);
+<span class="lineNum">      46 </span>            : extern struct rw_semaphore *rwsem_wake(struct rw_semaphore *);
+<span class="lineNum">      47 </span>            : extern struct rw_semaphore *rwsem_downgrade_wake(struct rw_semaphore *sem);
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : /* Include the arch specific part */
+<span class="lineNum">      50 </span>            : #include &lt;asm/rwsem.h&gt;
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : /* In all implementations count != 0 means locked */
+<span class="lineNum">      53 </span>            : static inline int rwsem_is_locked(struct rw_semaphore *sem)
+<span class="lineNum">      54 </span>            : {
+<span class="lineNum">      55 </span>            :         return sem-&gt;count != 0;
+<span class="lineNum">      56 </span>            : }
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : #endif
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : /* Common initializer macros and functions */
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : #ifdef CONFIG_DEBUG_LOCK_ALLOC
+<span class="lineNum">      63 </span>            : # define __RWSEM_DEP_MAP_INIT(lockname) , .dep_map = { .name = #lockname }
+<span class="lineNum">      64 </span>            : #else
+<span class="lineNum">      65 </span>            : # define __RWSEM_DEP_MAP_INIT(lockname)
+<span class="lineNum">      66 </span>            : #endif
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span>            : #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+<span class="lineNum">      69 </span>            : #define __RWSEM_OPT_INIT(lockname) , .osq = OSQ_LOCK_UNLOCKED, .owner = NULL
+<span class="lineNum">      70 </span>            : #else
+<span class="lineNum">      71 </span>            : #define __RWSEM_OPT_INIT(lockname)
+<span class="lineNum">      72 </span>            : #endif
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            : #define __RWSEM_INITIALIZER(name)                               \
+<span class="lineNum">      75 </span>            :         { .count = RWSEM_UNLOCKED_VALUE,                        \
+<span class="lineNum">      76 </span>            :           .wait_list = LIST_HEAD_INIT((name).wait_list),        \
+<span class="lineNum">      77 </span>            :           .wait_lock = __RAW_SPIN_LOCK_UNLOCKED(name.wait_lock) \
+<span class="lineNum">      78 </span>            :           __RWSEM_OPT_INIT(name)                                \
+<span class="lineNum">      79 </span>            :           __RWSEM_DEP_MAP_INIT(name) }
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : #define DECLARE_RWSEM(name) \
+<span class="lineNum">      82 </span>            :         struct rw_semaphore name = __RWSEM_INITIALIZER(name)
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : extern void __init_rwsem(struct rw_semaphore *sem, const char *name,
+<span class="lineNum">      85 </span>            :                          struct lock_class_key *key);
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : #define init_rwsem(sem)                                         \
+<span class="lineNum">      88 </span>            : do {                                                            \
+<span class="lineNum">      89 </span>            :         static struct lock_class_key __key;                     \
+<span class="lineNum">      90 </span>            :                                                                 \
+<span class="lineNum">      91 </span>            :         __init_rwsem((sem), #sem, &amp;__key);                  \
+<span class="lineNum">      92 </span>            : } while (0)
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            : /*
+<span class="lineNum">      95 </span>            :  * This is the same regardless of which rwsem implementation that is being used.
+<span class="lineNum">      96 </span>            :  * It is just a heuristic meant to be called by somebody alreadying holding the
+<span class="lineNum">      97 </span>            :  * rwsem to see if somebody from an incompatible type is wanting access to the
+<span class="lineNum">      98 </span>            :  * lock.
+<span class="lineNum">      99 </span>            :  */
+<span class="lineNum">     100 </span>            : static inline int rwsem_is_contended(struct rw_semaphore *sem)
+<span class="lineNum">     101 </span>            : {
+<span class="lineNum">     102 </span><span class="lineCov">         36 :         return !list_empty(&amp;sem-&gt;wait_list);</span>
+<span class="lineNum">     103 </span>            : }
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : /*
+<span class="lineNum">     106 </span>            :  * lock for reading
+<span class="lineNum">     107 </span>            :  */
+<span class="lineNum">     108 </span>            : extern void down_read(struct rw_semaphore *sem);
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : /*
+<span class="lineNum">     111 </span>            :  * trylock for reading -- returns 1 if successful, 0 if contention
+<span class="lineNum">     112 </span>            :  */
+<span class="lineNum">     113 </span>            : extern int down_read_trylock(struct rw_semaphore *sem);
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : /*
+<span class="lineNum">     116 </span>            :  * lock for writing
+<span class="lineNum">     117 </span>            :  */
+<span class="lineNum">     118 </span>            : extern void down_write(struct rw_semaphore *sem);
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : /*
+<span class="lineNum">     121 </span>            :  * trylock for writing -- returns 1 if successful, 0 if contention
+<span class="lineNum">     122 </span>            :  */
+<span class="lineNum">     123 </span>            : extern int down_write_trylock(struct rw_semaphore *sem);
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            : /*
+<span class="lineNum">     126 </span>            :  * release a read lock
+<span class="lineNum">     127 </span>            :  */
+<span class="lineNum">     128 </span>            : extern void up_read(struct rw_semaphore *sem);
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            : /*
+<span class="lineNum">     131 </span>            :  * release a write lock
+<span class="lineNum">     132 </span>            :  */
+<span class="lineNum">     133 </span>            : extern void up_write(struct rw_semaphore *sem);
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            : /*
+<span class="lineNum">     136 </span>            :  * downgrade write lock to read lock
+<span class="lineNum">     137 </span>            :  */
+<span class="lineNum">     138 </span>            : extern void downgrade_write(struct rw_semaphore *sem);
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : #ifdef CONFIG_DEBUG_LOCK_ALLOC
+<span class="lineNum">     141 </span>            : /*
+<span class="lineNum">     142 </span>            :  * nested locking. NOTE: rwsems are not allowed to recurse
+<span class="lineNum">     143 </span>            :  * (which occurs if the same task tries to acquire the same
+<span class="lineNum">     144 </span>            :  * lock instance multiple times), but multiple locks of the
+<span class="lineNum">     145 </span>            :  * same lock class might be taken, if the order of the locks
+<span class="lineNum">     146 </span>            :  * is always the same. This ordering rule can be expressed
+<span class="lineNum">     147 </span>            :  * to lockdep via the _nested() APIs, but enumerating the
+<span class="lineNum">     148 </span>            :  * subclasses that are used. (If the nesting relationship is
+<span class="lineNum">     149 </span>            :  * static then another method for expressing nested locking is
+<span class="lineNum">     150 </span>            :  * the explicit definition of lock class keys and the use of
+<span class="lineNum">     151 </span>            :  * lockdep_set_class() at lock initialization time.
+<span class="lineNum">     152 </span>            :  * See Documentation/lockdep-design.txt for more details.)
+<span class="lineNum">     153 </span>            :  */
+<span class="lineNum">     154 </span>            : extern void down_read_nested(struct rw_semaphore *sem, int subclass);
+<span class="lineNum">     155 </span>            : extern void down_write_nested(struct rw_semaphore *sem, int subclass);
+<span class="lineNum">     156 </span>            : extern void _down_write_nest_lock(struct rw_semaphore *sem, struct lockdep_map *nest_lock);
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            : # define down_write_nest_lock(sem, nest_lock)                   \
+<span class="lineNum">     159 </span>            : do {                                                            \
+<span class="lineNum">     160 </span>            :         typecheck(struct lockdep_map *, &amp;(nest_lock)-&gt;dep_map);  \
+<span class="lineNum">     161 </span>            :         _down_write_nest_lock(sem, &amp;(nest_lock)-&gt;dep_map);       \
+<span class="lineNum">     162 </span>            : } while (0);
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span>            : /*
+<span class="lineNum">     165 </span>            :  * Take/release a lock when not the owner will release it.
+<span class="lineNum">     166 </span>            :  *
+<span class="lineNum">     167 </span>            :  * [ This API should be avoided as much as possible - the
+<span class="lineNum">     168 </span>            :  *   proper abstraction for this case is completions. ]
+<span class="lineNum">     169 </span>            :  */
+<span class="lineNum">     170 </span>            : extern void down_read_non_owner(struct rw_semaphore *sem);
+<span class="lineNum">     171 </span>            : extern void up_read_non_owner(struct rw_semaphore *sem);
+<span class="lineNum">     172 </span>            : #else
+<span class="lineNum">     173 </span>            : # define down_read_nested(sem, subclass)                down_read(sem)
+<span class="lineNum">     174 </span>            : # define down_write_nest_lock(sem, nest_lock)   down_write(sem)
+<span class="lineNum">     175 </span>            : # define down_write_nested(sem, subclass)       down_write(sem)
+<span class="lineNum">     176 </span>            : # define down_read_non_owner(sem)               down_read(sem)
+<span class="lineNum">     177 </span>            : # define up_read_non_owner(sem)                 up_read(sem)
+<span class="lineNum">     178 </span>            : #endif
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span>            : #endif /* _LINUX_RWSEM_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

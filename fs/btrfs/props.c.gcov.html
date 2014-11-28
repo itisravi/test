@@ -1,0 +1,503 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/props.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - props.c<span style="font-size: 80%;"> (source / <a href="props.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">130</td>
+            <td class="headerCovTableEntry">142</td>
+            <td class="headerCovTableEntryHi">91.5 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryHi">92.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2014 Filipe David Borba Manana &lt;fdmanana@gmail.com&gt;
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;linux/hashtable.h&gt;
+<span class="lineNum">      20 </span>            : #include &quot;props.h&quot;
+<span class="lineNum">      21 </span>            : #include &quot;btrfs_inode.h&quot;
+<span class="lineNum">      22 </span>            : #include &quot;hash.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;transaction.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;xattr.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : #define BTRFS_PROP_HANDLERS_HT_BITS 8
+<span class="lineNum">      27 </span>            : static DEFINE_HASHTABLE(prop_handlers_ht, BTRFS_PROP_HANDLERS_HT_BITS);
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : struct prop_handler {
+<span class="lineNum">      30 </span>            :         struct hlist_node node;
+<span class="lineNum">      31 </span>            :         const char *xattr_name;
+<span class="lineNum">      32 </span>            :         int (*validate)(const char *value, size_t len);
+<span class="lineNum">      33 </span>            :         int (*apply)(struct inode *inode, const char *value, size_t len);
+<span class="lineNum">      34 </span>            :         const char *(*extract)(struct inode *inode);
+<span class="lineNum">      35 </span>            :         int inheritable;
+<span class="lineNum">      36 </span>            : };
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : static int prop_compression_validate(const char *value, size_t len);
+<span class="lineNum">      39 </span>            : static int prop_compression_apply(struct inode *inode,
+<span class="lineNum">      40 </span>            :                                   const char *value,
+<span class="lineNum">      41 </span>            :                                   size_t len);
+<span class="lineNum">      42 </span>            : static const char *prop_compression_extract(struct inode *inode);
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span>            : static struct prop_handler prop_handlers[] = {
+<span class="lineNum">      45 </span>            :         {
+<span class="lineNum">      46 </span>            :                 .xattr_name = XATTR_BTRFS_PREFIX &quot;compression&quot;,
+<span class="lineNum">      47 </span>            :                 .validate = prop_compression_validate,
+<span class="lineNum">      48 </span>            :                 .apply = prop_compression_apply,
+<span class="lineNum">      49 </span>            :                 .extract = prop_compression_extract,
+<span class="lineNum">      50 </span>            :                 .inheritable = 1
+<span class="lineNum">      51 </span>            :         },
+<span class="lineNum">      52 </span>            :         {
+<span class="lineNum">      53 </span>            :                 .xattr_name = NULL
+<span class="lineNum">      54 </span>            :         }
+<a name="55"><span class="lineNum">      55 </span>            : };</a>
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span><span class="lineNoCov">          0 : void __init btrfs_props_init(void)</span>
+<span class="lineNum">      58 </span>            : {
+<span class="lineNum">      59 </span>            :         struct prop_handler *p;
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            :         hash_init(prop_handlers_ht);
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span><span class="lineNoCov">          0 :         for (p = &amp;prop_handlers[0]; p-&gt;xattr_name; p++) {</span>
+<span class="lineNum">      64 </span><span class="lineNoCov">          0 :                 u64 h = btrfs_name_hash(p-&gt;xattr_name, strlen(p-&gt;xattr_name));</span>
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span><span class="lineNoCov">          0 :                 hash_add(prop_handlers_ht, &amp;p-&gt;node, h);</span>
+<span class="lineNum">      67 </span>            :         }
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : static const struct hlist_head *find_prop_handlers_by_hash(const u64 hash)
+<span class="lineNum">      71 </span>            : {
+<a name="72"><span class="lineNum">      72 </span>            :         struct hlist_head *h;</a>
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineCov">        216 :         h = &amp;prop_handlers_ht[hash_min(hash, BTRFS_PROP_HANDLERS_HT_BITS)];</span>
+<span class="lineNum">      75 </span><span class="lineCov">        216 :         if (hlist_empty(h))</span>
+<span class="lineNum">      76 </span>            :                 return NULL;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            :         return h;
+<span class="lineNum">      79 </span>            : }
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            : static const struct prop_handler *
+<span class="lineNum">      82 </span><span class="lineCov">         37 : find_prop_handler(const char *name,</span>
+<span class="lineNum">      83 </span>            :                   const struct hlist_head *handlers)
+<span class="lineNum">      84 </span>            : {
+<span class="lineNum">      85 </span>            :         struct prop_handler *h;
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span><span class="lineCov">         37 :         if (!handlers) {</span>
+<span class="lineNum">      88 </span><span class="lineCov">         29 :                 u64 hash = btrfs_name_hash(name, strlen(name));</span>
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :                 handlers = find_prop_handlers_by_hash(hash);
+<span class="lineNum">      91 </span><span class="lineCov">         29 :                 if (!handlers)</span>
+<span class="lineNum">      92 </span>            :                         return NULL;
+<span class="lineNum">      93 </span>            :         }
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span><span class="lineCov">         37 :         hlist_for_each_entry(h, handlers, node)</span>
+<span class="lineNum">      96 </span><span class="lineCov">         37 :                 if (!strcmp(h-&gt;xattr_name, name))</span>
+<span class="lineNum">      97 </span>            :                         return h;
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            :         return NULL;
+<a name="100"><span class="lineNum">     100 </span>            : }</a>
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span><span class="lineCov">         29 : static int __btrfs_set_prop(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     103 </span>            :                             struct inode *inode,
+<span class="lineNum">     104 </span>            :                             const char *name,
+<span class="lineNum">     105 </span>            :                             const char *value,
+<span class="lineNum">     106 </span>            :                             size_t value_len,
+<span class="lineNum">     107 </span>            :                             int flags)
+<span class="lineNum">     108 </span>            : {
+<span class="lineNum">     109 </span>            :         const struct prop_handler *handler;
+<span class="lineNum">     110 </span>            :         int ret;
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineCov">         29 :         if (strlen(name) &lt;= XATTR_BTRFS_PREFIX_LEN)</span>
+<span class="lineNum">     113 </span>            :                 return -EINVAL;
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span><span class="lineCov">         29 :         handler = find_prop_handler(name, NULL);</span>
+<span class="lineNum">     116 </span><span class="lineCov">         29 :         if (!handler)</span>
+<span class="lineNum">     117 </span>            :                 return -EINVAL;
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span><span class="lineCov">         29 :         if (value_len == 0) {</span>
+<span class="lineNum">     120 </span><span class="lineCov">          4 :                 ret = __btrfs_setxattr(trans, inode, handler-&gt;xattr_name,</span>
+<span class="lineNum">     121 </span>            :                                        NULL, 0, flags);
+<span class="lineNum">     122 </span><span class="lineCov">          4 :                 if (ret)</span>
+<span class="lineNum">     123 </span>            :                         return ret;
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span><span class="lineCov">          4 :                 ret = handler-&gt;apply(inode, NULL, 0);</span>
+<span class="lineNum">     126 </span>            :                 ASSERT(ret == 0);
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineCov">          4 :                 return ret;</span>
+<span class="lineNum">     129 </span>            :         }
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineCov">         25 :         ret = handler-&gt;validate(value, value_len);</span>
+<span class="lineNum">     132 </span><span class="lineCov">         25 :         if (ret)</span>
+<span class="lineNum">     133 </span>            :                 return ret;
+<span class="lineNum">     134 </span><span class="lineCov">         24 :         ret = __btrfs_setxattr(trans, inode, handler-&gt;xattr_name,</span>
+<span class="lineNum">     135 </span>            :                                value, value_len, flags);
+<span class="lineNum">     136 </span><span class="lineCov">         24 :         if (ret)</span>
+<span class="lineNum">     137 </span>            :                 return ret;
+<span class="lineNum">     138 </span><span class="lineCov">         24 :         ret = handler-&gt;apply(inode, value, value_len);</span>
+<span class="lineNum">     139 </span><span class="lineCov">         24 :         if (ret) {</span>
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :                 __btrfs_setxattr(trans, inode, handler-&gt;xattr_name,</span>
+<span class="lineNum">     141 </span>            :                                  NULL, 0, flags);
+<span class="lineNum">     142 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     143 </span>            :         }
+<span class="lineNum">     144 </span>            : 
+<span class="lineNum">     145 </span>            :         set_bit(BTRFS_INODE_HAS_PROPS, &amp;BTRFS_I(inode)-&gt;runtime_flags);
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span><span class="lineCov">         24 :         return 0;</span>
+<a name="148"><span class="lineNum">     148 </span>            : }</a>
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineCov">         18 : int btrfs_set_prop(struct inode *inode,</span>
+<span class="lineNum">     151 </span>            :                    const char *name,
+<span class="lineNum">     152 </span>            :                    const char *value,
+<span class="lineNum">     153 </span>            :                    size_t value_len,
+<span class="lineNum">     154 </span>            :                    int flags)
+<span class="lineNum">     155 </span>            : {
+<span class="lineNum">     156 </span><span class="lineCov">         18 :         return __btrfs_set_prop(NULL, inode, name, value, value_len, flags);</span>
+<span class="lineNum">     157 </span>            : }
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineCov">        623 : static int iterate_object_props(struct btrfs_root *root,</span>
+<span class="lineNum">     160 </span>            :                                 struct btrfs_path *path,
+<span class="lineNum">     161 </span>            :                                 u64 objectid,
+<span class="lineNum">     162 </span>            :                                 void (*iterator)(void *,
+<span class="lineNum">     163 </span>            :                                                  const struct prop_handler *,
+<span class="lineNum">     164 </span>            :                                                  const char *,
+<span class="lineNum">     165 </span>            :                                                  size_t),
+<span class="lineNum">     166 </span>            :                                 void *ctx)
+<span class="lineNum">     167 </span>            : {
+<span class="lineNum">     168 </span>            :         int ret;
+<span class="lineNum">     169 </span>            :         char *name_buf = NULL;
+<span class="lineNum">     170 </span>            :         char *value_buf = NULL;
+<span class="lineNum">     171 </span>            :         int name_buf_len = 0;
+<span class="lineNum">     172 </span>            :         int value_buf_len = 0;
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            :         while (1) {
+<span class="lineNum">     175 </span>            :                 struct btrfs_key key;
+<span class="lineNum">     176 </span>            :                 struct btrfs_dir_item *di;
+<span class="lineNum">     177 </span><span class="lineCov">       1051 :                 struct extent_buffer *leaf;</span>
+<span class="lineNum">     178 </span>            :                 u32 total_len, cur, this_len;
+<span class="lineNum">     179 </span>            :                 int slot;
+<span class="lineNum">     180 </span>            :                 const struct hlist_head *handlers;
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span><span class="lineCov">       1051 :                 slot = path-&gt;slots[0];</span>
+<span class="lineNum">     183 </span><span class="lineCov">       1051 :                 leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineCov">       2102 :                 if (slot &gt;= btrfs_header_nritems(leaf)) {</span>
+<span class="lineNum">     186 </span><span class="lineCov">        447 :                         ret = btrfs_next_leaf(root, path);</span>
+<span class="lineNum">     187 </span><span class="lineCov">        447 :                         if (ret &lt; 0)</span>
+<span class="lineNum">     188 </span>            :                                 goto out;
+<span class="lineNum">     189 </span><span class="lineCov">        447 :                         else if (ret &gt; 0)</span>
+<span class="lineNum">     190 </span>            :                                 break;
+<span class="lineNum">     191 </span><span class="lineCov">        241 :                         continue;</span>
+<span class="lineNum">     192 </span>            :                 }
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineCov">        604 :                 btrfs_item_key_to_cpu(leaf, &amp;key, slot);</span>
+<span class="lineNum">     195 </span><span class="lineCov">        604 :                 if (key.objectid != objectid)</span>
+<span class="lineNum">     196 </span>            :                         break;
+<span class="lineNum">     197 </span><span class="lineCov">        525 :                 if (key.type != BTRFS_XATTR_ITEM_KEY)</span>
+<span class="lineNum">     198 </span>            :                         break;
+<span class="lineNum">     199 </span>            : 
+<span class="lineNum">     200 </span><span class="lineCov">        187 :                 handlers = find_prop_handlers_by_hash(key.offset);</span>
+<span class="lineNum">     201 </span><span class="lineCov">        187 :                 if (!handlers)</span>
+<span class="lineNum">     202 </span>            :                         goto next_slot;
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineCov">          8 :                 di = btrfs_item_ptr(leaf, slot, struct btrfs_dir_item);</span>
+<span class="lineNum">     205 </span>            :                 cur = 0;
+<span class="lineNum">     206 </span>            :                 total_len = btrfs_item_size_nr(leaf, slot);
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span><span class="lineCov">         24 :                 while (cur &lt; total_len) {</span>
+<span class="lineNum">     209 </span><span class="lineCov">          8 :                         u32 name_len = btrfs_dir_name_len(leaf, di);</span>
+<span class="lineNum">     210 </span><span class="lineCov">          8 :                         u32 data_len = btrfs_dir_data_len(leaf, di);</span>
+<span class="lineNum">     211 </span>            :                         unsigned long name_ptr, data_ptr;
+<span class="lineNum">     212 </span>            :                         const struct prop_handler *handler;
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineCov">          8 :                         this_len = sizeof(*di) + name_len + data_len;</span>
+<span class="lineNum">     215 </span><span class="lineCov">          8 :                         name_ptr = (unsigned long)(di + 1);</span>
+<span class="lineNum">     216 </span><span class="lineCov">          8 :                         data_ptr = name_ptr + name_len;</span>
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span><span class="lineCov">         16 :                         if (name_len &lt;= XATTR_BTRFS_PREFIX_LEN ||</span>
+<span class="lineNum">     219 </span><span class="lineCov">          8 :                             memcmp_extent_buffer(leaf, XATTR_BTRFS_PREFIX,</span>
+<span class="lineNum">     220 </span>            :                                                  name_ptr,
+<span class="lineNum">     221 </span>            :                                                  XATTR_BTRFS_PREFIX_LEN))
+<span class="lineNum">     222 </span>            :                                 goto next_dir_item;
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineCov">          8 :                         if (name_len &gt;= name_buf_len) {</span>
+<span class="lineNum">     225 </span><span class="lineCov">          8 :                                 kfree(name_buf);</span>
+<span class="lineNum">     226 </span><span class="lineCov">          8 :                                 name_buf_len = name_len + 1;</span>
+<span class="lineNum">     227 </span><span class="lineCov">          8 :                                 name_buf = kmalloc(name_buf_len, GFP_NOFS);</span>
+<span class="lineNum">     228 </span><span class="lineCov">          8 :                                 if (!name_buf) {</span>
+<span class="lineNum">     229 </span>            :                                         ret = -ENOMEM;
+<span class="lineNum">     230 </span>            :                                         goto out;
+<span class="lineNum">     231 </span>            :                                 }
+<span class="lineNum">     232 </span>            :                         }
+<span class="lineNum">     233 </span><span class="lineCov">          8 :                         read_extent_buffer(leaf, name_buf, name_ptr, name_len);</span>
+<span class="lineNum">     234 </span><span class="lineCov">          8 :                         name_buf[name_len] = '\0';</span>
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineCov">          8 :                         handler = find_prop_handler(name_buf, handlers);</span>
+<span class="lineNum">     237 </span><span class="lineCov">          8 :                         if (!handler)</span>
+<span class="lineNum">     238 </span>            :                                 goto next_dir_item;
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span><span class="lineCov">          8 :                         if (data_len &gt; value_buf_len) {</span>
+<span class="lineNum">     241 </span><span class="lineCov">          8 :                                 kfree(value_buf);</span>
+<span class="lineNum">     242 </span><span class="lineCov">          8 :                                 value_buf_len = data_len;</span>
+<span class="lineNum">     243 </span><span class="lineCov">          8 :                                 value_buf = kmalloc(data_len, GFP_NOFS);</span>
+<span class="lineNum">     244 </span><span class="lineCov">          8 :                                 if (!value_buf) {</span>
+<span class="lineNum">     245 </span>            :                                         ret = -ENOMEM;
+<span class="lineNum">     246 </span>            :                                         goto out;
+<span class="lineNum">     247 </span>            :                                 }
+<span class="lineNum">     248 </span>            :                         }
+<span class="lineNum">     249 </span><span class="lineCov">          8 :                         read_extent_buffer(leaf, value_buf, data_ptr, data_len);</span>
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span><span class="lineCov">          8 :                         iterator(ctx, handler, value_buf, data_len);</span>
+<span class="lineNum">     252 </span>            : next_dir_item:
+<span class="lineNum">     253 </span><span class="lineCov">          8 :                         cur += this_len;</span>
+<span class="lineNum">     254 </span><span class="lineCov">          8 :                         di = (struct btrfs_dir_item *)((char *) di + this_len);</span>
+<span class="lineNum">     255 </span>            :                 }
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span>            : next_slot:
+<span class="lineNum">     258 </span><span class="lineCov">        187 :                 path-&gt;slots[0]++;</span>
+<span class="lineNum">     259 </span>            :         }
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :         ret = 0;
+<span class="lineNum">     262 </span>            : out:
+<span class="lineNum">     263 </span><span class="lineCov">        623 :         btrfs_release_path(path);</span>
+<span class="lineNum">     264 </span><span class="lineCov">        623 :         kfree(name_buf);</span>
+<span class="lineNum">     265 </span><span class="lineCov">        623 :         kfree(value_buf);</span>
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span><span class="lineCov">        623 :         return ret;</span>
+<a name="268"><span class="lineNum">     268 </span>            : }</a>
+<span class="lineNum">     269 </span>            : 
+<span class="lineNum">     270 </span><span class="lineCov">          8 : static void inode_prop_iterator(void *ctx,</span>
+<span class="lineNum">     271 </span>            :                                 const struct prop_handler *handler,
+<span class="lineNum">     272 </span>            :                                 const char *value,
+<span class="lineNum">     273 </span>            :                                 size_t len)
+<span class="lineNum">     274 </span>            : {
+<span class="lineNum">     275 </span>            :         struct inode *inode = ctx;
+<span class="lineNum">     276 </span><span class="lineCov">          8 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     277 </span>            :         int ret;
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span><span class="lineCov">          8 :         ret = handler-&gt;apply(inode, value, len);</span>
+<span class="lineNum">     280 </span><span class="lineCov">          8 :         if (unlikely(ret))</span>
+<span class="lineNum">     281 </span><span class="lineNoCov">          0 :                 btrfs_warn(root-&gt;fs_info,</span>
+<span class="lineNum">     282 </span>            :                            &quot;error applying prop %s to ino %llu (root %llu): %d&quot;,
+<span class="lineNum">     283 </span>            :                            handler-&gt;xattr_name, btrfs_ino(inode),
+<span class="lineNum">     284 </span>            :                            root-&gt;root_key.objectid, ret);
+<span class="lineNum">     285 </span>            :         else
+<span class="lineNum">     286 </span>            :                 set_bit(BTRFS_INODE_HAS_PROPS, &amp;BTRFS_I(inode)-&gt;runtime_flags);
+<a name="287"><span class="lineNum">     287 </span><span class="lineCov">          8 : }</span></a>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineCov">        623 : int btrfs_load_inode_props(struct inode *inode, struct btrfs_path *path)</span>
+<span class="lineNum">     290 </span>            : {
+<span class="lineNum">     291 </span><span class="lineCov">        623 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     292 </span>            :         u64 ino = btrfs_ino(inode);
+<span class="lineNum">     293 </span>            :         int ret;
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineCov">        623 :         ret = iterate_object_props(root, path, ino, inode_prop_iterator, inode);</span>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineCov">        623 :         return ret;</span>
+<a name="298"><span class="lineNum">     298 </span>            : }</a>
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span><span class="lineCov">      20472 : static int inherit_props(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     301 </span>            :                          struct inode *inode,
+<span class="lineNum">     302 </span>            :                          struct inode *parent)
+<span class="lineNum">     303 </span>            : {
+<span class="lineNum">     304 </span>            :         const struct prop_handler *h;
+<span class="lineNum">     305 </span><span class="lineCov">      20483 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     306 </span>            :         int ret;
+<span class="lineNum">     307 </span>            : 
+<span class="lineNum">     308 </span><span class="lineCov">      20472 :         if (!test_bit(BTRFS_INODE_HAS_PROPS,</span>
+<span class="lineNum">     309 </span>            :                       &amp;BTRFS_I(parent)-&gt;runtime_flags))
+<span class="lineNum">     310 </span>            :                 return 0;
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineCov">         12 :         for (h = &amp;prop_handlers[0]; h-&gt;xattr_name; h++) {</span>
+<span class="lineNum">     313 </span>            :                 const char *value;
+<span class="lineNum">     314 </span>            :                 u64 num_bytes;
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineCov">         12 :                 if (!h-&gt;inheritable)</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineCov">         12 :                 value = h-&gt;extract(parent);</span>
+<span class="lineNum">     320 </span><span class="lineCov">         12 :                 if (!value)</span>
+<span class="lineNum">     321 </span><span class="lineCov">          1 :                         continue;</span>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            :                 num_bytes = btrfs_calc_trans_metadata_size(root, 1);
+<span class="lineNum">     324 </span><span class="lineCov">         11 :                 ret = btrfs_block_rsv_add(root, trans-&gt;block_rsv,</span>
+<span class="lineNum">     325 </span>            :                                           num_bytes, BTRFS_RESERVE_NO_FLUSH);
+<span class="lineNum">     326 </span><span class="lineCov">         11 :                 if (ret)</span>
+<span class="lineNum">     327 </span>            :                         goto out;
+<span class="lineNum">     328 </span><span class="lineCov">         11 :                 ret = __btrfs_set_prop(trans, inode, h-&gt;xattr_name,</span>
+<span class="lineNum">     329 </span>            :                                        value, strlen(value), 0);
+<span class="lineNum">     330 </span><span class="lineCov">         11 :                 btrfs_block_rsv_release(root, trans-&gt;block_rsv, num_bytes);</span>
+<span class="lineNum">     331 </span><span class="lineCov">         11 :                 if (ret)</span>
+<span class="lineNum">     332 </span>            :                         goto out;
+<span class="lineNum">     333 </span>            :         }
+<span class="lineNum">     334 </span>            :         ret = 0;
+<span class="lineNum">     335 </span>            : out:
+<span class="lineNum">     336 </span><span class="lineCov">         12 :         return ret;</span>
+<a name="337"><span class="lineNum">     337 </span>            : }</a>
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineCov">      20472 : int btrfs_inode_inherit_props(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     340 </span>            :                               struct inode *inode,
+<span class="lineNum">     341 </span>            :                               struct inode *dir)
+<span class="lineNum">     342 </span>            : {
+<span class="lineNum">     343 </span><span class="lineCov">      20472 :         if (!dir)</span>
+<span class="lineNum">     344 </span>            :                 return 0;
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineCov">      20423 :         return inherit_props(trans, inode, dir);</span>
+<a name="347"><span class="lineNum">     347 </span>            : }</a>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span><span class="lineCov">         49 : int btrfs_subvol_inherit_props(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     350 </span>            :                                struct btrfs_root *root,
+<span class="lineNum">     351 </span>            :                                struct btrfs_root *parent_root)
+<span class="lineNum">     352 </span>            : {
+<span class="lineNum">     353 </span>            :         struct btrfs_key key;
+<span class="lineNum">     354 </span>            :         struct inode *parent_inode, *child_inode;
+<span class="lineNum">     355 </span>            :         int ret;
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineCov">         49 :         key.objectid = BTRFS_FIRST_FREE_OBJECTID;</span>
+<span class="lineNum">     358 </span><span class="lineCov">         49 :         key.type = BTRFS_INODE_ITEM_KEY;</span>
+<span class="lineNum">     359 </span><span class="lineCov">         49 :         key.offset = 0;</span>
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span><span class="lineCov">         49 :         parent_inode = btrfs_iget(parent_root-&gt;fs_info-&gt;sb, &amp;key,</span>
+<span class="lineNum">     362 </span>            :                                   parent_root, NULL);
+<span class="lineNum">     363 </span><span class="lineCov">         49 :         if (IS_ERR(parent_inode))</span>
+<span class="lineNum">     364 </span><span class="lineNoCov">          0 :                 return PTR_ERR(parent_inode);</span>
+<span class="lineNum">     365 </span>            : 
+<span class="lineNum">     366 </span><span class="lineCov">         49 :         child_inode = btrfs_iget(root-&gt;fs_info-&gt;sb, &amp;key, root, NULL);</span>
+<span class="lineNum">     367 </span><span class="lineCov">         49 :         if (IS_ERR(child_inode)) {</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                 iput(parent_inode);</span>
+<span class="lineNum">     369 </span><span class="lineNoCov">          0 :                 return PTR_ERR(child_inode);</span>
+<span class="lineNum">     370 </span>            :         }
+<span class="lineNum">     371 </span>            : 
+<span class="lineNum">     372 </span><span class="lineCov">         49 :         ret = inherit_props(trans, child_inode, parent_inode);</span>
+<span class="lineNum">     373 </span><span class="lineCov">         49 :         iput(child_inode);</span>
+<span class="lineNum">     374 </span><span class="lineCov">         49 :         iput(parent_inode);</span>
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineCov">         49 :         return ret;</span>
+<a name="377"><span class="lineNum">     377 </span>            : }</a>
+<span class="lineNum">     378 </span>            : 
+<span class="lineNum">     379 </span><span class="lineCov">         25 : static int prop_compression_validate(const char *value, size_t len)</span>
+<span class="lineNum">     380 </span>            : {
+<span class="lineNum">     381 </span><span class="lineCov">         25 :         if (!strncmp(&quot;lzo&quot;, value, len))</span>
+<span class="lineNum">     382 </span>            :                 return 0;
+<span class="lineNum">     383 </span><span class="lineCov">          7 :         else if (!strncmp(&quot;zlib&quot;, value, len))</span>
+<span class="lineNum">     384 </span>            :                 return 0;
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineCov">          1 :         return -EINVAL;</span>
+<a name="387"><span class="lineNum">     387 </span>            : }</a>
+<span class="lineNum">     388 </span>            : 
+<span class="lineNum">     389 </span><span class="lineCov">         36 : static int prop_compression_apply(struct inode *inode,</span>
+<span class="lineNum">     390 </span>            :                                   const char *value,
+<span class="lineNum">     391 </span>            :                                   size_t len)
+<span class="lineNum">     392 </span>            : {
+<span class="lineNum">     393 </span>            :         int type;
+<span class="lineNum">     394 </span>            : 
+<span class="lineNum">     395 </span><span class="lineCov">         36 :         if (len == 0) {</span>
+<span class="lineNum">     396 </span><span class="lineCov">          4 :                 BTRFS_I(inode)-&gt;flags |= BTRFS_INODE_NOCOMPRESS;</span>
+<span class="lineNum">     397 </span><span class="lineCov">          4 :                 BTRFS_I(inode)-&gt;flags &amp;= ~BTRFS_INODE_COMPRESS;</span>
+<span class="lineNum">     398 </span><span class="lineCov">          4 :                 BTRFS_I(inode)-&gt;force_compress = BTRFS_COMPRESS_NONE;</span>
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span><span class="lineCov">          4 :                 return 0;</span>
+<span class="lineNum">     401 </span>            :         }
+<span class="lineNum">     402 </span>            : 
+<span class="lineNum">     403 </span><span class="lineCov">         32 :         if (!strncmp(&quot;lzo&quot;, value, len))</span>
+<span class="lineNum">     404 </span>            :                 type = BTRFS_COMPRESS_LZO;
+<span class="lineNum">     405 </span><span class="lineCov">          6 :         else if (!strncmp(&quot;zlib&quot;, value, len))</span>
+<span class="lineNum">     406 </span>            :                 type = BTRFS_COMPRESS_ZLIB;
+<span class="lineNum">     407 </span>            :         else
+<span class="lineNum">     408 </span>            :                 return -EINVAL;
+<span class="lineNum">     409 </span>            : 
+<span class="lineNum">     410 </span><span class="lineCov">         32 :         BTRFS_I(inode)-&gt;flags &amp;= ~BTRFS_INODE_NOCOMPRESS;</span>
+<span class="lineNum">     411 </span><span class="lineCov">         32 :         BTRFS_I(inode)-&gt;flags |= BTRFS_INODE_COMPRESS;</span>
+<span class="lineNum">     412 </span><span class="lineCov">         32 :         BTRFS_I(inode)-&gt;force_compress = type;</span>
+<span class="lineNum">     413 </span>            : 
+<span class="lineNum">     414 </span><span class="lineCov">         32 :         return 0;</span>
+<a name="415"><span class="lineNum">     415 </span>            : }</a>
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span><span class="lineCov">         12 : static const char *prop_compression_extract(struct inode *inode)</span>
+<span class="lineNum">     418 </span>            : {
+<span class="lineNum">     419 </span><span class="lineCov">         12 :         switch (BTRFS_I(inode)-&gt;force_compress) {</span>
+<span class="lineNum">     420 </span>            :         case BTRFS_COMPRESS_ZLIB:
+<span class="lineNum">     421 </span>            :                 return &quot;zlib&quot;;
+<span class="lineNum">     422 </span>            :         case BTRFS_COMPRESS_LZO:
+<span class="lineNum">     423 </span><span class="lineCov">         10 :                 return &quot;lzo&quot;;</span>
+<span class="lineNum">     424 </span>            :         }
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span><span class="lineCov">          1 :         return NULL;</span>
+<span class="lineNum">     427 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

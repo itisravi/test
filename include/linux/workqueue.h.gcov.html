@@ -1,0 +1,670 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/workqueue.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - workqueue.h<span style="font-size: 80%;"> (source / <a href="workqueue.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * workqueue.h --- work queue handling for Linux.
+<span class="lineNum">       3 </span>            :  */
+<span class="lineNum">       4 </span>            : 
+<span class="lineNum">       5 </span>            : #ifndef _LINUX_WORKQUEUE_H
+<span class="lineNum">       6 </span>            : #define _LINUX_WORKQUEUE_H
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #include &lt;linux/timer.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;linux/linkage.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;linux/bitops.h&gt;
+<span class="lineNum">      11 </span>            : #include &lt;linux/lockdep.h&gt;
+<span class="lineNum">      12 </span>            : #include &lt;linux/threads.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;linux/atomic.h&gt;
+<span class="lineNum">      14 </span>            : #include &lt;linux/cpumask.h&gt;
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : struct workqueue_struct;
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : struct work_struct;
+<span class="lineNum">      19 </span>            : typedef void (*work_func_t)(struct work_struct *work);
+<span class="lineNum">      20 </span>            : void delayed_work_timer_fn(unsigned long __data);
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : /*
+<span class="lineNum">      23 </span>            :  * The first word is the work queue pointer and the flags rolled into
+<span class="lineNum">      24 </span>            :  * one
+<span class="lineNum">      25 </span>            :  */
+<span class="lineNum">      26 </span>            : #define work_data_bits(work) ((unsigned long *)(&amp;(work)-&gt;data))
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : enum {
+<span class="lineNum">      29 </span>            :         WORK_STRUCT_PENDING_BIT = 0,    /* work item is pending execution */
+<span class="lineNum">      30 </span>            :         WORK_STRUCT_DELAYED_BIT = 1,    /* work item is delayed */
+<span class="lineNum">      31 </span>            :         WORK_STRUCT_PWQ_BIT     = 2,    /* data points to pwq */
+<span class="lineNum">      32 </span>            :         WORK_STRUCT_LINKED_BIT  = 3,    /* next work is linked to this one */
+<span class="lineNum">      33 </span>            : #ifdef CONFIG_DEBUG_OBJECTS_WORK
+<span class="lineNum">      34 </span>            :         WORK_STRUCT_STATIC_BIT  = 4,    /* static initializer (debugobjects) */
+<span class="lineNum">      35 </span>            :         WORK_STRUCT_COLOR_SHIFT = 5,    /* color for workqueue flushing */
+<span class="lineNum">      36 </span>            : #else
+<span class="lineNum">      37 </span>            :         WORK_STRUCT_COLOR_SHIFT = 4,    /* color for workqueue flushing */
+<span class="lineNum">      38 </span>            : #endif
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            :         WORK_STRUCT_COLOR_BITS  = 4,
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            :         WORK_STRUCT_PENDING     = 1 &lt;&lt; WORK_STRUCT_PENDING_BIT,
+<span class="lineNum">      43 </span>            :         WORK_STRUCT_DELAYED     = 1 &lt;&lt; WORK_STRUCT_DELAYED_BIT,
+<span class="lineNum">      44 </span>            :         WORK_STRUCT_PWQ         = 1 &lt;&lt; WORK_STRUCT_PWQ_BIT,
+<span class="lineNum">      45 </span>            :         WORK_STRUCT_LINKED      = 1 &lt;&lt; WORK_STRUCT_LINKED_BIT,
+<span class="lineNum">      46 </span>            : #ifdef CONFIG_DEBUG_OBJECTS_WORK
+<span class="lineNum">      47 </span>            :         WORK_STRUCT_STATIC      = 1 &lt;&lt; WORK_STRUCT_STATIC_BIT,
+<span class="lineNum">      48 </span>            : #else
+<span class="lineNum">      49 </span>            :         WORK_STRUCT_STATIC      = 0,
+<span class="lineNum">      50 </span>            : #endif
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            :         /*
+<span class="lineNum">      53 </span>            :          * The last color is no color used for works which don't
+<span class="lineNum">      54 </span>            :          * participate in workqueue flushing.
+<span class="lineNum">      55 </span>            :          */
+<span class="lineNum">      56 </span>            :         WORK_NR_COLORS          = (1 &lt;&lt; WORK_STRUCT_COLOR_BITS) - 1,
+<span class="lineNum">      57 </span>            :         WORK_NO_COLOR           = WORK_NR_COLORS,
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            :         /* not bound to any CPU, prefer the local CPU */
+<span class="lineNum">      60 </span>            :         WORK_CPU_UNBOUND        = NR_CPUS,
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            :         /*
+<span class="lineNum">      63 </span>            :          * Reserve 7 bits off of pwq pointer w/ debugobjects turned off.
+<span class="lineNum">      64 </span>            :          * This makes pwqs aligned to 256 bytes and allows 15 workqueue
+<span class="lineNum">      65 </span>            :          * flush colors.
+<span class="lineNum">      66 </span>            :          */
+<span class="lineNum">      67 </span>            :         WORK_STRUCT_FLAG_BITS   = WORK_STRUCT_COLOR_SHIFT +
+<span class="lineNum">      68 </span>            :                                   WORK_STRUCT_COLOR_BITS,
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            :         /* data contains off-queue information when !WORK_STRUCT_PWQ */
+<span class="lineNum">      71 </span>            :         WORK_OFFQ_FLAG_BASE     = WORK_STRUCT_COLOR_SHIFT,
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            :         WORK_OFFQ_CANCELING     = (1 &lt;&lt; WORK_OFFQ_FLAG_BASE),
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :         /*
+<span class="lineNum">      76 </span>            :          * When a work item is off queue, its high bits point to the last
+<span class="lineNum">      77 </span>            :          * pool it was on.  Cap at 31 bits and use the highest number to
+<span class="lineNum">      78 </span>            :          * indicate that no pool is associated.
+<span class="lineNum">      79 </span>            :          */
+<span class="lineNum">      80 </span>            :         WORK_OFFQ_FLAG_BITS     = 1,
+<span class="lineNum">      81 </span>            :         WORK_OFFQ_POOL_SHIFT    = WORK_OFFQ_FLAG_BASE + WORK_OFFQ_FLAG_BITS,
+<span class="lineNum">      82 </span>            :         WORK_OFFQ_LEFT          = BITS_PER_LONG - WORK_OFFQ_POOL_SHIFT,
+<span class="lineNum">      83 </span>            :         WORK_OFFQ_POOL_BITS     = WORK_OFFQ_LEFT &lt;= 31 ? WORK_OFFQ_LEFT : 31,
+<span class="lineNum">      84 </span>            :         WORK_OFFQ_POOL_NONE     = (1LU &lt;&lt; WORK_OFFQ_POOL_BITS) - 1,
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            :         /* convenience constants */
+<span class="lineNum">      87 </span>            :         WORK_STRUCT_FLAG_MASK   = (1UL &lt;&lt; WORK_STRUCT_FLAG_BITS) - 1,
+<span class="lineNum">      88 </span>            :         WORK_STRUCT_WQ_DATA_MASK = ~WORK_STRUCT_FLAG_MASK,
+<span class="lineNum">      89 </span>            :         WORK_STRUCT_NO_POOL     = (unsigned long)WORK_OFFQ_POOL_NONE &lt;&lt; WORK_OFFQ_POOL_SHIFT,
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            :         /* bit mask for work_busy() return values */
+<span class="lineNum">      92 </span>            :         WORK_BUSY_PENDING       = 1 &lt;&lt; 0,
+<span class="lineNum">      93 </span>            :         WORK_BUSY_RUNNING       = 1 &lt;&lt; 1,
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :         /* maximum string length for set_worker_desc() */
+<span class="lineNum">      96 </span>            :         WORKER_DESC_LEN         = 24,
+<span class="lineNum">      97 </span>            : };
+<span class="lineNum">      98 </span>            : 
+<span class="lineNum">      99 </span>            : struct work_struct {
+<span class="lineNum">     100 </span>            :         atomic_long_t data;
+<span class="lineNum">     101 </span>            :         struct list_head entry;
+<span class="lineNum">     102 </span>            :         work_func_t func;
+<span class="lineNum">     103 </span>            : #ifdef CONFIG_LOCKDEP
+<span class="lineNum">     104 </span>            :         struct lockdep_map lockdep_map;
+<span class="lineNum">     105 </span>            : #endif
+<span class="lineNum">     106 </span>            : };
+<span class="lineNum">     107 </span>            : 
+<span class="lineNum">     108 </span>            : #define WORK_DATA_INIT()        ATOMIC_LONG_INIT(WORK_STRUCT_NO_POOL)
+<span class="lineNum">     109 </span>            : #define WORK_DATA_STATIC_INIT() \
+<span class="lineNum">     110 </span>            :         ATOMIC_LONG_INIT(WORK_STRUCT_NO_POOL | WORK_STRUCT_STATIC)
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            : struct delayed_work {
+<span class="lineNum">     113 </span>            :         struct work_struct work;
+<span class="lineNum">     114 </span>            :         struct timer_list timer;
+<span class="lineNum">     115 </span>            : 
+<span class="lineNum">     116 </span>            :         /* target workqueue and CPU -&gt;timer uses to queue -&gt;work */
+<span class="lineNum">     117 </span>            :         struct workqueue_struct *wq;
+<span class="lineNum">     118 </span>            :         int cpu;
+<span class="lineNum">     119 </span>            : };
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            : /*
+<span class="lineNum">     122 </span>            :  * A struct for workqueue attributes.  This can be used to change
+<span class="lineNum">     123 </span>            :  * attributes of an unbound workqueue.
+<span class="lineNum">     124 </span>            :  *
+<span class="lineNum">     125 </span>            :  * Unlike other fields, -&gt;no_numa isn't a property of a worker_pool.  It
+<span class="lineNum">     126 </span>            :  * only modifies how apply_workqueue_attrs() select pools and thus doesn't
+<span class="lineNum">     127 </span>            :  * participate in pool hash calculations or equality comparisons.
+<span class="lineNum">     128 </span>            :  */
+<span class="lineNum">     129 </span>            : struct workqueue_attrs {
+<span class="lineNum">     130 </span>            :         int                     nice;           /* nice level */
+<span class="lineNum">     131 </span>            :         cpumask_var_t           cpumask;        /* allowed CPUs */
+<span class="lineNum">     132 </span>            :         bool                    no_numa;        /* disable NUMA affinity */
+<span class="lineNum">     133 </span>            : };
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            : static inline struct delayed_work *to_delayed_work(struct work_struct *work)
+<span class="lineNum">     136 </span>            : {
+<span class="lineNum">     137 </span>            :         return container_of(work, struct delayed_work, work);
+<span class="lineNum">     138 </span>            : }
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : struct execute_work {
+<span class="lineNum">     141 </span>            :         struct work_struct work;
+<span class="lineNum">     142 </span>            : };
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span>            : #ifdef CONFIG_LOCKDEP
+<span class="lineNum">     145 </span>            : /*
+<span class="lineNum">     146 </span>            :  * NB: because we have to copy the lockdep_map, setting _key
+<span class="lineNum">     147 </span>            :  * here is required, otherwise it could get initialised to the
+<span class="lineNum">     148 </span>            :  * copy of the lockdep_map!
+<span class="lineNum">     149 </span>            :  */
+<span class="lineNum">     150 </span>            : #define __WORK_INIT_LOCKDEP_MAP(n, k) \
+<span class="lineNum">     151 </span>            :         .lockdep_map = STATIC_LOCKDEP_MAP_INIT(n, k),
+<span class="lineNum">     152 </span>            : #else
+<span class="lineNum">     153 </span>            : #define __WORK_INIT_LOCKDEP_MAP(n, k)
+<span class="lineNum">     154 </span>            : #endif
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : #define __WORK_INITIALIZER(n, f) {                                      \
+<span class="lineNum">     157 </span>            :         .data = WORK_DATA_STATIC_INIT(),                                \
+<span class="lineNum">     158 </span>            :         .entry  = { &amp;(n).entry, &amp;(n).entry },                           \
+<span class="lineNum">     159 </span>            :         .func = (f),                                                    \
+<span class="lineNum">     160 </span>            :         __WORK_INIT_LOCKDEP_MAP(#n, &amp;(n))                           \
+<span class="lineNum">     161 </span>            :         }
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            : #define __DELAYED_WORK_INITIALIZER(n, f, tflags) {                      \
+<span class="lineNum">     164 </span>            :         .work = __WORK_INITIALIZER((n).work, (f)),                      \
+<span class="lineNum">     165 </span>            :         .timer = __TIMER_INITIALIZER(delayed_work_timer_fn,             \
+<span class="lineNum">     166 </span>            :                                      0, (unsigned long)&amp;(n),                \
+<span class="lineNum">     167 </span>            :                                      (tflags) | TIMER_IRQSAFE),         \
+<span class="lineNum">     168 </span>            :         }
+<span class="lineNum">     169 </span>            : 
+<span class="lineNum">     170 </span>            : #define DECLARE_WORK(n, f)                                              \
+<span class="lineNum">     171 </span>            :         struct work_struct n = __WORK_INITIALIZER(n, f)
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            : #define DECLARE_DELAYED_WORK(n, f)                                      \
+<span class="lineNum">     174 </span>            :         struct delayed_work n = __DELAYED_WORK_INITIALIZER(n, f, 0)
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : #define DECLARE_DEFERRABLE_WORK(n, f)                                   \
+<span class="lineNum">     177 </span>            :         struct delayed_work n = __DELAYED_WORK_INITIALIZER(n, f, TIMER_DEFERRABLE)
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            : #ifdef CONFIG_DEBUG_OBJECTS_WORK
+<span class="lineNum">     180 </span>            : extern void __init_work(struct work_struct *work, int onstack);
+<span class="lineNum">     181 </span>            : extern void destroy_work_on_stack(struct work_struct *work);
+<span class="lineNum">     182 </span>            : extern void destroy_delayed_work_on_stack(struct delayed_work *work);
+<span class="lineNum">     183 </span>            : static inline unsigned int work_static(struct work_struct *work)
+<span class="lineNum">     184 </span>            : {
+<span class="lineNum">     185 </span>            :         return *work_data_bits(work) &amp; WORK_STRUCT_STATIC;
+<span class="lineNum">     186 </span>            : }
+<span class="lineNum">     187 </span>            : #else
+<span class="lineNum">     188 </span>            : static inline void __init_work(struct work_struct *work, int onstack) { }
+<span class="lineNum">     189 </span>            : static inline void destroy_work_on_stack(struct work_struct *work) { }
+<span class="lineNum">     190 </span>            : static inline void destroy_delayed_work_on_stack(struct delayed_work *work) { }
+<span class="lineNum">     191 </span>            : static inline unsigned int work_static(struct work_struct *work) { return 0; }
+<span class="lineNum">     192 </span>            : #endif
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span>            : /*
+<span class="lineNum">     195 </span>            :  * initialize all of a work item in one go
+<span class="lineNum">     196 </span>            :  *
+<span class="lineNum">     197 </span>            :  * NOTE! No point in using &quot;atomic_long_set()&quot;: using a direct
+<span class="lineNum">     198 </span>            :  * assignment of the work data initializer allows the compiler
+<span class="lineNum">     199 </span>            :  * to generate better code.
+<span class="lineNum">     200 </span>            :  */
+<span class="lineNum">     201 </span>            : #ifdef CONFIG_LOCKDEP
+<span class="lineNum">     202 </span>            : #define __INIT_WORK(_work, _func, _onstack)                             \
+<span class="lineNum">     203 </span>            :         do {                                                            \
+<span class="lineNum">     204 </span>            :                 static struct lock_class_key __key;                     \
+<span class="lineNum">     205 </span>            :                                                                         \
+<span class="lineNum">     206 </span>            :                 __init_work((_work), _onstack);                         \
+<span class="lineNum">     207 </span>            :                 (_work)-&gt;data = (atomic_long_t) WORK_DATA_INIT();    \
+<span class="lineNum">     208 </span>            :                 lockdep_init_map(&amp;(_work)-&gt;lockdep_map, #_work, &amp;__key, 0); \
+<span class="lineNum">     209 </span>            :                 INIT_LIST_HEAD(&amp;(_work)-&gt;entry);                 \
+<span class="lineNum">     210 </span>            :                 (_work)-&gt;func = (_func);                             \
+<span class="lineNum">     211 </span>            :         } while (0)
+<span class="lineNum">     212 </span>            : #else
+<span class="lineNum">     213 </span>            : #define __INIT_WORK(_work, _func, _onstack)                             \
+<span class="lineNum">     214 </span>            :         do {                                                            \
+<span class="lineNum">     215 </span>            :                 __init_work((_work), _onstack);                         \
+<span class="lineNum">     216 </span>            :                 (_work)-&gt;data = (atomic_long_t) WORK_DATA_INIT();    \
+<span class="lineNum">     217 </span>            :                 INIT_LIST_HEAD(&amp;(_work)-&gt;entry);                 \
+<span class="lineNum">     218 </span>            :                 (_work)-&gt;func = (_func);                             \
+<span class="lineNum">     219 </span>            :         } while (0)
+<span class="lineNum">     220 </span>            : #endif
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            : #define INIT_WORK(_work, _func)                                         \
+<span class="lineNum">     223 </span>            :         do {                                                            \
+<span class="lineNum">     224 </span>            :                 __INIT_WORK((_work), (_func), 0);                       \
+<span class="lineNum">     225 </span>            :         } while (0)
+<span class="lineNum">     226 </span>            : 
+<span class="lineNum">     227 </span>            : #define INIT_WORK_ONSTACK(_work, _func)                                 \
+<span class="lineNum">     228 </span>            :         do {                                                            \
+<span class="lineNum">     229 </span>            :                 __INIT_WORK((_work), (_func), 1);                       \
+<span class="lineNum">     230 </span>            :         } while (0)
+<span class="lineNum">     231 </span>            : 
+<span class="lineNum">     232 </span>            : #define __INIT_DELAYED_WORK(_work, _func, _tflags)                      \
+<span class="lineNum">     233 </span>            :         do {                                                            \
+<span class="lineNum">     234 </span>            :                 INIT_WORK(&amp;(_work)-&gt;work, (_func));                      \
+<span class="lineNum">     235 </span>            :                 __setup_timer(&amp;(_work)-&gt;timer, delayed_work_timer_fn,    \
+<span class="lineNum">     236 </span>            :                               (unsigned long)(_work),                   \
+<span class="lineNum">     237 </span>            :                               (_tflags) | TIMER_IRQSAFE);               \
+<span class="lineNum">     238 </span>            :         } while (0)
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            : #define __INIT_DELAYED_WORK_ONSTACK(_work, _func, _tflags)              \
+<span class="lineNum">     241 </span>            :         do {                                                            \
+<span class="lineNum">     242 </span>            :                 INIT_WORK_ONSTACK(&amp;(_work)-&gt;work, (_func));              \
+<span class="lineNum">     243 </span>            :                 __setup_timer_on_stack(&amp;(_work)-&gt;timer,                  \
+<span class="lineNum">     244 </span>            :                                        delayed_work_timer_fn,           \
+<span class="lineNum">     245 </span>            :                                        (unsigned long)(_work),          \
+<span class="lineNum">     246 </span>            :                                        (_tflags) | TIMER_IRQSAFE);      \
+<span class="lineNum">     247 </span>            :         } while (0)
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            : #define INIT_DELAYED_WORK(_work, _func)                                 \
+<span class="lineNum">     250 </span>            :         __INIT_DELAYED_WORK(_work, _func, 0)
+<span class="lineNum">     251 </span>            : 
+<span class="lineNum">     252 </span>            : #define INIT_DELAYED_WORK_ONSTACK(_work, _func)                         \
+<span class="lineNum">     253 </span>            :         __INIT_DELAYED_WORK_ONSTACK(_work, _func, 0)
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span>            : #define INIT_DEFERRABLE_WORK(_work, _func)                              \
+<span class="lineNum">     256 </span>            :         __INIT_DELAYED_WORK(_work, _func, TIMER_DEFERRABLE)
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            : #define INIT_DEFERRABLE_WORK_ONSTACK(_work, _func)                      \
+<span class="lineNum">     259 </span>            :         __INIT_DELAYED_WORK_ONSTACK(_work, _func, TIMER_DEFERRABLE)
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : /**
+<span class="lineNum">     262 </span>            :  * work_pending - Find out whether a work item is currently pending
+<span class="lineNum">     263 </span>            :  * @work: The work item in question
+<span class="lineNum">     264 </span>            :  */
+<span class="lineNum">     265 </span>            : #define work_pending(work) \
+<span class="lineNum">     266 </span>            :         test_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span>            : /**
+<span class="lineNum">     269 </span>            :  * delayed_work_pending - Find out whether a delayable work item is currently
+<span class="lineNum">     270 </span>            :  * pending
+<span class="lineNum">     271 </span>            :  * @work: The work item in question
+<span class="lineNum">     272 </span>            :  */
+<span class="lineNum">     273 </span>            : #define delayed_work_pending(w) \
+<span class="lineNum">     274 </span>            :         work_pending(&amp;(w)-&gt;work)
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span>            : /*
+<span class="lineNum">     277 </span>            :  * Workqueue flags and constants.  For details, please refer to
+<span class="lineNum">     278 </span>            :  * Documentation/workqueue.txt.
+<span class="lineNum">     279 </span>            :  */
+<span class="lineNum">     280 </span>            : enum {
+<span class="lineNum">     281 </span>            :         WQ_UNBOUND              = 1 &lt;&lt; 1, /* not bound to any cpu */
+<span class="lineNum">     282 </span>            :         WQ_FREEZABLE            = 1 &lt;&lt; 2, /* freeze during suspend */
+<span class="lineNum">     283 </span>            :         WQ_MEM_RECLAIM          = 1 &lt;&lt; 3, /* may be used for memory reclaim */
+<span class="lineNum">     284 </span>            :         WQ_HIGHPRI              = 1 &lt;&lt; 4, /* high priority */
+<span class="lineNum">     285 </span>            :         WQ_CPU_INTENSIVE        = 1 &lt;&lt; 5, /* cpu intensive workqueue */
+<span class="lineNum">     286 </span>            :         WQ_SYSFS                = 1 &lt;&lt; 6, /* visible in sysfs, see wq_sysfs_register() */
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span>            :         /*
+<span class="lineNum">     289 </span>            :          * Per-cpu workqueues are generally preferred because they tend to
+<span class="lineNum">     290 </span>            :          * show better performance thanks to cache locality.  Per-cpu
+<span class="lineNum">     291 </span>            :          * workqueues exclude the scheduler from choosing the CPU to
+<span class="lineNum">     292 </span>            :          * execute the worker threads, which has an unfortunate side effect
+<span class="lineNum">     293 </span>            :          * of increasing power consumption.
+<span class="lineNum">     294 </span>            :          *
+<span class="lineNum">     295 </span>            :          * The scheduler considers a CPU idle if it doesn't have any task
+<span class="lineNum">     296 </span>            :          * to execute and tries to keep idle cores idle to conserve power;
+<span class="lineNum">     297 </span>            :          * however, for example, a per-cpu work item scheduled from an
+<span class="lineNum">     298 </span>            :          * interrupt handler on an idle CPU will force the scheduler to
+<span class="lineNum">     299 </span>            :          * excute the work item on that CPU breaking the idleness, which in
+<span class="lineNum">     300 </span>            :          * turn may lead to more scheduling choices which are sub-optimal
+<span class="lineNum">     301 </span>            :          * in terms of power consumption.
+<span class="lineNum">     302 </span>            :          *
+<span class="lineNum">     303 </span>            :          * Workqueues marked with WQ_POWER_EFFICIENT are per-cpu by default
+<span class="lineNum">     304 </span>            :          * but become unbound if workqueue.power_efficient kernel param is
+<span class="lineNum">     305 </span>            :          * specified.  Per-cpu workqueues which are identified to
+<span class="lineNum">     306 </span>            :          * contribute significantly to power-consumption are identified and
+<span class="lineNum">     307 </span>            :          * marked with this flag and enabling the power_efficient mode
+<span class="lineNum">     308 </span>            :          * leads to noticeable power saving at the cost of small
+<span class="lineNum">     309 </span>            :          * performance disadvantage.
+<span class="lineNum">     310 </span>            :          *
+<span class="lineNum">     311 </span>            :          * http://thread.gmane.org/gmane.linux.kernel/1480396
+<span class="lineNum">     312 </span>            :          */
+<span class="lineNum">     313 </span>            :         WQ_POWER_EFFICIENT      = 1 &lt;&lt; 7,
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span>            :         __WQ_DRAINING           = 1 &lt;&lt; 16, /* internal: workqueue is draining */
+<span class="lineNum">     316 </span>            :         __WQ_ORDERED            = 1 &lt;&lt; 17, /* internal: workqueue is ordered */
+<span class="lineNum">     317 </span>            : 
+<span class="lineNum">     318 </span>            :         WQ_MAX_ACTIVE           = 512,    /* I like 512, better ideas? */
+<span class="lineNum">     319 </span>            :         WQ_MAX_UNBOUND_PER_CPU  = 4,      /* 4 * #cpus for unbound wq */
+<span class="lineNum">     320 </span>            :         WQ_DFL_ACTIVE           = WQ_MAX_ACTIVE / 2,
+<span class="lineNum">     321 </span>            : };
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span>            : /* unbound wq's aren't per-cpu, scale max_active according to #cpus */
+<span class="lineNum">     324 </span>            : #define WQ_UNBOUND_MAX_ACTIVE   \
+<span class="lineNum">     325 </span>            :         max_t(int, WQ_MAX_ACTIVE, num_possible_cpus() * WQ_MAX_UNBOUND_PER_CPU)
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span>            : /*
+<span class="lineNum">     328 </span>            :  * System-wide workqueues which are always present.
+<span class="lineNum">     329 </span>            :  *
+<span class="lineNum">     330 </span>            :  * system_wq is the one used by schedule[_delayed]_work[_on]().
+<span class="lineNum">     331 </span>            :  * Multi-CPU multi-threaded.  There are users which expect relatively
+<span class="lineNum">     332 </span>            :  * short queue flush time.  Don't queue works which can run for too
+<span class="lineNum">     333 </span>            :  * long.
+<span class="lineNum">     334 </span>            :  *
+<span class="lineNum">     335 </span>            :  * system_highpri_wq is similar to system_wq but for work items which
+<span class="lineNum">     336 </span>            :  * require WQ_HIGHPRI.
+<span class="lineNum">     337 </span>            :  *
+<span class="lineNum">     338 </span>            :  * system_long_wq is similar to system_wq but may host long running
+<span class="lineNum">     339 </span>            :  * works.  Queue flushing might take relatively long.
+<span class="lineNum">     340 </span>            :  *
+<span class="lineNum">     341 </span>            :  * system_unbound_wq is unbound workqueue.  Workers are not bound to
+<span class="lineNum">     342 </span>            :  * any specific CPU, not concurrency managed, and all queued works are
+<span class="lineNum">     343 </span>            :  * executed immediately as long as max_active limit is not reached and
+<span class="lineNum">     344 </span>            :  * resources are available.
+<span class="lineNum">     345 </span>            :  *
+<span class="lineNum">     346 </span>            :  * system_freezable_wq is equivalent to system_wq except that it's
+<span class="lineNum">     347 </span>            :  * freezable.
+<span class="lineNum">     348 </span>            :  *
+<span class="lineNum">     349 </span>            :  * *_power_efficient_wq are inclined towards saving power and converted
+<span class="lineNum">     350 </span>            :  * into WQ_UNBOUND variants if 'wq_power_efficient' is enabled; otherwise,
+<span class="lineNum">     351 </span>            :  * they are same as their non-power-efficient counterparts - e.g.
+<span class="lineNum">     352 </span>            :  * system_power_efficient_wq is identical to system_wq if
+<span class="lineNum">     353 </span>            :  * 'wq_power_efficient' is disabled.  See WQ_POWER_EFFICIENT for more info.
+<span class="lineNum">     354 </span>            :  */
+<span class="lineNum">     355 </span>            : extern struct workqueue_struct *system_wq;
+<span class="lineNum">     356 </span>            : extern struct workqueue_struct *system_highpri_wq;
+<span class="lineNum">     357 </span>            : extern struct workqueue_struct *system_long_wq;
+<span class="lineNum">     358 </span>            : extern struct workqueue_struct *system_unbound_wq;
+<span class="lineNum">     359 </span>            : extern struct workqueue_struct *system_freezable_wq;
+<span class="lineNum">     360 </span>            : extern struct workqueue_struct *system_power_efficient_wq;
+<span class="lineNum">     361 </span>            : extern struct workqueue_struct *system_freezable_power_efficient_wq;
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            : extern struct workqueue_struct *
+<span class="lineNum">     364 </span>            : __alloc_workqueue_key(const char *fmt, unsigned int flags, int max_active,
+<span class="lineNum">     365 </span>            :         struct lock_class_key *key, const char *lock_name, ...) __printf(1, 6);
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span>            : /**
+<span class="lineNum">     368 </span>            :  * alloc_workqueue - allocate a workqueue
+<span class="lineNum">     369 </span>            :  * @fmt: printf format for the name of the workqueue
+<span class="lineNum">     370 </span>            :  * @flags: WQ_* flags
+<span class="lineNum">     371 </span>            :  * @max_active: max in-flight work items, 0 for default
+<span class="lineNum">     372 </span>            :  * @args: args for @fmt
+<span class="lineNum">     373 </span>            :  *
+<span class="lineNum">     374 </span>            :  * Allocate a workqueue with the specified parameters.  For detailed
+<span class="lineNum">     375 </span>            :  * information on WQ_* flags, please refer to Documentation/workqueue.txt.
+<span class="lineNum">     376 </span>            :  *
+<span class="lineNum">     377 </span>            :  * The __lock_name macro dance is to guarantee that single lock_class_key
+<span class="lineNum">     378 </span>            :  * doesn't end up with different namesm, which isn't allowed by lockdep.
+<span class="lineNum">     379 </span>            :  *
+<span class="lineNum">     380 </span>            :  * RETURNS:
+<span class="lineNum">     381 </span>            :  * Pointer to the allocated workqueue on success, %NULL on failure.
+<span class="lineNum">     382 </span>            :  */
+<span class="lineNum">     383 </span>            : #ifdef CONFIG_LOCKDEP
+<span class="lineNum">     384 </span>            : #define alloc_workqueue(fmt, flags, max_active, args...)                \
+<span class="lineNum">     385 </span>            : ({                                                                      \
+<span class="lineNum">     386 </span>            :         static struct lock_class_key __key;                             \
+<span class="lineNum">     387 </span>            :         const char *__lock_name;                                        \
+<span class="lineNum">     388 </span>            :                                                                         \
+<span class="lineNum">     389 </span>            :         __lock_name = #fmt#args;                                        \
+<span class="lineNum">     390 </span>            :                                                                         \
+<span class="lineNum">     391 </span>            :         __alloc_workqueue_key((fmt), (flags), (max_active),             \
+<span class="lineNum">     392 </span>            :                               &amp;__key, __lock_name, ##args);         \
+<span class="lineNum">     393 </span>            : })
+<span class="lineNum">     394 </span>            : #else
+<span class="lineNum">     395 </span>            : #define alloc_workqueue(fmt, flags, max_active, args...)                \
+<span class="lineNum">     396 </span>            :         __alloc_workqueue_key((fmt), (flags), (max_active),             \
+<span class="lineNum">     397 </span>            :                               NULL, NULL, ##args)
+<span class="lineNum">     398 </span>            : #endif
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            : /**
+<span class="lineNum">     401 </span>            :  * alloc_ordered_workqueue - allocate an ordered workqueue
+<span class="lineNum">     402 </span>            :  * @fmt: printf format for the name of the workqueue
+<span class="lineNum">     403 </span>            :  * @flags: WQ_* flags (only WQ_FREEZABLE and WQ_MEM_RECLAIM are meaningful)
+<span class="lineNum">     404 </span>            :  * @args: args for @fmt
+<span class="lineNum">     405 </span>            :  *
+<span class="lineNum">     406 </span>            :  * Allocate an ordered workqueue.  An ordered workqueue executes at
+<span class="lineNum">     407 </span>            :  * most one work item at any given time in the queued order.  They are
+<span class="lineNum">     408 </span>            :  * implemented as unbound workqueues with @max_active of one.
+<span class="lineNum">     409 </span>            :  *
+<span class="lineNum">     410 </span>            :  * RETURNS:
+<span class="lineNum">     411 </span>            :  * Pointer to the allocated workqueue on success, %NULL on failure.
+<span class="lineNum">     412 </span>            :  */
+<span class="lineNum">     413 </span>            : #define alloc_ordered_workqueue(fmt, flags, args...)                    \
+<span class="lineNum">     414 </span>            :         alloc_workqueue(fmt, WQ_UNBOUND | __WQ_ORDERED | (flags), 1, ##args)
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span>            : #define create_workqueue(name)                                          \
+<span class="lineNum">     417 </span>            :         alloc_workqueue(&quot;%s&quot;, WQ_MEM_RECLAIM, 1, (name))
+<span class="lineNum">     418 </span>            : #define create_freezable_workqueue(name)                                \
+<span class="lineNum">     419 </span>            :         alloc_workqueue(&quot;%s&quot;, WQ_FREEZABLE | WQ_UNBOUND | WQ_MEM_RECLAIM, \
+<span class="lineNum">     420 </span>            :                         1, (name))
+<span class="lineNum">     421 </span>            : #define create_singlethread_workqueue(name)                             \
+<span class="lineNum">     422 </span>            :         alloc_ordered_workqueue(&quot;%s&quot;, WQ_MEM_RECLAIM, name)
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            : extern void destroy_workqueue(struct workqueue_struct *wq);
+<span class="lineNum">     425 </span>            : 
+<span class="lineNum">     426 </span>            : struct workqueue_attrs *alloc_workqueue_attrs(gfp_t gfp_mask);
+<span class="lineNum">     427 </span>            : void free_workqueue_attrs(struct workqueue_attrs *attrs);
+<span class="lineNum">     428 </span>            : int apply_workqueue_attrs(struct workqueue_struct *wq,
+<span class="lineNum">     429 </span>            :                           const struct workqueue_attrs *attrs);
+<span class="lineNum">     430 </span>            : 
+<span class="lineNum">     431 </span>            : extern bool queue_work_on(int cpu, struct workqueue_struct *wq,
+<span class="lineNum">     432 </span>            :                         struct work_struct *work);
+<span class="lineNum">     433 </span>            : extern bool queue_delayed_work_on(int cpu, struct workqueue_struct *wq,
+<span class="lineNum">     434 </span>            :                         struct delayed_work *work, unsigned long delay);
+<span class="lineNum">     435 </span>            : extern bool mod_delayed_work_on(int cpu, struct workqueue_struct *wq,
+<span class="lineNum">     436 </span>            :                         struct delayed_work *dwork, unsigned long delay);
+<span class="lineNum">     437 </span>            : 
+<span class="lineNum">     438 </span>            : extern void flush_workqueue(struct workqueue_struct *wq);
+<span class="lineNum">     439 </span>            : extern void drain_workqueue(struct workqueue_struct *wq);
+<span class="lineNum">     440 </span>            : extern void flush_scheduled_work(void);
+<span class="lineNum">     441 </span>            : 
+<span class="lineNum">     442 </span>            : extern int schedule_on_each_cpu(work_func_t func);
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span>            : int execute_in_process_context(work_func_t fn, struct execute_work *);
+<span class="lineNum">     445 </span>            : 
+<span class="lineNum">     446 </span>            : extern bool flush_work(struct work_struct *work);
+<span class="lineNum">     447 </span>            : extern bool cancel_work_sync(struct work_struct *work);
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span>            : extern bool flush_delayed_work(struct delayed_work *dwork);
+<span class="lineNum">     450 </span>            : extern bool cancel_delayed_work(struct delayed_work *dwork);
+<span class="lineNum">     451 </span>            : extern bool cancel_delayed_work_sync(struct delayed_work *dwork);
+<span class="lineNum">     452 </span>            : 
+<span class="lineNum">     453 </span>            : extern void workqueue_set_max_active(struct workqueue_struct *wq,
+<span class="lineNum">     454 </span>            :                                      int max_active);
+<span class="lineNum">     455 </span>            : extern bool current_is_workqueue_rescuer(void);
+<span class="lineNum">     456 </span>            : extern bool workqueue_congested(int cpu, struct workqueue_struct *wq);
+<span class="lineNum">     457 </span>            : extern unsigned int work_busy(struct work_struct *work);
+<span class="lineNum">     458 </span>            : extern __printf(1, 2) void set_worker_desc(const char *fmt, ...);
+<span class="lineNum">     459 </span>            : extern void print_worker_info(const char *log_lvl, struct task_struct *task);
+<span class="lineNum">     460 </span>            : 
+<span class="lineNum">     461 </span>            : /**
+<span class="lineNum">     462 </span>            :  * queue_work - queue work on a workqueue
+<span class="lineNum">     463 </span>            :  * @wq: workqueue to use
+<span class="lineNum">     464 </span>            :  * @work: work to queue
+<span class="lineNum">     465 </span>            :  *
+<span class="lineNum">     466 </span>            :  * Returns %false if @work was already on a queue, %true otherwise.
+<span class="lineNum">     467 </span>            :  *
+<span class="lineNum">     468 </span>            :  * We queue the work to the CPU on which it was submitted, but if the CPU dies
+<span class="lineNum">     469 </span>            :  * it can be processed by another CPU.
+<span class="lineNum">     470 </span>            :  */
+<span class="lineNum">     471 </span>            : static inline bool queue_work(struct workqueue_struct *wq,
+<span class="lineNum">     472 </span>            :                               struct work_struct *work)
+<span class="lineNum">     473 </span>            : {
+<span class="lineNum">     474 </span><span class="lineCov">     364945 :         return queue_work_on(WORK_CPU_UNBOUND, wq, work);</span>
+<span class="lineNum">     475 </span>            : }
+<span class="lineNum">     476 </span>            : 
+<span class="lineNum">     477 </span>            : /**
+<span class="lineNum">     478 </span>            :  * queue_delayed_work - queue work on a workqueue after delay
+<span class="lineNum">     479 </span>            :  * @wq: workqueue to use
+<span class="lineNum">     480 </span>            :  * @dwork: delayable work to queue
+<span class="lineNum">     481 </span>            :  * @delay: number of jiffies to wait before queueing
+<span class="lineNum">     482 </span>            :  *
+<span class="lineNum">     483 </span>            :  * Equivalent to queue_delayed_work_on() but tries to use the local CPU.
+<span class="lineNum">     484 </span>            :  */
+<span class="lineNum">     485 </span>            : static inline bool queue_delayed_work(struct workqueue_struct *wq,
+<span class="lineNum">     486 </span>            :                                       struct delayed_work *dwork,
+<span class="lineNum">     487 </span>            :                                       unsigned long delay)
+<span class="lineNum">     488 </span>            : {
+<span class="lineNum">     489 </span>            :         return queue_delayed_work_on(WORK_CPU_UNBOUND, wq, dwork, delay);
+<span class="lineNum">     490 </span>            : }
+<span class="lineNum">     491 </span>            : 
+<span class="lineNum">     492 </span>            : /**
+<span class="lineNum">     493 </span>            :  * mod_delayed_work - modify delay of or queue a delayed work
+<span class="lineNum">     494 </span>            :  * @wq: workqueue to use
+<span class="lineNum">     495 </span>            :  * @dwork: work to queue
+<span class="lineNum">     496 </span>            :  * @delay: number of jiffies to wait before queueing
+<span class="lineNum">     497 </span>            :  *
+<span class="lineNum">     498 </span>            :  * mod_delayed_work_on() on local CPU.
+<span class="lineNum">     499 </span>            :  */
+<span class="lineNum">     500 </span>            : static inline bool mod_delayed_work(struct workqueue_struct *wq,
+<span class="lineNum">     501 </span>            :                                     struct delayed_work *dwork,
+<span class="lineNum">     502 </span>            :                                     unsigned long delay)
+<span class="lineNum">     503 </span>            : {
+<span class="lineNum">     504 </span>            :         return mod_delayed_work_on(WORK_CPU_UNBOUND, wq, dwork, delay);
+<span class="lineNum">     505 </span>            : }
+<span class="lineNum">     506 </span>            : 
+<span class="lineNum">     507 </span>            : /**
+<span class="lineNum">     508 </span>            :  * schedule_work_on - put work task on a specific cpu
+<span class="lineNum">     509 </span>            :  * @cpu: cpu to put the work task on
+<span class="lineNum">     510 </span>            :  * @work: job to be done
+<span class="lineNum">     511 </span>            :  *
+<span class="lineNum">     512 </span>            :  * This puts a job on a specific cpu
+<span class="lineNum">     513 </span>            :  */
+<span class="lineNum">     514 </span>            : static inline bool schedule_work_on(int cpu, struct work_struct *work)
+<span class="lineNum">     515 </span>            : {
+<span class="lineNum">     516 </span>            :         return queue_work_on(cpu, system_wq, work);
+<span class="lineNum">     517 </span>            : }
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span>            : /**
+<span class="lineNum">     520 </span>            :  * schedule_work - put work task in global workqueue
+<span class="lineNum">     521 </span>            :  * @work: job to be done
+<span class="lineNum">     522 </span>            :  *
+<span class="lineNum">     523 </span>            :  * Returns %false if @work was already on the kernel-global workqueue and
+<span class="lineNum">     524 </span>            :  * %true otherwise.
+<span class="lineNum">     525 </span>            :  *
+<span class="lineNum">     526 </span>            :  * This puts a job in the kernel-global workqueue if it was not already
+<span class="lineNum">     527 </span>            :  * queued and leaves it in the same position on the kernel-global
+<span class="lineNum">     528 </span>            :  * workqueue otherwise.
+<span class="lineNum">     529 </span>            :  */
+<span class="lineNum">     530 </span>            : static inline bool schedule_work(struct work_struct *work)
+<span class="lineNum">     531 </span>            : {
+<span class="lineNum">     532 </span><span class="lineCov">        256 :         return queue_work(system_wq, work);</span>
+<span class="lineNum">     533 </span>            : }
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span>            : /**
+<span class="lineNum">     536 </span>            :  * schedule_delayed_work_on - queue work in global workqueue on CPU after delay
+<span class="lineNum">     537 </span>            :  * @cpu: cpu to use
+<span class="lineNum">     538 </span>            :  * @dwork: job to be done
+<span class="lineNum">     539 </span>            :  * @delay: number of jiffies to wait
+<span class="lineNum">     540 </span>            :  *
+<span class="lineNum">     541 </span>            :  * After waiting for a given time this puts a job in the kernel-global
+<span class="lineNum">     542 </span>            :  * workqueue on the specified CPU.
+<span class="lineNum">     543 </span>            :  */
+<span class="lineNum">     544 </span>            : static inline bool schedule_delayed_work_on(int cpu, struct delayed_work *dwork,
+<span class="lineNum">     545 </span>            :                                             unsigned long delay)
+<span class="lineNum">     546 </span>            : {
+<span class="lineNum">     547 </span>            :         return queue_delayed_work_on(cpu, system_wq, dwork, delay);
+<span class="lineNum">     548 </span>            : }
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span>            : /**
+<span class="lineNum">     551 </span>            :  * schedule_delayed_work - put work task in global workqueue after delay
+<span class="lineNum">     552 </span>            :  * @dwork: job to be done
+<span class="lineNum">     553 </span>            :  * @delay: number of jiffies to wait or 0 for immediate execution
+<span class="lineNum">     554 </span>            :  *
+<span class="lineNum">     555 </span>            :  * After waiting for a given time this puts a job in the kernel-global
+<span class="lineNum">     556 </span>            :  * workqueue.
+<span class="lineNum">     557 </span>            :  */
+<span class="lineNum">     558 </span>            : static inline bool schedule_delayed_work(struct delayed_work *dwork,
+<span class="lineNum">     559 </span>            :                                          unsigned long delay)
+<span class="lineNum">     560 </span>            : {
+<span class="lineNum">     561 </span>            :         return queue_delayed_work(system_wq, dwork, delay);
+<span class="lineNum">     562 </span>            : }
+<span class="lineNum">     563 </span>            : 
+<span class="lineNum">     564 </span>            : /**
+<span class="lineNum">     565 </span>            :  * keventd_up - is workqueue initialized yet?
+<span class="lineNum">     566 </span>            :  */
+<span class="lineNum">     567 </span>            : static inline bool keventd_up(void)
+<span class="lineNum">     568 </span>            : {
+<span class="lineNum">     569 </span>            :         return system_wq != NULL;
+<span class="lineNum">     570 </span>            : }
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span>            : #ifndef CONFIG_SMP
+<span class="lineNum">     573 </span>            : static inline long work_on_cpu(int cpu, long (*fn)(void *), void *arg)
+<span class="lineNum">     574 </span>            : {
+<span class="lineNum">     575 </span>            :         return fn(arg);
+<span class="lineNum">     576 </span>            : }
+<span class="lineNum">     577 </span>            : #else
+<span class="lineNum">     578 </span>            : long work_on_cpu(int cpu, long (*fn)(void *), void *arg);
+<span class="lineNum">     579 </span>            : #endif /* CONFIG_SMP */
+<span class="lineNum">     580 </span>            : 
+<span class="lineNum">     581 </span>            : #ifdef CONFIG_FREEZER
+<span class="lineNum">     582 </span>            : extern void freeze_workqueues_begin(void);
+<span class="lineNum">     583 </span>            : extern bool freeze_workqueues_busy(void);
+<span class="lineNum">     584 </span>            : extern void thaw_workqueues(void);
+<span class="lineNum">     585 </span>            : #endif /* CONFIG_FREEZER */
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span>            : #ifdef CONFIG_SYSFS
+<span class="lineNum">     588 </span>            : int workqueue_sysfs_register(struct workqueue_struct *wq);
+<span class="lineNum">     589 </span>            : #else   /* CONFIG_SYSFS */
+<span class="lineNum">     590 </span>            : static inline int workqueue_sysfs_register(struct workqueue_struct *wq)
+<span class="lineNum">     591 </span>            : { return 0; }
+<span class="lineNum">     592 </span>            : #endif  /* CONFIG_SYSFS */
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

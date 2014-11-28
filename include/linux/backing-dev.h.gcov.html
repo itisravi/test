@@ -1,0 +1,438 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/backing-dev.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - backing-dev.h<span style="font-size: 80%;"> (source / <a href="backing-dev.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">66.7 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * include/linux/backing-dev.h
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * low-level device information and state which is propagated up through
+<span class="lineNum">       5 </span>            :  * to high-level code.
+<span class="lineNum">       6 </span>            :  */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #ifndef _LINUX_BACKING_DEV_H
+<span class="lineNum">       9 </span>            : #define _LINUX_BACKING_DEV_H
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #include &lt;linux/percpu_counter.h&gt;
+<span class="lineNum">      12 </span>            : #include &lt;linux/log2.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;linux/flex_proportions.h&gt;
+<span class="lineNum">      14 </span>            : #include &lt;linux/kernel.h&gt;
+<span class="lineNum">      15 </span>            : #include &lt;linux/fs.h&gt;
+<span class="lineNum">      16 </span>            : #include &lt;linux/sched.h&gt;
+<span class="lineNum">      17 </span>            : #include &lt;linux/timer.h&gt;
+<span class="lineNum">      18 </span>            : #include &lt;linux/writeback.h&gt;
+<span class="lineNum">      19 </span>            : #include &lt;linux/atomic.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/sysctl.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/workqueue.h&gt;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : struct page;
+<span class="lineNum">      24 </span>            : struct device;
+<span class="lineNum">      25 </span>            : struct dentry;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : /*
+<span class="lineNum">      28 </span>            :  * Bits in backing_dev_info.state
+<span class="lineNum">      29 </span>            :  */
+<span class="lineNum">      30 </span>            : enum bdi_state {
+<span class="lineNum">      31 </span>            :         BDI_wb_alloc,           /* Default embedded wb allocated */
+<span class="lineNum">      32 </span>            :         BDI_async_congested,    /* The async (write) queue is getting full */
+<span class="lineNum">      33 </span>            :         BDI_sync_congested,     /* The sync queue is getting full */
+<span class="lineNum">      34 </span>            :         BDI_registered,         /* bdi_register() was done */
+<span class="lineNum">      35 </span>            :         BDI_writeback_running,  /* Writeback is in progress */
+<span class="lineNum">      36 </span>            :         BDI_unused,             /* Available bits start here */
+<span class="lineNum">      37 </span>            : };
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : typedef int (congested_fn)(void *, int);
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : enum bdi_stat_item {
+<span class="lineNum">      42 </span>            :         BDI_RECLAIMABLE,
+<span class="lineNum">      43 </span>            :         BDI_WRITEBACK,
+<span class="lineNum">      44 </span>            :         BDI_DIRTIED,
+<span class="lineNum">      45 </span>            :         BDI_WRITTEN,
+<span class="lineNum">      46 </span>            :         NR_BDI_STAT_ITEMS
+<span class="lineNum">      47 </span>            : };
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #define BDI_STAT_BATCH (8*(1+ilog2(nr_cpu_ids)))
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : struct bdi_writeback {
+<span class="lineNum">      52 </span>            :         struct backing_dev_info *bdi;   /* our parent bdi */
+<span class="lineNum">      53 </span>            :         unsigned int nr;
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            :         unsigned long last_old_flush;   /* last old data flush */
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            :         struct delayed_work dwork;      /* work item used for writeback */
+<span class="lineNum">      58 </span>            :         struct list_head b_dirty;       /* dirty inodes */
+<span class="lineNum">      59 </span>            :         struct list_head b_io;          /* parked for writeback */
+<span class="lineNum">      60 </span>            :         struct list_head b_more_io;     /* parked for more writeback */
+<span class="lineNum">      61 </span>            :         spinlock_t list_lock;           /* protects the b_* lists */
+<span class="lineNum">      62 </span>            : };
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            : struct backing_dev_info {
+<span class="lineNum">      65 </span>            :         struct list_head bdi_list;
+<span class="lineNum">      66 </span>            :         unsigned long ra_pages; /* max readahead in PAGE_CACHE_SIZE units */
+<span class="lineNum">      67 </span>            :         unsigned long state;    /* Always use atomic bitops on this */
+<span class="lineNum">      68 </span>            :         unsigned int capabilities; /* Device capabilities */
+<span class="lineNum">      69 </span>            :         congested_fn *congested_fn; /* Function pointer if device is md/dm */
+<span class="lineNum">      70 </span>            :         void *congested_data;   /* Pointer to aux data for congested func */
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :         char *name;
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            :         struct percpu_counter bdi_stat[NR_BDI_STAT_ITEMS];
+<span class="lineNum">      75 </span>            : 
+<span class="lineNum">      76 </span>            :         unsigned long bw_time_stamp;    /* last time write bw is updated */
+<span class="lineNum">      77 </span>            :         unsigned long dirtied_stamp;
+<span class="lineNum">      78 </span>            :         unsigned long written_stamp;    /* pages written at bw_time_stamp */
+<span class="lineNum">      79 </span>            :         unsigned long write_bandwidth;  /* the estimated write bandwidth */
+<span class="lineNum">      80 </span>            :         unsigned long avg_write_bandwidth; /* further smoothed write bw */
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            :         /*
+<span class="lineNum">      83 </span>            :          * The base dirty throttle rate, re-calculated on every 200ms.
+<span class="lineNum">      84 </span>            :          * All the bdi tasks' dirty rate will be curbed under it.
+<span class="lineNum">      85 </span>            :          * @dirty_ratelimit tracks the estimated @balanced_dirty_ratelimit
+<span class="lineNum">      86 </span>            :          * in small steps and is much more smooth/stable than the latter.
+<span class="lineNum">      87 </span>            :          */
+<span class="lineNum">      88 </span>            :         unsigned long dirty_ratelimit;
+<span class="lineNum">      89 </span>            :         unsigned long balanced_dirty_ratelimit;
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            :         struct fprop_local_percpu completions;
+<span class="lineNum">      92 </span>            :         int dirty_exceeded;
+<span class="lineNum">      93 </span>            : 
+<span class="lineNum">      94 </span>            :         unsigned int min_ratio;
+<span class="lineNum">      95 </span>            :         unsigned int max_ratio, max_prop_frac;
+<span class="lineNum">      96 </span>            : 
+<span class="lineNum">      97 </span>            :         struct bdi_writeback wb;  /* default writeback info for this bdi */
+<span class="lineNum">      98 </span>            :         spinlock_t wb_lock;       /* protects work_list &amp; wb.dwork scheduling */
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            :         struct list_head work_list;
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            :         struct device *dev;
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            :         struct timer_list laptop_mode_wb_timer;
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            : #ifdef CONFIG_DEBUG_FS
+<span class="lineNum">     107 </span>            :         struct dentry *debug_dir;
+<span class="lineNum">     108 </span>            :         struct dentry *debug_stats;
+<span class="lineNum">     109 </span>            : #endif
+<span class="lineNum">     110 </span>            : };
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            : int __must_check bdi_init(struct backing_dev_info *bdi);
+<span class="lineNum">     113 </span>            : void bdi_destroy(struct backing_dev_info *bdi);
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            : __printf(3, 4)
+<span class="lineNum">     116 </span>            : int bdi_register(struct backing_dev_info *bdi, struct device *parent,
+<span class="lineNum">     117 </span>            :                 const char *fmt, ...);
+<span class="lineNum">     118 </span>            : int bdi_register_dev(struct backing_dev_info *bdi, dev_t dev);
+<span class="lineNum">     119 </span>            : void bdi_unregister(struct backing_dev_info *bdi);
+<span class="lineNum">     120 </span>            : int __must_check bdi_setup_and_register(struct backing_dev_info *, char *, unsigned int);
+<span class="lineNum">     121 </span>            : void bdi_start_writeback(struct backing_dev_info *bdi, long nr_pages,
+<span class="lineNum">     122 </span>            :                         enum wb_reason reason);
+<span class="lineNum">     123 </span>            : void bdi_start_background_writeback(struct backing_dev_info *bdi);
+<span class="lineNum">     124 </span>            : void bdi_writeback_workfn(struct work_struct *work);
+<span class="lineNum">     125 </span>            : int bdi_has_dirty_io(struct backing_dev_info *bdi);
+<span class="lineNum">     126 </span>            : void bdi_wakeup_thread_delayed(struct backing_dev_info *bdi);
+<span class="lineNum">     127 </span>            : void bdi_lock_two(struct bdi_writeback *wb1, struct bdi_writeback *wb2);
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : extern spinlock_t bdi_lock;
+<span class="lineNum">     130 </span>            : extern struct list_head bdi_list;
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : extern struct workqueue_struct *bdi_wq;
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            : static inline int wb_has_dirty_io(struct bdi_writeback *wb)
+<span class="lineNum">     135 </span>            : {
+<span class="lineNum">     136 </span>            :         return !list_empty(&amp;wb-&gt;b_dirty) ||
+<span class="lineNum">     137 </span>            :                !list_empty(&amp;wb-&gt;b_io) ||
+<span class="lineNum">     138 </span>            :                !list_empty(&amp;wb-&gt;b_more_io);
+<span class="lineNum">     139 </span>            : }
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            : static inline void __add_bdi_stat(struct backing_dev_info *bdi,
+<span class="lineNum">     142 </span>            :                 enum bdi_stat_item item, s64 amount)
+<span class="lineNum">     143 </span>            : {
+<span class="lineNum">     144 </span>            :         __percpu_counter_add(&amp;bdi-&gt;bdi_stat[item], amount, BDI_STAT_BATCH);
+<span class="lineNum">     145 </span>            : }
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            : static inline void __inc_bdi_stat(struct backing_dev_info *bdi,
+<span class="lineNum">     148 </span>            :                 enum bdi_stat_item item)
+<span class="lineNum">     149 </span>            : {
+<span class="lineNum">     150 </span>            :         __add_bdi_stat(bdi, item, 1);
+<span class="lineNum">     151 </span>            : }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            : static inline void inc_bdi_stat(struct backing_dev_info *bdi,
+<span class="lineNum">     154 </span>            :                 enum bdi_stat_item item)
+<span class="lineNum">     155 </span>            : {
+<span class="lineNum">     156 </span>            :         unsigned long flags;
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            :         local_irq_save(flags);
+<span class="lineNum">     159 </span>            :         __inc_bdi_stat(bdi, item);
+<span class="lineNum">     160 </span>            :         local_irq_restore(flags);
+<span class="lineNum">     161 </span>            : }
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            : static inline void __dec_bdi_stat(struct backing_dev_info *bdi,
+<span class="lineNum">     164 </span>            :                 enum bdi_stat_item item)
+<span class="lineNum">     165 </span>            : {
+<span class="lineNum">     166 </span>            :         __add_bdi_stat(bdi, item, -1);
+<span class="lineNum">     167 </span>            : }
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            : static inline void dec_bdi_stat(struct backing_dev_info *bdi,
+<span class="lineNum">     170 </span>            :                 enum bdi_stat_item item)
+<span class="lineNum">     171 </span>            : {
+<span class="lineNum">     172 </span>            :         unsigned long flags;
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            :         local_irq_save(flags);
+<span class="lineNum">     175 </span>            :         __dec_bdi_stat(bdi, item);
+<span class="lineNum">     176 </span>            :         local_irq_restore(flags);
+<span class="lineNum">     177 </span>            : }
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            : static inline s64 bdi_stat(struct backing_dev_info *bdi,
+<span class="lineNum">     180 </span>            :                 enum bdi_stat_item item)
+<span class="lineNum">     181 </span>            : {
+<span class="lineNum">     182 </span>            :         return percpu_counter_read_positive(&amp;bdi-&gt;bdi_stat[item]);
+<span class="lineNum">     183 </span>            : }
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            : static inline s64 __bdi_stat_sum(struct backing_dev_info *bdi,
+<span class="lineNum">     186 </span>            :                 enum bdi_stat_item item)
+<span class="lineNum">     187 </span>            : {
+<span class="lineNum">     188 </span>            :         return percpu_counter_sum_positive(&amp;bdi-&gt;bdi_stat[item]);
+<span class="lineNum">     189 </span>            : }
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            : static inline s64 bdi_stat_sum(struct backing_dev_info *bdi,
+<span class="lineNum">     192 </span>            :                 enum bdi_stat_item item)
+<span class="lineNum">     193 </span>            : {
+<span class="lineNum">     194 </span>            :         s64 sum;
+<span class="lineNum">     195 </span>            :         unsigned long flags;
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span>            :         local_irq_save(flags);
+<span class="lineNum">     198 </span>            :         sum = __bdi_stat_sum(bdi, item);
+<span class="lineNum">     199 </span>            :         local_irq_restore(flags);
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            :         return sum;
+<span class="lineNum">     202 </span>            : }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : extern void bdi_writeout_inc(struct backing_dev_info *bdi);
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span>            : /*
+<span class="lineNum">     207 </span>            :  * maximal error of a stat counter.
+<span class="lineNum">     208 </span>            :  */
+<span class="lineNum">     209 </span>            : static inline unsigned long bdi_stat_error(struct backing_dev_info *bdi)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            : #ifdef CONFIG_SMP
+<span class="lineNum">     212 </span>            :         return nr_cpu_ids * BDI_STAT_BATCH;
+<span class="lineNum">     213 </span>            : #else
+<span class="lineNum">     214 </span>            :         return 1;
+<span class="lineNum">     215 </span>            : #endif
+<span class="lineNum">     216 </span>            : }
+<span class="lineNum">     217 </span>            : 
+<span class="lineNum">     218 </span>            : int bdi_set_min_ratio(struct backing_dev_info *bdi, unsigned int min_ratio);
+<span class="lineNum">     219 </span>            : int bdi_set_max_ratio(struct backing_dev_info *bdi, unsigned int max_ratio);
+<span class="lineNum">     220 </span>            : 
+<span class="lineNum">     221 </span>            : /*
+<span class="lineNum">     222 </span>            :  * Flags in backing_dev_info::capability
+<span class="lineNum">     223 </span>            :  *
+<span class="lineNum">     224 </span>            :  * The first three flags control whether dirty pages will contribute to the
+<span class="lineNum">     225 </span>            :  * VM's accounting and whether writepages() should be called for dirty pages
+<span class="lineNum">     226 </span>            :  * (something that would not, for example, be appropriate for ramfs)
+<span class="lineNum">     227 </span>            :  *
+<span class="lineNum">     228 </span>            :  * WARNING: these flags are closely related and should not normally be
+<span class="lineNum">     229 </span>            :  * used separately.  The BDI_CAP_NO_ACCT_AND_WRITEBACK combines these
+<span class="lineNum">     230 </span>            :  * three flags into a single convenience macro.
+<span class="lineNum">     231 </span>            :  *
+<span class="lineNum">     232 </span>            :  * BDI_CAP_NO_ACCT_DIRTY:  Dirty pages shouldn't contribute to accounting
+<span class="lineNum">     233 </span>            :  * BDI_CAP_NO_WRITEBACK:   Don't write pages back
+<span class="lineNum">     234 </span>            :  * BDI_CAP_NO_ACCT_WB:     Don't automatically account writeback pages
+<span class="lineNum">     235 </span>            :  *
+<span class="lineNum">     236 </span>            :  * These flags let !MMU mmap() govern direct device mapping vs immediate
+<span class="lineNum">     237 </span>            :  * copying more easily for MAP_PRIVATE, especially for ROM filesystems.
+<span class="lineNum">     238 </span>            :  *
+<span class="lineNum">     239 </span>            :  * BDI_CAP_MAP_COPY:       Copy can be mapped (MAP_PRIVATE)
+<span class="lineNum">     240 </span>            :  * BDI_CAP_MAP_DIRECT:     Can be mapped directly (MAP_SHARED)
+<span class="lineNum">     241 </span>            :  * BDI_CAP_READ_MAP:       Can be mapped for reading
+<span class="lineNum">     242 </span>            :  * BDI_CAP_WRITE_MAP:      Can be mapped for writing
+<span class="lineNum">     243 </span>            :  * BDI_CAP_EXEC_MAP:       Can be mapped for execution
+<span class="lineNum">     244 </span>            :  *
+<span class="lineNum">     245 </span>            :  * BDI_CAP_SWAP_BACKED:    Count shmem/tmpfs objects as swap-backed.
+<span class="lineNum">     246 </span>            :  *
+<span class="lineNum">     247 </span>            :  * BDI_CAP_STRICTLIMIT:    Keep number of dirty pages below bdi threshold.
+<span class="lineNum">     248 </span>            :  */
+<span class="lineNum">     249 </span>            : #define BDI_CAP_NO_ACCT_DIRTY   0x00000001
+<span class="lineNum">     250 </span>            : #define BDI_CAP_NO_WRITEBACK    0x00000002
+<span class="lineNum">     251 </span>            : #define BDI_CAP_MAP_COPY        0x00000004
+<span class="lineNum">     252 </span>            : #define BDI_CAP_MAP_DIRECT      0x00000008
+<span class="lineNum">     253 </span>            : #define BDI_CAP_READ_MAP        0x00000010
+<span class="lineNum">     254 </span>            : #define BDI_CAP_WRITE_MAP       0x00000020
+<span class="lineNum">     255 </span>            : #define BDI_CAP_EXEC_MAP        0x00000040
+<span class="lineNum">     256 </span>            : #define BDI_CAP_NO_ACCT_WB      0x00000080
+<span class="lineNum">     257 </span>            : #define BDI_CAP_SWAP_BACKED     0x00000100
+<span class="lineNum">     258 </span>            : #define BDI_CAP_STABLE_WRITES   0x00000200
+<span class="lineNum">     259 </span>            : #define BDI_CAP_STRICTLIMIT     0x00000400
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : #define BDI_CAP_VMFLAGS \
+<span class="lineNum">     262 </span>            :         (BDI_CAP_READ_MAP | BDI_CAP_WRITE_MAP | BDI_CAP_EXEC_MAP)
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            : #define BDI_CAP_NO_ACCT_AND_WRITEBACK \
+<span class="lineNum">     265 </span>            :         (BDI_CAP_NO_WRITEBACK | BDI_CAP_NO_ACCT_DIRTY | BDI_CAP_NO_ACCT_WB)
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            : #if defined(VM_MAYREAD) &amp;&amp; \
+<span class="lineNum">     268 </span>            :         (BDI_CAP_READ_MAP != VM_MAYREAD || \
+<span class="lineNum">     269 </span>            :          BDI_CAP_WRITE_MAP != VM_MAYWRITE || \
+<span class="lineNum">     270 </span>            :          BDI_CAP_EXEC_MAP != VM_MAYEXEC)
+<span class="lineNum">     271 </span>            : #error please change backing_dev_info::capabilities flags
+<span class="lineNum">     272 </span>            : #endif
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span>            : extern struct backing_dev_info default_backing_dev_info;
+<span class="lineNum">     275 </span>            : extern struct backing_dev_info noop_backing_dev_info;
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : int writeback_in_progress(struct backing_dev_info *bdi);
+<span class="lineNum">     278 </span>            : 
+<span class="lineNum">     279 </span>            : static inline int bdi_congested(struct backing_dev_info *bdi, int bdi_bits)
+<span class="lineNum">     280 </span>            : {
+<span class="lineNum">     281 </span><span class="lineCov">      99183 :         if (bdi-&gt;congested_fn)</span>
+<span class="lineNum">     282 </span><span class="lineNoCov">          0 :                 return bdi-&gt;congested_fn(bdi-&gt;congested_data, bdi_bits);</span>
+<span class="lineNum">     283 </span><span class="lineCov">      99183 :         return (bdi-&gt;state &amp; bdi_bits);</span>
+<span class="lineNum">     284 </span>            : }
+<span class="lineNum">     285 </span>            : 
+<span class="lineNum">     286 </span>            : static inline int bdi_read_congested(struct backing_dev_info *bdi)
+<span class="lineNum">     287 </span>            : {
+<span class="lineNum">     288 </span>            :         return bdi_congested(bdi, 1 &lt;&lt; BDI_sync_congested);
+<span class="lineNum">     289 </span>            : }
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span>            : static inline int bdi_write_congested(struct backing_dev_info *bdi)
+<span class="lineNum">     292 </span>            : {
+<span class="lineNum">     293 </span>            :         return bdi_congested(bdi, 1 &lt;&lt; BDI_async_congested);
+<span class="lineNum">     294 </span>            : }
+<span class="lineNum">     295 </span>            : 
+<span class="lineNum">     296 </span>            : static inline int bdi_rw_congested(struct backing_dev_info *bdi)
+<span class="lineNum">     297 </span>            : {
+<span class="lineNum">     298 </span>            :         return bdi_congested(bdi, (1 &lt;&lt; BDI_sync_congested) |
+<span class="lineNum">     299 </span>            :                                   (1 &lt;&lt; BDI_async_congested));
+<span class="lineNum">     300 </span>            : }
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            : enum {
+<span class="lineNum">     303 </span>            :         BLK_RW_ASYNC    = 0,
+<span class="lineNum">     304 </span>            :         BLK_RW_SYNC     = 1,
+<span class="lineNum">     305 </span>            : };
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            : void clear_bdi_congested(struct backing_dev_info *bdi, int sync);
+<span class="lineNum">     308 </span>            : void set_bdi_congested(struct backing_dev_info *bdi, int sync);
+<span class="lineNum">     309 </span>            : long congestion_wait(int sync, long timeout);
+<span class="lineNum">     310 </span>            : long wait_iff_congested(struct zone *zone, int sync, long timeout);
+<span class="lineNum">     311 </span>            : int pdflush_proc_obsolete(struct ctl_table *table, int write,
+<span class="lineNum">     312 </span>            :                 void __user *buffer, size_t *lenp, loff_t *ppos);
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span>            : static inline bool bdi_cap_stable_pages_required(struct backing_dev_info *bdi)
+<span class="lineNum">     315 </span>            : {
+<span class="lineNum">     316 </span>            :         return bdi-&gt;capabilities &amp; BDI_CAP_STABLE_WRITES;
+<span class="lineNum">     317 </span>            : }
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span>            : static inline bool bdi_cap_writeback_dirty(struct backing_dev_info *bdi)
+<span class="lineNum">     320 </span>            : {
+<span class="lineNum">     321 </span>            :         return !(bdi-&gt;capabilities &amp; BDI_CAP_NO_WRITEBACK);
+<span class="lineNum">     322 </span>            : }
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            : static inline bool bdi_cap_account_dirty(struct backing_dev_info *bdi)
+<span class="lineNum">     325 </span>            : {
+<span class="lineNum">     326 </span>            :         return !(bdi-&gt;capabilities &amp; BDI_CAP_NO_ACCT_DIRTY);
+<span class="lineNum">     327 </span>            : }
+<span class="lineNum">     328 </span>            : 
+<span class="lineNum">     329 </span>            : static inline bool bdi_cap_account_writeback(struct backing_dev_info *bdi)
+<span class="lineNum">     330 </span>            : {
+<span class="lineNum">     331 </span>            :         /* Paranoia: BDI_CAP_NO_WRITEBACK implies BDI_CAP_NO_ACCT_WB */
+<span class="lineNum">     332 </span>            :         return !(bdi-&gt;capabilities &amp; (BDI_CAP_NO_ACCT_WB |
+<span class="lineNum">     333 </span>            :                                       BDI_CAP_NO_WRITEBACK));
+<span class="lineNum">     334 </span>            : }
+<span class="lineNum">     335 </span>            : 
+<span class="lineNum">     336 </span>            : static inline bool bdi_cap_swap_backed(struct backing_dev_info *bdi)
+<span class="lineNum">     337 </span>            : {
+<span class="lineNum">     338 </span>            :         return bdi-&gt;capabilities &amp; BDI_CAP_SWAP_BACKED;
+<span class="lineNum">     339 </span>            : }
+<span class="lineNum">     340 </span>            : 
+<span class="lineNum">     341 </span>            : static inline bool mapping_cap_writeback_dirty(struct address_space *mapping)
+<span class="lineNum">     342 </span>            : {
+<span class="lineNum">     343 </span>            :         return bdi_cap_writeback_dirty(mapping-&gt;backing_dev_info);
+<span class="lineNum">     344 </span>            : }
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span>            : static inline bool mapping_cap_account_dirty(struct address_space *mapping)
+<span class="lineNum">     347 </span>            : {
+<span class="lineNum">     348 </span>            :         return bdi_cap_account_dirty(mapping-&gt;backing_dev_info);
+<span class="lineNum">     349 </span>            : }
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            : static inline bool mapping_cap_swap_backed(struct address_space *mapping)
+<span class="lineNum">     352 </span>            : {
+<span class="lineNum">     353 </span>            :         return bdi_cap_swap_backed(mapping-&gt;backing_dev_info);
+<span class="lineNum">     354 </span>            : }
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span>            : static inline int bdi_sched_wait(void *word)
+<span class="lineNum">     357 </span>            : {
+<span class="lineNum">     358 </span>            :         schedule();
+<span class="lineNum">     359 </span>            :         return 0;
+<span class="lineNum">     360 </span>            : }
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span>            : #endif          /* _LINUX_BACKING_DEV_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

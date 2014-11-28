@@ -1,0 +1,1008 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/dev-replace.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - dev-replace.c<span style="font-size: 80%;"> (source / <a href="dev-replace.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">319</td>
+            <td class="headerCovTableEntry">430</td>
+            <td class="headerCovTableEntryLo">74.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryHi">90.9 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) STRATO AG 2012.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : #include &lt;linux/sched.h&gt;
+<span class="lineNum">      19 </span>            : #include &lt;linux/bio.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/slab.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/buffer_head.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;linux/blkdev.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;linux/random.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;linux/iocontext.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;linux/capability.h&gt;
+<span class="lineNum">      26 </span>            : #include &lt;linux/kthread.h&gt;
+<span class="lineNum">      27 </span>            : #include &lt;linux/math64.h&gt;
+<span class="lineNum">      28 </span>            : #include &lt;asm/div64.h&gt;
+<span class="lineNum">      29 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;extent_map.h&quot;
+<span class="lineNum">      31 </span>            : #include &quot;disk-io.h&quot;
+<span class="lineNum">      32 </span>            : #include &quot;transaction.h&quot;
+<span class="lineNum">      33 </span>            : #include &quot;print-tree.h&quot;
+<span class="lineNum">      34 </span>            : #include &quot;volumes.h&quot;
+<span class="lineNum">      35 </span>            : #include &quot;async-thread.h&quot;
+<span class="lineNum">      36 </span>            : #include &quot;check-integrity.h&quot;
+<span class="lineNum">      37 </span>            : #include &quot;rcu-string.h&quot;
+<span class="lineNum">      38 </span>            : #include &quot;dev-replace.h&quot;
+<span class="lineNum">      39 </span>            : #include &quot;sysfs.h&quot;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : static int btrfs_dev_replace_finishing(struct btrfs_fs_info *fs_info,
+<span class="lineNum">      42 </span>            :                                        int scrub_ret);
+<span class="lineNum">      43 </span>            : static void btrfs_dev_replace_update_device_in_mapping_tree(
+<span class="lineNum">      44 </span>            :                                                 struct btrfs_fs_info *fs_info,
+<span class="lineNum">      45 </span>            :                                                 struct btrfs_device *srcdev,
+<span class="lineNum">      46 </span>            :                                                 struct btrfs_device *tgtdev);
+<span class="lineNum">      47 </span>            : static int btrfs_dev_replace_find_srcdev(struct btrfs_root *root, u64 srcdevid,
+<span class="lineNum">      48 </span>            :                                          char *srcdev_name,
+<span class="lineNum">      49 </span>            :                                          struct btrfs_device **device);
+<span class="lineNum">      50 </span>            : static u64 __btrfs_dev_replace_cancel(struct btrfs_fs_info *fs_info);
+<span class="lineNum">      51 </span>            : static int btrfs_dev_replace_kthread(void *data);
+<span class="lineNum">      52 </span>            : static int btrfs_dev_replace_continue_on_mount(struct btrfs_fs_info *fs_info);
+<a name="53"><span class="lineNum">      53 </span>            : </a>
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span><span class="lineCov">        221 : int btrfs_init_dev_replace(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">      56 </span>            : {
+<span class="lineNum">      57 </span>            :         struct btrfs_key key;
+<span class="lineNum">      58 </span><span class="lineCov">        221 :         struct btrfs_root *dev_root = fs_info-&gt;dev_root;</span>
+<span class="lineNum">      59 </span>            :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;
+<span class="lineNum">      60 </span>            :         struct extent_buffer *eb;
+<span class="lineNum">      61 </span>            :         int slot;
+<span class="lineNum">      62 </span>            :         int ret = 0;
+<span class="lineNum">      63 </span>            :         struct btrfs_path *path = NULL;
+<span class="lineNum">      64 </span>            :         int item_size;
+<span class="lineNum">      65 </span>            :         struct btrfs_dev_replace_item *ptr;
+<span class="lineNum">      66 </span>            :         u64 src_devid;
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineCov">        221 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">      69 </span><span class="lineCov">        221 :         if (!path) {</span>
+<span class="lineNum">      70 </span>            :                 ret = -ENOMEM;
+<span class="lineNum">      71 </span>            :                 goto out;
+<span class="lineNum">      72 </span>            :         }
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span><span class="lineCov">        221 :         key.objectid = 0;</span>
+<span class="lineNum">      75 </span><span class="lineCov">        221 :         key.type = BTRFS_DEV_REPLACE_KEY;</span>
+<span class="lineNum">      76 </span><span class="lineCov">        221 :         key.offset = 0;</span>
+<span class="lineNum">      77 </span><span class="lineCov">        221 :         ret = btrfs_search_slot(NULL, dev_root, &amp;key, path, 0, 0);</span>
+<span class="lineNum">      78 </span><span class="lineCov">        221 :         if (ret) {</span>
+<span class="lineNum">      79 </span>            : no_valid_dev_replace_entry_found:
+<span class="lineNum">      80 </span>            :                 ret = 0;
+<span class="lineNum">      81 </span><span class="lineCov">        212 :                 dev_replace-&gt;replace_state =</span>
+<span class="lineNum">      82 </span>            :                         BTRFS_DEV_REPLACE_ITEM_STATE_NEVER_STARTED;
+<span class="lineNum">      83 </span><span class="lineCov">        212 :                 dev_replace-&gt;cont_reading_from_srcdev_mode =</span>
+<span class="lineNum">      84 </span>            :                     BTRFS_DEV_REPLACE_ITEM_CONT_READING_FROM_SRCDEV_MODE_ALWAYS;
+<span class="lineNum">      85 </span>            :                 dev_replace-&gt;replace_state = 0;
+<span class="lineNum">      86 </span><span class="lineCov">        212 :                 dev_replace-&gt;time_started = 0;</span>
+<span class="lineNum">      87 </span><span class="lineCov">        212 :                 dev_replace-&gt;time_stopped = 0;</span>
+<span class="lineNum">      88 </span>            :                 atomic64_set(&amp;dev_replace-&gt;num_write_errors, 0);
+<span class="lineNum">      89 </span>            :                 atomic64_set(&amp;dev_replace-&gt;num_uncorrectable_read_errors, 0);
+<span class="lineNum">      90 </span><span class="lineCov">        212 :                 dev_replace-&gt;cursor_left = 0;</span>
+<span class="lineNum">      91 </span><span class="lineCov">        212 :                 dev_replace-&gt;committed_cursor_left = 0;</span>
+<span class="lineNum">      92 </span><span class="lineCov">        212 :                 dev_replace-&gt;cursor_left_last_write_of_item = 0;</span>
+<span class="lineNum">      93 </span><span class="lineCov">        212 :                 dev_replace-&gt;cursor_right = 0;</span>
+<span class="lineNum">      94 </span><span class="lineCov">        212 :                 dev_replace-&gt;srcdev = NULL;</span>
+<span class="lineNum">      95 </span><span class="lineCov">        212 :                 dev_replace-&gt;tgtdev = NULL;</span>
+<span class="lineNum">      96 </span><span class="lineCov">        212 :                 dev_replace-&gt;is_valid = 0;</span>
+<span class="lineNum">      97 </span><span class="lineCov">        212 :                 dev_replace-&gt;item_needs_writeback = 0;</span>
+<span class="lineNum">      98 </span><span class="lineCov">        212 :                 goto out;</span>
+<span class="lineNum">      99 </span>            :         }
+<span class="lineNum">     100 </span><span class="lineCov">          9 :         slot = path-&gt;slots[0];</span>
+<span class="lineNum">     101 </span><span class="lineCov">          9 :         eb = path-&gt;nodes[0];</span>
+<span class="lineNum">     102 </span>            :         item_size = btrfs_item_size_nr(eb, slot);
+<span class="lineNum">     103 </span><span class="lineCov">          9 :         ptr = btrfs_item_ptr(eb, slot, struct btrfs_dev_replace_item);</span>
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span><span class="lineCov">          9 :         if (item_size != sizeof(struct btrfs_dev_replace_item)) {</span>
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :                 btrfs_warn(fs_info,</span>
+<span class="lineNum">     107 </span>            :                         &quot;dev_replace entry found has unexpected size, ignore entry&quot;);
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :                 goto no_valid_dev_replace_entry_found;</span>
+<span class="lineNum">     109 </span>            :         }
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            :         src_devid = btrfs_dev_replace_src_devid(eb, ptr);
+<span class="lineNum">     112 </span><span class="lineCov">          9 :         dev_replace-&gt;cont_reading_from_srcdev_mode =</span>
+<span class="lineNum">     113 </span>            :                 btrfs_dev_replace_cont_reading_from_srcdev_mode(eb, ptr);
+<span class="lineNum">     114 </span><span class="lineCov">          9 :         dev_replace-&gt;replace_state = btrfs_dev_replace_replace_state(eb, ptr);</span>
+<span class="lineNum">     115 </span><span class="lineCov">          9 :         dev_replace-&gt;time_started = btrfs_dev_replace_time_started(eb, ptr);</span>
+<span class="lineNum">     116 </span><span class="lineCov">          9 :         dev_replace-&gt;time_stopped =</span>
+<span class="lineNum">     117 </span>            :                 btrfs_dev_replace_time_stopped(eb, ptr);
+<span class="lineNum">     118 </span><span class="lineCov">          9 :         atomic64_set(&amp;dev_replace-&gt;num_write_errors,</span>
+<span class="lineNum">     119 </span>            :                      btrfs_dev_replace_num_write_errors(eb, ptr));
+<span class="lineNum">     120 </span><span class="lineCov">          9 :         atomic64_set(&amp;dev_replace-&gt;num_uncorrectable_read_errors,</span>
+<span class="lineNum">     121 </span>            :                      btrfs_dev_replace_num_uncorrectable_read_errors(eb, ptr));
+<span class="lineNum">     122 </span><span class="lineCov">          9 :         dev_replace-&gt;cursor_left = btrfs_dev_replace_cursor_left(eb, ptr);</span>
+<span class="lineNum">     123 </span><span class="lineCov">          9 :         dev_replace-&gt;committed_cursor_left = dev_replace-&gt;cursor_left;</span>
+<span class="lineNum">     124 </span><span class="lineCov">          9 :         dev_replace-&gt;cursor_left_last_write_of_item = dev_replace-&gt;cursor_left;</span>
+<span class="lineNum">     125 </span><span class="lineCov">          9 :         dev_replace-&gt;cursor_right = btrfs_dev_replace_cursor_right(eb, ptr);</span>
+<span class="lineNum">     126 </span><span class="lineCov">          9 :         dev_replace-&gt;is_valid = 1;</span>
+<span class="lineNum">     127 </span>            : 
+<span class="lineNum">     128 </span><span class="lineCov">          9 :         dev_replace-&gt;item_needs_writeback = 0;</span>
+<span class="lineNum">     129 </span><span class="lineCov">          9 :         switch (dev_replace-&gt;replace_state) {</span>
+<span class="lineNum">     130 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_NEVER_STARTED:
+<span class="lineNum">     131 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_FINISHED:
+<span class="lineNum">     132 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_CANCELED:
+<span class="lineNum">     133 </span><span class="lineCov">          9 :                 dev_replace-&gt;srcdev = NULL;</span>
+<span class="lineNum">     134 </span><span class="lineCov">          9 :                 dev_replace-&gt;tgtdev = NULL;</span>
+<span class="lineNum">     135 </span><span class="lineCov">          9 :                 break;</span>
+<span class="lineNum">     136 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_STARTED:
+<span class="lineNum">     137 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_SUSPENDED:
+<span class="lineNum">     138 </span><span class="lineNoCov">          0 :                 dev_replace-&gt;srcdev = btrfs_find_device(fs_info, src_devid,</span>
+<span class="lineNum">     139 </span>            :                                                         NULL, NULL);
+<span class="lineNum">     140 </span><span class="lineNoCov">          0 :                 dev_replace-&gt;tgtdev = btrfs_find_device(fs_info,</span>
+<span class="lineNum">     141 </span>            :                                                         BTRFS_DEV_REPLACE_DEVID,
+<span class="lineNum">     142 </span>            :                                                         NULL, NULL);
+<span class="lineNum">     143 </span>            :                 /*
+<span class="lineNum">     144 </span>            :                  * allow 'btrfs dev replace_cancel' if src/tgt device is
+<span class="lineNum">     145 </span>            :                  * missing
+<span class="lineNum">     146 </span>            :                  */
+<span class="lineNum">     147 </span><span class="lineNoCov">          0 :                 if (!dev_replace-&gt;srcdev &amp;&amp;</span>
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :                     !btrfs_test_opt(dev_root, DEGRADED)) {</span>
+<span class="lineNum">     149 </span>            :                         ret = -EIO;
+<span class="lineNum">     150 </span><span class="lineNoCov">          0 :                         btrfs_warn(fs_info,</span>
+<span class="lineNum">     151 </span>            :                            &quot;cannot mount because device replace operation is ongoing and&quot;);
+<span class="lineNum">     152 </span><span class="lineNoCov">          0 :                         btrfs_warn(fs_info,</span>
+<span class="lineNum">     153 </span>            :                            &quot;srcdev (devid %llu) is missing, need to run 'btrfs dev scan'?&quot;,
+<span class="lineNum">     154 </span>            :                            src_devid);
+<span class="lineNum">     155 </span>            :                 }
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :                 if (!dev_replace-&gt;tgtdev &amp;&amp;</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :                     !btrfs_test_opt(dev_root, DEGRADED)) {</span>
+<span class="lineNum">     158 </span>            :                         ret = -EIO;
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                         btrfs_warn(fs_info,</span>
+<span class="lineNum">     160 </span>            :                            &quot;cannot mount because device replace operation is ongoing and&quot;);
+<span class="lineNum">     161 </span><span class="lineNoCov">          0 :                         btrfs_warn(fs_info,</span>
+<span class="lineNum">     162 </span>            :                            &quot;tgtdev (devid %llu) is missing, need to run 'btrfs dev scan'?&quot;,
+<span class="lineNum">     163 </span>            :                                 BTRFS_DEV_REPLACE_DEVID);
+<span class="lineNum">     164 </span>            :                 }
+<span class="lineNum">     165 </span><span class="lineNoCov">          0 :                 if (dev_replace-&gt;tgtdev) {</span>
+<span class="lineNum">     166 </span><span class="lineNoCov">          0 :                         if (dev_replace-&gt;srcdev) {</span>
+<span class="lineNum">     167 </span><span class="lineNoCov">          0 :                                 dev_replace-&gt;tgtdev-&gt;total_bytes =</span>
+<span class="lineNum">     168 </span><span class="lineNoCov">          0 :                                         dev_replace-&gt;srcdev-&gt;total_bytes;</span>
+<span class="lineNum">     169 </span><span class="lineNoCov">          0 :                                 dev_replace-&gt;tgtdev-&gt;disk_total_bytes =</span>
+<span class="lineNum">     170 </span><span class="lineNoCov">          0 :                                         dev_replace-&gt;srcdev-&gt;disk_total_bytes;</span>
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :                                 dev_replace-&gt;tgtdev-&gt;bytes_used =</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :                                         dev_replace-&gt;srcdev-&gt;bytes_used;</span>
+<span class="lineNum">     173 </span>            :                         }
+<span class="lineNum">     174 </span><span class="lineNoCov">          0 :                         dev_replace-&gt;tgtdev-&gt;is_tgtdev_for_dev_replace = 1;</span>
+<span class="lineNum">     175 </span><span class="lineNoCov">          0 :                         btrfs_init_dev_replace_tgtdev_for_resume(fs_info,</span>
+<span class="lineNum">     176 </span>            :                                 dev_replace-&gt;tgtdev);
+<span class="lineNum">     177 </span>            :                 }
+<span class="lineNum">     178 </span>            :                 break;
+<span class="lineNum">     179 </span>            :         }
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            : out:
+<span class="lineNum">     182 </span><span class="lineCov">        221 :         if (path)</span>
+<span class="lineNum">     183 </span><span class="lineCov">        221 :                 btrfs_free_path(path);</span>
+<span class="lineNum">     184 </span><span class="lineCov">        221 :         return ret;</span>
+<span class="lineNum">     185 </span>            : }
+<span class="lineNum">     186 </span>            : 
+<span class="lineNum">     187 </span>            : /*
+<span class="lineNum">     188 </span>            :  * called from commit_transaction. Writes changed device replace state to
+<a name="189"><span class="lineNum">     189 </span>            :  * disk.</a>
+<span class="lineNum">     190 </span>            :  */
+<span class="lineNum">     191 </span><span class="lineCov">       2098 : int btrfs_run_dev_replace(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     192 </span>            :                           struct btrfs_fs_info *fs_info)
+<span class="lineNum">     193 </span>            : {
+<span class="lineNum">     194 </span>            :         int ret;
+<span class="lineNum">     195 </span><span class="lineCov">       2098 :         struct btrfs_root *dev_root = fs_info-&gt;dev_root;</span>
+<span class="lineNum">     196 </span>            :         struct btrfs_path *path;
+<span class="lineNum">     197 </span>            :         struct btrfs_key key;
+<span class="lineNum">     198 </span>            :         struct extent_buffer *eb;
+<span class="lineNum">     199 </span>            :         struct btrfs_dev_replace_item *ptr;
+<span class="lineNum">     200 </span><span class="lineCov">       2098 :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;</span>
+<span class="lineNum">     201 </span>            : 
+<span class="lineNum">     202 </span><span class="lineCov">       2098 :         btrfs_dev_replace_lock(dev_replace);</span>
+<span class="lineNum">     203 </span><span class="lineCov">       2147 :         if (!dev_replace-&gt;is_valid ||</span>
+<span class="lineNum">     204 </span><span class="lineCov">         49 :             !dev_replace-&gt;item_needs_writeback) {</span>
+<span class="lineNum">     205 </span><span class="lineCov">       2065 :                 btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     206 </span><span class="lineCov">       2065 :                 return 0;</span>
+<span class="lineNum">     207 </span>            :         }
+<span class="lineNum">     208 </span><span class="lineCov">         33 :         btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineCov">         33 :         key.objectid = 0;</span>
+<span class="lineNum">     211 </span><span class="lineCov">         33 :         key.type = BTRFS_DEV_REPLACE_KEY;</span>
+<span class="lineNum">     212 </span><span class="lineCov">         33 :         key.offset = 0;</span>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineCov">         33 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">     215 </span><span class="lineCov">         33 :         if (!path) {</span>
+<span class="lineNum">     216 </span>            :                 ret = -ENOMEM;
+<span class="lineNum">     217 </span>            :                 goto out;
+<span class="lineNum">     218 </span>            :         }
+<span class="lineNum">     219 </span><span class="lineCov">         33 :         ret = btrfs_search_slot(trans, dev_root, &amp;key, path, -1, 1);</span>
+<span class="lineNum">     220 </span><span class="lineCov">         33 :         if (ret &lt; 0) {</span>
+<span class="lineNum">     221 </span><span class="lineNoCov">          0 :                 btrfs_warn(fs_info, &quot;error %d while searching for dev_replace item!&quot;,</span>
+<span class="lineNum">     222 </span>            :                         ret);
+<span class="lineNum">     223 </span><span class="lineNoCov">          0 :                 goto out;</span>
+<span class="lineNum">     224 </span>            :         }
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span><span class="lineCov">         59 :         if (ret == 0 &amp;&amp;</span>
+<span class="lineNum">     227 </span><span class="lineCov">         26 :             btrfs_item_size_nr(path-&gt;nodes[0], path-&gt;slots[0]) &lt; sizeof(*ptr)) {</span>
+<span class="lineNum">     228 </span>            :                 /*
+<span class="lineNum">     229 </span>            :                  * need to delete old one and insert a new one.
+<span class="lineNum">     230 </span>            :                  * Since no attempt is made to recover any old state, if the
+<span class="lineNum">     231 </span>            :                  * dev_replace state is 'running', the data on the target
+<span class="lineNum">     232 </span>            :                  * drive is lost.
+<span class="lineNum">     233 </span>            :                  * It would be possible to recover the state: just make sure
+<span class="lineNum">     234 </span>            :                  * that the beginning of the item is never changed and always
+<span class="lineNum">     235 </span>            :                  * contains all the essential information. Then read this
+<span class="lineNum">     236 </span>            :                  * minimal set of information and use it as a base for the
+<span class="lineNum">     237 </span>            :                  * new state.
+<span class="lineNum">     238 </span>            :                  */
+<span class="lineNum">     239 </span>            :                 ret = btrfs_del_item(trans, dev_root, path);
+<span class="lineNum">     240 </span><span class="lineNoCov">          0 :                 if (ret != 0) {</span>
+<span class="lineNum">     241 </span><span class="lineNoCov">          0 :                         btrfs_warn(fs_info, &quot;delete too small dev_replace item failed %d!&quot;,</span>
+<span class="lineNum">     242 </span>            :                                 ret);
+<span class="lineNum">     243 </span><span class="lineNoCov">          0 :                         goto out;</span>
+<span class="lineNum">     244 </span>            :                 }
+<span class="lineNum">     245 </span>            :                 ret = 1;
+<span class="lineNum">     246 </span>            :         }
+<span class="lineNum">     247 </span>            : 
+<span class="lineNum">     248 </span><span class="lineCov">         33 :         if (ret == 1) {</span>
+<span class="lineNum">     249 </span>            :                 /* need to insert a new item */
+<span class="lineNum">     250 </span><span class="lineCov">          7 :                 btrfs_release_path(path);</span>
+<span class="lineNum">     251 </span>            :                 ret = btrfs_insert_empty_item(trans, dev_root, path,
+<span class="lineNum">     252 </span>            :                                               &amp;key, sizeof(*ptr));
+<span class="lineNum">     253 </span><span class="lineCov">          7 :                 if (ret &lt; 0) {</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                         btrfs_warn(fs_info, &quot;insert dev_replace item failed %d!&quot;,</span>
+<span class="lineNum">     255 </span>            :                                 ret);
+<span class="lineNum">     256 </span><span class="lineNoCov">          0 :                         goto out;</span>
+<span class="lineNum">     257 </span>            :                 }
+<span class="lineNum">     258 </span>            :         }
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineCov">         33 :         eb = path-&gt;nodes[0];</span>
+<span class="lineNum">     261 </span><span class="lineCov">         66 :         ptr = btrfs_item_ptr(eb, path-&gt;slots[0],</span>
+<span class="lineNum">     262 </span>            :                              struct btrfs_dev_replace_item);
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineCov">         33 :         btrfs_dev_replace_lock(dev_replace);</span>
+<span class="lineNum">     265 </span><span class="lineCov">         33 :         if (dev_replace-&gt;srcdev)</span>
+<span class="lineNum">     266 </span><span class="lineCov">         17 :                 btrfs_set_dev_replace_src_devid(eb, ptr,</span>
+<span class="lineNum">     267 </span>            :                         dev_replace-&gt;srcdev-&gt;devid);
+<span class="lineNum">     268 </span>            :         else
+<span class="lineNum">     269 </span>            :                 btrfs_set_dev_replace_src_devid(eb, ptr, (u64)-1);
+<span class="lineNum">     270 </span><span class="lineCov">         33 :         btrfs_set_dev_replace_cont_reading_from_srcdev_mode(eb, ptr,</span>
+<span class="lineNum">     271 </span>            :                 dev_replace-&gt;cont_reading_from_srcdev_mode);
+<span class="lineNum">     272 </span><span class="lineCov">         33 :         btrfs_set_dev_replace_replace_state(eb, ptr,</span>
+<span class="lineNum">     273 </span>            :                 dev_replace-&gt;replace_state);
+<span class="lineNum">     274 </span><span class="lineCov">         33 :         btrfs_set_dev_replace_time_started(eb, ptr, dev_replace-&gt;time_started);</span>
+<span class="lineNum">     275 </span><span class="lineCov">         33 :         btrfs_set_dev_replace_time_stopped(eb, ptr, dev_replace-&gt;time_stopped);</span>
+<span class="lineNum">     276 </span><span class="lineCov">         33 :         btrfs_set_dev_replace_num_write_errors(eb, ptr,</span>
+<span class="lineNum">     277 </span>            :                 atomic64_read(&amp;dev_replace-&gt;num_write_errors));
+<span class="lineNum">     278 </span><span class="lineCov">         33 :         btrfs_set_dev_replace_num_uncorrectable_read_errors(eb, ptr,</span>
+<span class="lineNum">     279 </span>            :                 atomic64_read(&amp;dev_replace-&gt;num_uncorrectable_read_errors));
+<span class="lineNum">     280 </span><span class="lineCov">         33 :         dev_replace-&gt;cursor_left_last_write_of_item =</span>
+<span class="lineNum">     281 </span><span class="lineCov">         33 :                 dev_replace-&gt;cursor_left;</span>
+<span class="lineNum">     282 </span>            :         btrfs_set_dev_replace_cursor_left(eb, ptr,
+<span class="lineNum">     283 </span>            :                 dev_replace-&gt;cursor_left_last_write_of_item);
+<span class="lineNum">     284 </span><span class="lineCov">         33 :         btrfs_set_dev_replace_cursor_right(eb, ptr,</span>
+<span class="lineNum">     285 </span>            :                 dev_replace-&gt;cursor_right);
+<span class="lineNum">     286 </span><span class="lineCov">         33 :         dev_replace-&gt;item_needs_writeback = 0;</span>
+<span class="lineNum">     287 </span><span class="lineCov">         33 :         btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineCov">         33 :         btrfs_mark_buffer_dirty(eb);</span>
+<span class="lineNum">     290 </span>            : 
+<span class="lineNum">     291 </span>            : out:
+<span class="lineNum">     292 </span><span class="lineCov">         33 :         btrfs_free_path(path);</span>
+<span class="lineNum">     293 </span>            : 
+<span class="lineNum">     294 </span><span class="lineCov">         33 :         return ret;</span>
+<a name="295"><span class="lineNum">     295 </span>            : }</a>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineCov">       2098 : void btrfs_after_dev_replace_commit(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     298 </span>            : {
+<span class="lineNum">     299 </span>            :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span><span class="lineCov">       2098 :         dev_replace-&gt;committed_cursor_left =</span>
+<span class="lineNum">     302 </span><span class="lineCov">       2098 :                 dev_replace-&gt;cursor_left_last_write_of_item;</span>
+<a name="303"><span class="lineNum">     303 </span><span class="lineCov">       2098 : }</span></a>
+<span class="lineNum">     304 </span>            : 
+<span class="lineNum">     305 </span><span class="lineCov">          8 : int btrfs_dev_replace_start(struct btrfs_root *root,</span>
+<span class="lineNum">     306 </span>            :                             struct btrfs_ioctl_dev_replace_args *args)
+<span class="lineNum">     307 </span>            : {
+<span class="lineNum">     308 </span>            :         struct btrfs_trans_handle *trans;
+<span class="lineNum">     309 </span><span class="lineCov">         16 :         struct btrfs_fs_info *fs_info = root-&gt;fs_info;</span>
+<span class="lineNum">     310 </span><span class="lineCov">          8 :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;</span>
+<span class="lineNum">     311 </span>            :         int ret;
+<span class="lineNum">     312 </span><span class="lineCov">          8 :         struct btrfs_device *tgt_device = NULL;</span>
+<span class="lineNum">     313 </span><span class="lineCov">          8 :         struct btrfs_device *src_device = NULL;</span>
+<span class="lineNum">     314 </span>            : 
+<span class="lineNum">     315 </span><span class="lineCov">          8 :         if (btrfs_fs_incompat(fs_info, RAID56)) {</span>
+<span class="lineNum">     316 </span><span class="lineNoCov">          0 :                 btrfs_warn(fs_info, &quot;dev_replace cannot yet handle RAID5/RAID6&quot;);</span>
+<span class="lineNum">     317 </span><span class="lineNoCov">          0 :                 return -EOPNOTSUPP;</span>
+<span class="lineNum">     318 </span>            :         }
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineCov">          8 :         switch (args-&gt;start.cont_reading_from_srcdev_mode) {</span>
+<span class="lineNum">     321 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_CONT_READING_FROM_SRCDEV_MODE_ALWAYS:
+<span class="lineNum">     322 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_CONT_READING_FROM_SRCDEV_MODE_AVOID:
+<span class="lineNum">     323 </span>            :                 break;
+<span class="lineNum">     324 </span>            :         default:
+<span class="lineNum">     325 </span>            :                 return -EINVAL;
+<span class="lineNum">     326 </span>            :         }
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineCov">         16 :         if ((args-&gt;start.srcdevid == 0 &amp;&amp; args-&gt;start.srcdev_name[0] == '\0') ||</span>
+<span class="lineNum">     329 </span><span class="lineCov">          8 :             args-&gt;start.tgtdev_name[0] == '\0')</span>
+<span class="lineNum">     330 </span>            :                 return -EINVAL;
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span><span class="lineCov">          8 :         mutex_lock(&amp;fs_info-&gt;volume_mutex);</span>
+<span class="lineNum">     333 </span><span class="lineCov">          8 :         ret = btrfs_init_dev_replace_tgtdev(root, args-&gt;start.tgtdev_name,</span>
+<span class="lineNum">     334 </span>            :                                             &amp;tgt_device);
+<span class="lineNum">     335 </span><span class="lineCov">          8 :         if (ret) {</span>
+<span class="lineNum">     336 </span><span class="lineNoCov">          0 :                 btrfs_err(fs_info, &quot;target device %s is invalid!&quot;,</span>
+<span class="lineNum">     337 </span>            :                        args-&gt;start.tgtdev_name);
+<span class="lineNum">     338 </span><span class="lineNoCov">          0 :                 mutex_unlock(&amp;fs_info-&gt;volume_mutex);</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :                 return -EINVAL;</span>
+<span class="lineNum">     340 </span>            :         }
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span><span class="lineCov">          8 :         ret = btrfs_dev_replace_find_srcdev(root, args-&gt;start.srcdevid,</span>
+<span class="lineNum">     343 </span><span class="lineCov">          8 :                                             args-&gt;start.srcdev_name,</span>
+<span class="lineNum">     344 </span>            :                                             &amp;src_device);
+<span class="lineNum">     345 </span><span class="lineCov">          8 :         mutex_unlock(&amp;fs_info-&gt;volume_mutex);</span>
+<span class="lineNum">     346 </span><span class="lineCov">          8 :         if (ret) {</span>
+<span class="lineNum">     347 </span>            :                 ret = -EINVAL;
+<span class="lineNum">     348 </span>            :                 goto leave_no_lock;
+<span class="lineNum">     349 </span>            :         }
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span><span class="lineCov">          8 :         if (tgt_device-&gt;total_bytes &lt; src_device-&gt;total_bytes) {</span>
+<span class="lineNum">     352 </span><span class="lineNoCov">          0 :                 btrfs_err(fs_info, &quot;target device is smaller than source device!&quot;);</span>
+<span class="lineNum">     353 </span>            :                 ret = -EINVAL;
+<span class="lineNum">     354 </span><span class="lineNoCov">          0 :                 goto leave_no_lock;</span>
+<span class="lineNum">     355 </span>            :         }
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineCov">          8 :         btrfs_dev_replace_lock(dev_replace);</span>
+<span class="lineNum">     358 </span><span class="lineCov">          8 :         switch (dev_replace-&gt;replace_state) {</span>
+<span class="lineNum">     359 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_NEVER_STARTED:
+<span class="lineNum">     360 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_FINISHED:
+<span class="lineNum">     361 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_CANCELED:
+<span class="lineNum">     362 </span>            :                 break;
+<span class="lineNum">     363 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_STARTED:
+<span class="lineNum">     364 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_SUSPENDED:
+<span class="lineNum">     365 </span><span class="lineNoCov">          0 :                 args-&gt;result = BTRFS_IOCTL_DEV_REPLACE_RESULT_ALREADY_STARTED;</span>
+<span class="lineNum">     366 </span><span class="lineNoCov">          0 :                 goto leave;</span>
+<span class="lineNum">     367 </span>            :         }
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span><span class="lineCov">          8 :         dev_replace-&gt;cont_reading_from_srcdev_mode =</span>
+<span class="lineNum">     370 </span><span class="lineCov">          8 :                 args-&gt;start.cont_reading_from_srcdev_mode;</span>
+<span class="lineNum">     371 </span><span class="lineCov">          8 :         WARN_ON(!src_device);</span>
+<span class="lineNum">     372 </span><span class="lineCov">          8 :         dev_replace-&gt;srcdev = src_device;</span>
+<span class="lineNum">     373 </span><span class="lineCov">          8 :         WARN_ON(!tgt_device);</span>
+<span class="lineNum">     374 </span><span class="lineCov">          8 :         dev_replace-&gt;tgtdev = tgt_device;</span>
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineCov">          8 :         printk_in_rcu(KERN_INFO</span>
+<span class="lineNum">     377 </span>            :                       &quot;BTRFS: dev_replace from %s (devid %llu) to %s started\n&quot;,
+<span class="lineNum">     378 </span>            :                       src_device-&gt;missing ? &quot;&lt;missing disk&gt;&quot; :
+<span class="lineNum">     379 </span>            :                         rcu_str_deref(src_device-&gt;name),
+<span class="lineNum">     380 </span>            :                       src_device-&gt;devid,
+<span class="lineNum">     381 </span>            :                       rcu_str_deref(tgt_device-&gt;name));
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineCov">          8 :         tgt_device-&gt;total_bytes = src_device-&gt;total_bytes;</span>
+<span class="lineNum">     384 </span><span class="lineCov">          8 :         tgt_device-&gt;disk_total_bytes = src_device-&gt;disk_total_bytes;</span>
+<span class="lineNum">     385 </span><span class="lineCov">          8 :         tgt_device-&gt;bytes_used = src_device-&gt;bytes_used;</span>
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span>            :         /*
+<span class="lineNum">     388 </span>            :          * from now on, the writes to the srcdev are all duplicated to
+<span class="lineNum">     389 </span>            :          * go to the tgtdev as well (refer to btrfs_map_block()).
+<span class="lineNum">     390 </span>            :          */
+<span class="lineNum">     391 </span><span class="lineCov">          8 :         dev_replace-&gt;replace_state = BTRFS_IOCTL_DEV_REPLACE_STATE_STARTED;</span>
+<span class="lineNum">     392 </span><span class="lineCov">          8 :         dev_replace-&gt;time_started = get_seconds();</span>
+<span class="lineNum">     393 </span><span class="lineCov">          8 :         dev_replace-&gt;cursor_left = 0;</span>
+<span class="lineNum">     394 </span><span class="lineCov">          8 :         dev_replace-&gt;committed_cursor_left = 0;</span>
+<span class="lineNum">     395 </span><span class="lineCov">          8 :         dev_replace-&gt;cursor_left_last_write_of_item = 0;</span>
+<span class="lineNum">     396 </span><span class="lineCov">          8 :         dev_replace-&gt;cursor_right = 0;</span>
+<span class="lineNum">     397 </span><span class="lineCov">          8 :         dev_replace-&gt;is_valid = 1;</span>
+<span class="lineNum">     398 </span><span class="lineCov">          8 :         dev_replace-&gt;item_needs_writeback = 1;</span>
+<span class="lineNum">     399 </span><span class="lineCov">          8 :         args-&gt;result = BTRFS_IOCTL_DEV_REPLACE_RESULT_NO_ERROR;</span>
+<span class="lineNum">     400 </span><span class="lineCov">          8 :         btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span><span class="lineCov">          8 :         btrfs_wait_ordered_roots(root-&gt;fs_info, -1);</span>
+<span class="lineNum">     403 </span>            : 
+<span class="lineNum">     404 </span>            :         /* force writing the updated state information to disk */
+<span class="lineNum">     405 </span><span class="lineCov">          8 :         trans = btrfs_start_transaction(root, 0);</span>
+<span class="lineNum">     406 </span><span class="lineCov">          8 :         if (IS_ERR(trans)) {</span>
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :                 ret = PTR_ERR(trans);</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :                 btrfs_dev_replace_lock(dev_replace);</span>
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :                 goto leave;</span>
+<span class="lineNum">     410 </span>            :         }
+<span class="lineNum">     411 </span>            : 
+<span class="lineNum">     412 </span><span class="lineCov">          8 :         ret = btrfs_commit_transaction(trans, root);</span>
+<span class="lineNum">     413 </span><span class="lineCov">          8 :         WARN_ON(ret);</span>
+<span class="lineNum">     414 </span>            : 
+<span class="lineNum">     415 </span>            :         /* the disk copy procedure reuses the scrub code */
+<span class="lineNum">     416 </span><span class="lineCov">         16 :         ret = btrfs_scrub_dev(fs_info, src_device-&gt;devid, 0,</span>
+<span class="lineNum">     417 </span><span class="lineCov">          8 :                               src_device-&gt;total_bytes,</span>
+<span class="lineNum">     418 </span>            :                               &amp;dev_replace-&gt;scrub_progress, 0, 1);
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span><span class="lineCov">          8 :         ret = btrfs_dev_replace_finishing(root-&gt;fs_info, ret);</span>
+<span class="lineNum">     421 </span><span class="lineCov">          8 :         WARN_ON(ret);</span>
+<span class="lineNum">     422 </span>            : 
+<span class="lineNum">     423 </span>            :         return 0;
+<span class="lineNum">     424 </span>            : 
+<span class="lineNum">     425 </span>            : leave:
+<span class="lineNum">     426 </span><span class="lineNoCov">          0 :         dev_replace-&gt;srcdev = NULL;</span>
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :         dev_replace-&gt;tgtdev = NULL;</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     429 </span>            : leave_no_lock:
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :         if (tgt_device)</span>
+<span class="lineNum">     431 </span><span class="lineNoCov">          0 :                 btrfs_destroy_dev_replace_tgtdev(fs_info, tgt_device);</span>
+<span class="lineNum">     432 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     433 </span>            : }
+<span class="lineNum">     434 </span>            : 
+<span class="lineNum">     435 </span>            : /*
+<a name="436"><span class="lineNum">     436 </span>            :  * blocked until all flighting bios are finished.</a>
+<span class="lineNum">     437 </span>            :  */
+<span class="lineNum">     438 </span><span class="lineCov">          7 : static void btrfs_rm_dev_replace_blocked(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     439 </span>            : {
+<span class="lineNum">     440 </span>            :         s64 writers;
+<span class="lineNum">     441 </span><span class="lineCov">         14 :         DEFINE_WAIT(wait);</span>
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span>            :         set_bit(BTRFS_FS_STATE_DEV_REPLACING, &amp;fs_info-&gt;fs_state);
+<span class="lineNum">     444 </span>            :         do {
+<span class="lineNum">     445 </span><span class="lineCov">          7 :                 prepare_to_wait(&amp;fs_info-&gt;replace_wait, &amp;wait,</span>
+<span class="lineNum">     446 </span>            :                                 TASK_UNINTERRUPTIBLE);
+<span class="lineNum">     447 </span><span class="lineCov">          7 :                 writers = percpu_counter_sum(&amp;fs_info-&gt;bio_counter);</span>
+<span class="lineNum">     448 </span><span class="lineCov">          7 :                 if (writers)</span>
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :                         schedule();</span>
+<span class="lineNum">     450 </span><span class="lineCov">          7 :                 finish_wait(&amp;fs_info-&gt;replace_wait, &amp;wait);</span>
+<span class="lineNum">     451 </span><span class="lineCov">          7 :         } while (writers);</span>
+<span class="lineNum">     452 </span><span class="lineCov">          7 : }</span>
+<span class="lineNum">     453 </span>            : 
+<span class="lineNum">     454 </span>            : /*
+<a name="455"><span class="lineNum">     455 </span>            :  * we have removed target device, it is safe to allow new bios request.</a>
+<span class="lineNum">     456 </span>            :  */
+<span class="lineNum">     457 </span><span class="lineCov">          7 : static void btrfs_rm_dev_replace_unblocked(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     458 </span>            : {
+<span class="lineNum">     459 </span>            :         clear_bit(BTRFS_FS_STATE_DEV_REPLACING, &amp;fs_info-&gt;fs_state);
+<span class="lineNum">     460 </span><span class="lineCov">          7 :         if (waitqueue_active(&amp;fs_info-&gt;replace_wait))</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :                 wake_up(&amp;fs_info-&gt;replace_wait);</span>
+<a name="462"><span class="lineNum">     462 </span><span class="lineCov">          7 : }</span></a>
+<span class="lineNum">     463 </span>            : 
+<span class="lineNum">     464 </span><span class="lineCov">          8 : static int btrfs_dev_replace_finishing(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     465 </span>            :                                        int scrub_ret)
+<span class="lineNum">     466 </span>            : {
+<span class="lineNum">     467 </span><span class="lineCov">          8 :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;</span>
+<span class="lineNum">     468 </span>            :         struct btrfs_device *tgt_device;
+<span class="lineNum">     469 </span>            :         struct btrfs_device *src_device;
+<span class="lineNum">     470 </span><span class="lineCov">          8 :         struct btrfs_root *root = fs_info-&gt;tree_root;</span>
+<span class="lineNum">     471 </span>            :         u8 uuid_tmp[BTRFS_UUID_SIZE];
+<span class="lineNum">     472 </span>            :         struct btrfs_trans_handle *trans;
+<span class="lineNum">     473 </span>            :         int ret = 0;
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span>            :         /* don't allow cancel or unmount to disturb the finishing procedure */
+<span class="lineNum">     476 </span><span class="lineCov">          8 :         mutex_lock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     477 </span>            : 
+<span class="lineNum">     478 </span><span class="lineCov">          8 :         btrfs_dev_replace_lock(dev_replace);</span>
+<span class="lineNum">     479 </span>            :         /* was the operation canceled, or is it finished? */
+<span class="lineNum">     480 </span><span class="lineCov">          8 :         if (dev_replace-&gt;replace_state !=</span>
+<span class="lineNum">     481 </span>            :             BTRFS_IOCTL_DEV_REPLACE_STATE_STARTED) {
+<span class="lineNum">     482 </span><span class="lineCov">          1 :                 btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     483 </span><span class="lineCov">          1 :                 mutex_unlock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     484 </span><span class="lineCov">          1 :                 return 0;</span>
+<span class="lineNum">     485 </span>            :         }
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span><span class="lineCov">          7 :         tgt_device = dev_replace-&gt;tgtdev;</span>
+<span class="lineNum">     488 </span><span class="lineCov">          7 :         src_device = dev_replace-&gt;srcdev;</span>
+<span class="lineNum">     489 </span><span class="lineCov">          7 :         btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     490 </span>            : 
+<span class="lineNum">     491 </span>            :         /*
+<span class="lineNum">     492 </span>            :          * flush all outstanding I/O and inode extent mappings before the
+<span class="lineNum">     493 </span>            :          * copy operation is declared as being finished
+<span class="lineNum">     494 </span>            :          */
+<span class="lineNum">     495 </span><span class="lineCov">          7 :         ret = btrfs_start_delalloc_roots(root-&gt;fs_info, 0, -1);</span>
+<span class="lineNum">     496 </span><span class="lineCov">          7 :         if (ret) {</span>
+<span class="lineNum">     497 </span><span class="lineNoCov">          0 :                 mutex_unlock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :                 return ret;</span>
+<span class="lineNum">     499 </span>            :         }
+<span class="lineNum">     500 </span><span class="lineCov">          7 :         btrfs_wait_ordered_roots(root-&gt;fs_info, -1);</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineCov">          7 :         trans = btrfs_start_transaction(root, 0);</span>
+<span class="lineNum">     503 </span><span class="lineCov">          7 :         if (IS_ERR(trans)) {</span>
+<span class="lineNum">     504 </span><span class="lineNoCov">          0 :                 mutex_unlock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :                 return PTR_ERR(trans);</span>
+<span class="lineNum">     506 </span>            :         }
+<span class="lineNum">     507 </span><span class="lineCov">          7 :         ret = btrfs_commit_transaction(trans, root);</span>
+<span class="lineNum">     508 </span><span class="lineCov">          7 :         WARN_ON(ret);</span>
+<span class="lineNum">     509 </span>            : 
+<span class="lineNum">     510 </span>            :         /* keep away write_all_supers() during the finishing procedure */
+<span class="lineNum">     511 </span><span class="lineCov">          7 :         mutex_lock(&amp;root-&gt;fs_info-&gt;chunk_mutex);</span>
+<span class="lineNum">     512 </span><span class="lineCov">          7 :         mutex_lock(&amp;root-&gt;fs_info-&gt;fs_devices-&gt;device_list_mutex);</span>
+<span class="lineNum">     513 </span><span class="lineCov">          7 :         btrfs_dev_replace_lock(dev_replace);</span>
+<span class="lineNum">     514 </span><span class="lineCov">          7 :         dev_replace-&gt;replace_state =</span>
+<span class="lineNum">     515 </span>            :                 scrub_ret ? BTRFS_IOCTL_DEV_REPLACE_STATE_CANCELED
+<span class="lineNum">     516 </span>            :                           : BTRFS_IOCTL_DEV_REPLACE_STATE_FINISHED;
+<span class="lineNum">     517 </span><span class="lineCov">          7 :         dev_replace-&gt;tgtdev = NULL;</span>
+<span class="lineNum">     518 </span><span class="lineCov">          7 :         dev_replace-&gt;srcdev = NULL;</span>
+<span class="lineNum">     519 </span><span class="lineCov">          7 :         dev_replace-&gt;time_stopped = get_seconds();</span>
+<span class="lineNum">     520 </span><span class="lineCov">          7 :         dev_replace-&gt;item_needs_writeback = 1;</span>
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span>            :         /* replace old device with new one in mapping tree */
+<span class="lineNum">     523 </span><span class="lineCov">          7 :         if (!scrub_ret) {</span>
+<span class="lineNum">     524 </span><span class="lineCov">          7 :                 btrfs_dev_replace_update_device_in_mapping_tree(fs_info,</span>
+<span class="lineNum">     525 </span>            :                                                                 src_device,
+<span class="lineNum">     526 </span>            :                                                                 tgt_device);
+<span class="lineNum">     527 </span>            :         } else {
+<span class="lineNum">     528 </span><span class="lineNoCov">          0 :                 printk_in_rcu(KERN_ERR</span>
+<span class="lineNum">     529 </span>            :                               &quot;BTRFS: btrfs_scrub_dev(%s, %llu, %s) failed %d\n&quot;,
+<span class="lineNum">     530 </span>            :                               src_device-&gt;missing ? &quot;&lt;missing disk&gt;&quot; :
+<span class="lineNum">     531 </span>            :                                 rcu_str_deref(src_device-&gt;name),
+<span class="lineNum">     532 </span>            :                               src_device-&gt;devid,
+<span class="lineNum">     533 </span>            :                               rcu_str_deref(tgt_device-&gt;name), scrub_ret);
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :                 btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     535 </span><span class="lineNoCov">          0 :                 mutex_unlock(&amp;root-&gt;fs_info-&gt;fs_devices-&gt;device_list_mutex);</span>
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :                 mutex_unlock(&amp;root-&gt;fs_info-&gt;chunk_mutex);</span>
+<span class="lineNum">     537 </span><span class="lineNoCov">          0 :                 if (tgt_device)</span>
+<span class="lineNum">     538 </span><span class="lineNoCov">          0 :                         btrfs_destroy_dev_replace_tgtdev(fs_info, tgt_device);</span>
+<span class="lineNum">     539 </span><span class="lineNoCov">          0 :                 mutex_unlock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     542 </span>            :         }
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span><span class="lineCov">         14 :         printk_in_rcu(KERN_INFO</span>
+<span class="lineNum">     545 </span>            :                       &quot;BTRFS: dev_replace from %s (devid %llu) to %s) finished\n&quot;,
+<span class="lineNum">     546 </span>            :                       src_device-&gt;missing ? &quot;&lt;missing disk&gt;&quot; :
+<span class="lineNum">     547 </span>            :                         rcu_str_deref(src_device-&gt;name),
+<span class="lineNum">     548 </span>            :                       src_device-&gt;devid,
+<span class="lineNum">     549 </span>            :                       rcu_str_deref(tgt_device-&gt;name));
+<span class="lineNum">     550 </span><span class="lineCov">          7 :         tgt_device-&gt;is_tgtdev_for_dev_replace = 0;</span>
+<span class="lineNum">     551 </span><span class="lineCov">          7 :         tgt_device-&gt;devid = src_device-&gt;devid;</span>
+<span class="lineNum">     552 </span><span class="lineCov">          7 :         src_device-&gt;devid = BTRFS_DEV_REPLACE_DEVID;</span>
+<span class="lineNum">     553 </span><span class="lineCov">          7 :         tgt_device-&gt;bytes_used = src_device-&gt;bytes_used;</span>
+<span class="lineNum">     554 </span><span class="lineCov">          7 :         memcpy(uuid_tmp, tgt_device-&gt;uuid, sizeof(uuid_tmp));</span>
+<span class="lineNum">     555 </span><span class="lineCov">          7 :         memcpy(tgt_device-&gt;uuid, src_device-&gt;uuid, sizeof(tgt_device-&gt;uuid));</span>
+<span class="lineNum">     556 </span><span class="lineCov">          7 :         memcpy(src_device-&gt;uuid, uuid_tmp, sizeof(src_device-&gt;uuid));</span>
+<span class="lineNum">     557 </span><span class="lineCov">          7 :         tgt_device-&gt;total_bytes = src_device-&gt;total_bytes;</span>
+<span class="lineNum">     558 </span><span class="lineCov">          7 :         tgt_device-&gt;disk_total_bytes = src_device-&gt;disk_total_bytes;</span>
+<span class="lineNum">     559 </span><span class="lineCov">          7 :         tgt_device-&gt;bytes_used = src_device-&gt;bytes_used;</span>
+<span class="lineNum">     560 </span><span class="lineCov">          7 :         if (fs_info-&gt;sb-&gt;s_bdev == src_device-&gt;bdev)</span>
+<span class="lineNum">     561 </span><span class="lineNoCov">          0 :                 fs_info-&gt;sb-&gt;s_bdev = tgt_device-&gt;bdev;</span>
+<span class="lineNum">     562 </span><span class="lineCov">          7 :         if (fs_info-&gt;fs_devices-&gt;latest_bdev == src_device-&gt;bdev)</span>
+<span class="lineNum">     563 </span><span class="lineCov">          6 :                 fs_info-&gt;fs_devices-&gt;latest_bdev = tgt_device-&gt;bdev;</span>
+<span class="lineNum">     564 </span><span class="lineCov">          7 :         list_add(&amp;tgt_device-&gt;dev_alloc_list, &amp;fs_info-&gt;fs_devices-&gt;alloc_list);</span>
+<span class="lineNum">     565 </span>            : 
+<span class="lineNum">     566 </span>            :         /* replace the sysfs entry */
+<span class="lineNum">     567 </span><span class="lineCov">          7 :         btrfs_kobj_rm_device(fs_info, src_device);</span>
+<span class="lineNum">     568 </span><span class="lineCov">          7 :         btrfs_kobj_add_device(fs_info, tgt_device);</span>
+<span class="lineNum">     569 </span>            : 
+<span class="lineNum">     570 </span><span class="lineCov">          7 :         btrfs_rm_dev_replace_blocked(fs_info);</span>
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span><span class="lineCov">          7 :         btrfs_rm_dev_replace_srcdev(fs_info, src_device);</span>
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span><span class="lineCov">          7 :         btrfs_rm_dev_replace_unblocked(fs_info);</span>
+<span class="lineNum">     575 </span>            : 
+<span class="lineNum">     576 </span>            :         /*
+<span class="lineNum">     577 </span>            :          * this is again a consistent state where no dev_replace procedure
+<span class="lineNum">     578 </span>            :          * is running, the target device is part of the filesystem, the
+<span class="lineNum">     579 </span>            :          * source device is not part of the filesystem anymore and its 1st
+<span class="lineNum">     580 </span>            :          * superblock is scratched out so that it is no longer marked to
+<span class="lineNum">     581 </span>            :          * belong to this filesystem.
+<span class="lineNum">     582 </span>            :          */
+<span class="lineNum">     583 </span><span class="lineCov">          7 :         btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     584 </span><span class="lineCov">          7 :         mutex_unlock(&amp;root-&gt;fs_info-&gt;fs_devices-&gt;device_list_mutex);</span>
+<span class="lineNum">     585 </span><span class="lineCov">          7 :         mutex_unlock(&amp;root-&gt;fs_info-&gt;chunk_mutex);</span>
+<span class="lineNum">     586 </span>            : 
+<span class="lineNum">     587 </span>            :         /* write back the superblocks */
+<span class="lineNum">     588 </span><span class="lineCov">          7 :         trans = btrfs_start_transaction(root, 0);</span>
+<span class="lineNum">     589 </span><span class="lineCov">          7 :         if (!IS_ERR(trans))</span>
+<span class="lineNum">     590 </span><span class="lineCov">          7 :                 btrfs_commit_transaction(trans, root);</span>
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span><span class="lineCov">          7 :         mutex_unlock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span><span class="lineCov">          7 :         return 0;</span>
+<a name="595"><span class="lineNum">     595 </span>            : }</a>
+<span class="lineNum">     596 </span>            : 
+<span class="lineNum">     597 </span><span class="lineCov">          7 : static void btrfs_dev_replace_update_device_in_mapping_tree(</span>
+<span class="lineNum">     598 </span>            :                                                 struct btrfs_fs_info *fs_info,
+<span class="lineNum">     599 </span>            :                                                 struct btrfs_device *srcdev,
+<span class="lineNum">     600 </span>            :                                                 struct btrfs_device *tgtdev)
+<span class="lineNum">     601 </span>            : {
+<span class="lineNum">     602 </span><span class="lineCov">          7 :         struct extent_map_tree *em_tree = &amp;fs_info-&gt;mapping_tree.map_tree;</span>
+<span class="lineNum">     603 </span>            :         struct extent_map *em;
+<span class="lineNum">     604 </span>            :         struct map_lookup *map;
+<span class="lineNum">     605 </span>            :         u64 start = 0;
+<span class="lineNum">     606 </span>            :         int i;
+<span class="lineNum">     607 </span>            : 
+<span class="lineNum">     608 </span><span class="lineCov">          7 :         write_lock(&amp;em_tree-&gt;lock);</span>
+<span class="lineNum">     609 </span>            :         do {
+<span class="lineNum">     610 </span><span class="lineCov">         47 :                 em = lookup_extent_mapping(em_tree, start, (u64)-1);</span>
+<span class="lineNum">     611 </span><span class="lineCov">         47 :                 if (!em)</span>
+<span class="lineNum">     612 </span>            :                         break;
+<span class="lineNum">     613 </span><span class="lineCov">         40 :                 map = (struct map_lookup *)em-&gt;bdev;</span>
+<span class="lineNum">     614 </span><span class="lineCov">         97 :                 for (i = 0; i &lt; map-&gt;num_stripes; i++)</span>
+<span class="lineNum">     615 </span><span class="lineCov">         57 :                         if (srcdev == map-&gt;stripes[i].dev)</span>
+<span class="lineNum">     616 </span><span class="lineCov">         38 :                                 map-&gt;stripes[i].dev = tgtdev;</span>
+<span class="lineNum">     617 </span><span class="lineCov">         40 :                 start = em-&gt;start + em-&gt;len;</span>
+<span class="lineNum">     618 </span><span class="lineCov">         40 :                 free_extent_map(em);</span>
+<span class="lineNum">     619 </span><span class="lineCov">         40 :         } while (start);</span>
+<span class="lineNum">     620 </span>            :         write_unlock(&amp;em_tree-&gt;lock);
+<a name="621"><span class="lineNum">     621 </span><span class="lineCov">          7 : }</span></a>
+<span class="lineNum">     622 </span>            : 
+<span class="lineNum">     623 </span><span class="lineCov">          8 : static int btrfs_dev_replace_find_srcdev(struct btrfs_root *root, u64 srcdevid,</span>
+<span class="lineNum">     624 </span>            :                                          char *srcdev_name,
+<span class="lineNum">     625 </span>            :                                          struct btrfs_device **device)
+<span class="lineNum">     626 </span>            : {
+<span class="lineNum">     627 </span>            :         int ret;
+<span class="lineNum">     628 </span>            : 
+<span class="lineNum">     629 </span><span class="lineCov">          8 :         if (srcdevid) {</span>
+<span class="lineNum">     630 </span>            :                 ret = 0;
+<span class="lineNum">     631 </span><span class="lineNoCov">          0 :                 *device = btrfs_find_device(root-&gt;fs_info, srcdevid, NULL,</span>
+<span class="lineNum">     632 </span>            :                                             NULL);
+<span class="lineNum">     633 </span><span class="lineNoCov">          0 :                 if (!*device)</span>
+<span class="lineNum">     634 </span>            :                         ret = -ENOENT;
+<span class="lineNum">     635 </span>            :         } else {
+<span class="lineNum">     636 </span><span class="lineCov">          8 :                 ret = btrfs_find_device_missing_or_by_path(root, srcdev_name,</span>
+<span class="lineNum">     637 </span>            :                                                            device);
+<span class="lineNum">     638 </span>            :         }
+<span class="lineNum">     639 </span><span class="lineCov">          8 :         return ret;</span>
+<a name="640"><span class="lineNum">     640 </span>            : }</a>
+<span class="lineNum">     641 </span>            : 
+<span class="lineNum">     642 </span><span class="lineCov">         16 : void btrfs_dev_replace_status(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     643 </span>            :                               struct btrfs_ioctl_dev_replace_args *args)
+<span class="lineNum">     644 </span>            : {
+<span class="lineNum">     645 </span><span class="lineCov">         16 :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;</span>
+<span class="lineNum">     646 </span>            : 
+<span class="lineNum">     647 </span><span class="lineCov">         16 :         btrfs_dev_replace_lock(dev_replace);</span>
+<span class="lineNum">     648 </span>            :         /* even if !dev_replace_is_valid, the values are good enough for
+<span class="lineNum">     649 </span>            :          * the replace_status ioctl */
+<span class="lineNum">     650 </span><span class="lineCov">         16 :         args-&gt;result = BTRFS_IOCTL_DEV_REPLACE_RESULT_NO_ERROR;</span>
+<span class="lineNum">     651 </span><span class="lineCov">         16 :         args-&gt;status.replace_state = dev_replace-&gt;replace_state;</span>
+<span class="lineNum">     652 </span><span class="lineCov">         16 :         args-&gt;status.time_started = dev_replace-&gt;time_started;</span>
+<span class="lineNum">     653 </span><span class="lineCov">         16 :         args-&gt;status.time_stopped = dev_replace-&gt;time_stopped;</span>
+<span class="lineNum">     654 </span><span class="lineCov">         16 :         args-&gt;status.num_write_errors =</span>
+<span class="lineNum">     655 </span>            :                 atomic64_read(&amp;dev_replace-&gt;num_write_errors);
+<span class="lineNum">     656 </span><span class="lineCov">         16 :         args-&gt;status.num_uncorrectable_read_errors =</span>
+<span class="lineNum">     657 </span>            :                 atomic64_read(&amp;dev_replace-&gt;num_uncorrectable_read_errors);
+<span class="lineNum">     658 </span><span class="lineCov">         16 :         switch (dev_replace-&gt;replace_state) {</span>
+<span class="lineNum">     659 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_NEVER_STARTED:
+<span class="lineNum">     660 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_CANCELED:
+<span class="lineNum">     661 </span><span class="lineCov">          8 :                 args-&gt;status.progress_1000 = 0;</span>
+<span class="lineNum">     662 </span><span class="lineCov">          8 :                 break;</span>
+<span class="lineNum">     663 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_FINISHED:
+<span class="lineNum">     664 </span><span class="lineCov">          8 :                 args-&gt;status.progress_1000 = 1000;</span>
+<span class="lineNum">     665 </span><span class="lineCov">          8 :                 break;</span>
+<span class="lineNum">     666 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_STARTED:
+<span class="lineNum">     667 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_SUSPENDED:
+<span class="lineNum">     668 </span><span class="lineNoCov">          0 :                 args-&gt;status.progress_1000 = div64_u64(dev_replace-&gt;cursor_left,</span>
+<span class="lineNum">     669 </span><span class="lineNoCov">          0 :                         div64_u64(dev_replace-&gt;srcdev-&gt;total_bytes, 1000));</span>
+<span class="lineNum">     670 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     671 </span>            :         }
+<span class="lineNum">     672 </span><span class="lineCov">         16 :         btrfs_dev_replace_unlock(dev_replace);</span>
+<a name="673"><span class="lineNum">     673 </span><span class="lineCov">         16 : }</span></a>
+<span class="lineNum">     674 </span>            : 
+<span class="lineNum">     675 </span><span class="lineCov">          1 : int btrfs_dev_replace_cancel(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     676 </span>            :                              struct btrfs_ioctl_dev_replace_args *args)
+<span class="lineNum">     677 </span>            : {
+<span class="lineNum">     678 </span><span class="lineCov">          1 :         args-&gt;result = __btrfs_dev_replace_cancel(fs_info);</span>
+<span class="lineNum">     679 </span><span class="lineCov">          1 :         return 0;</span>
+<a name="680"><span class="lineNum">     680 </span>            : }</a>
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span><span class="lineCov">          1 : static u64 __btrfs_dev_replace_cancel(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     683 </span>            : {
+<span class="lineNum">     684 </span><span class="lineCov">          1 :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;</span>
+<span class="lineNum">     685 </span>            :         struct btrfs_device *tgt_device = NULL;
+<span class="lineNum">     686 </span>            :         struct btrfs_trans_handle *trans;
+<span class="lineNum">     687 </span><span class="lineCov">          1 :         struct btrfs_root *root = fs_info-&gt;tree_root;</span>
+<span class="lineNum">     688 </span>            :         u64 result;
+<span class="lineNum">     689 </span>            :         int ret;
+<span class="lineNum">     690 </span>            : 
+<span class="lineNum">     691 </span><span class="lineCov">          1 :         if (fs_info-&gt;sb-&gt;s_flags &amp; MS_RDONLY)</span>
+<span class="lineNum">     692 </span>            :                 return -EROFS;
+<span class="lineNum">     693 </span>            : 
+<span class="lineNum">     694 </span><span class="lineCov">          1 :         mutex_lock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     695 </span><span class="lineCov">          1 :         btrfs_dev_replace_lock(dev_replace);</span>
+<span class="lineNum">     696 </span><span class="lineCov">          1 :         switch (dev_replace-&gt;replace_state) {</span>
+<span class="lineNum">     697 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_NEVER_STARTED:
+<span class="lineNum">     698 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_FINISHED:
+<span class="lineNum">     699 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_CANCELED:
+<span class="lineNum">     700 </span>            :                 result = BTRFS_IOCTL_DEV_REPLACE_RESULT_NOT_STARTED;
+<span class="lineNum">     701 </span><span class="lineNoCov">          0 :                 btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     702 </span><span class="lineNoCov">          0 :                 goto leave;</span>
+<span class="lineNum">     703 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_STARTED:
+<span class="lineNum">     704 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_SUSPENDED:
+<span class="lineNum">     705 </span>            :                 result = BTRFS_IOCTL_DEV_REPLACE_RESULT_NO_ERROR;
+<span class="lineNum">     706 </span><span class="lineCov">          1 :                 tgt_device = dev_replace-&gt;tgtdev;</span>
+<span class="lineNum">     707 </span><span class="lineCov">          1 :                 dev_replace-&gt;tgtdev = NULL;</span>
+<span class="lineNum">     708 </span><span class="lineCov">          1 :                 dev_replace-&gt;srcdev = NULL;</span>
+<span class="lineNum">     709 </span><span class="lineCov">          1 :                 break;</span>
+<span class="lineNum">     710 </span>            :         }
+<span class="lineNum">     711 </span><span class="lineCov">          1 :         dev_replace-&gt;replace_state = BTRFS_IOCTL_DEV_REPLACE_STATE_CANCELED;</span>
+<span class="lineNum">     712 </span><span class="lineCov">          1 :         dev_replace-&gt;time_stopped = get_seconds();</span>
+<span class="lineNum">     713 </span><span class="lineCov">          1 :         dev_replace-&gt;item_needs_writeback = 1;</span>
+<span class="lineNum">     714 </span><span class="lineCov">          1 :         btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     715 </span><span class="lineCov">          1 :         btrfs_scrub_cancel(fs_info);</span>
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span><span class="lineCov">          1 :         trans = btrfs_start_transaction(root, 0);</span>
+<span class="lineNum">     718 </span><span class="lineCov">          1 :         if (IS_ERR(trans)) {</span>
+<span class="lineNum">     719 </span><span class="lineNoCov">          0 :                 mutex_unlock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     720 </span><span class="lineNoCov">          0 :                 return PTR_ERR(trans);</span>
+<span class="lineNum">     721 </span>            :         }
+<span class="lineNum">     722 </span><span class="lineCov">          1 :         ret = btrfs_commit_transaction(trans, root);</span>
+<span class="lineNum">     723 </span><span class="lineCov">          1 :         WARN_ON(ret);</span>
+<span class="lineNum">     724 </span><span class="lineCov">          1 :         if (tgt_device)</span>
+<span class="lineNum">     725 </span><span class="lineCov">          1 :                 btrfs_destroy_dev_replace_tgtdev(fs_info, tgt_device);</span>
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span>            : leave:
+<span class="lineNum">     728 </span><span class="lineCov">          1 :         mutex_unlock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     729 </span><span class="lineCov">          1 :         return result;</span>
+<a name="730"><span class="lineNum">     730 </span>            : }</a>
+<span class="lineNum">     731 </span>            : 
+<span class="lineNum">     732 </span><span class="lineCov">        222 : void btrfs_dev_replace_suspend_for_unmount(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     733 </span>            : {
+<span class="lineNum">     734 </span><span class="lineCov">        222 :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;</span>
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span><span class="lineCov">        222 :         mutex_lock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     737 </span><span class="lineCov">        222 :         btrfs_dev_replace_lock(dev_replace);</span>
+<span class="lineNum">     738 </span><span class="lineCov">        222 :         switch (dev_replace-&gt;replace_state) {</span>
+<span class="lineNum">     739 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_NEVER_STARTED:
+<span class="lineNum">     740 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_FINISHED:
+<span class="lineNum">     741 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_CANCELED:
+<span class="lineNum">     742 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_SUSPENDED:
+<span class="lineNum">     743 </span>            :                 break;
+<span class="lineNum">     744 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_STARTED:
+<span class="lineNum">     745 </span><span class="lineNoCov">          0 :                 dev_replace-&gt;replace_state =</span>
+<span class="lineNum">     746 </span>            :                         BTRFS_IOCTL_DEV_REPLACE_STATE_SUSPENDED;
+<span class="lineNum">     747 </span><span class="lineNoCov">          0 :                 dev_replace-&gt;time_stopped = get_seconds();</span>
+<span class="lineNum">     748 </span><span class="lineNoCov">          0 :                 dev_replace-&gt;item_needs_writeback = 1;</span>
+<span class="lineNum">     749 </span><span class="lineNoCov">          0 :                 btrfs_info(fs_info, &quot;suspending dev_replace for unmount&quot;);</span>
+<span class="lineNum">     750 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     751 </span>            :         }
+<span class="lineNum">     752 </span>            : 
+<span class="lineNum">     753 </span><span class="lineCov">        222 :         btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     754 </span><span class="lineCov">        222 :         mutex_unlock(&amp;dev_replace-&gt;lock_finishing_cancel_unmount);</span>
+<span class="lineNum">     755 </span><span class="lineCov">        222 : }</span>
+<a name="756"><span class="lineNum">     756 </span>            : </a>
+<span class="lineNum">     757 </span>            : /* resume dev_replace procedure that was interrupted by unmount */
+<span class="lineNum">     758 </span><span class="lineCov">        194 : int btrfs_resume_dev_replace_async(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     759 </span>            : {
+<span class="lineNum">     760 </span>            :         struct task_struct *task;
+<span class="lineNum">     761 </span><span class="lineCov">        194 :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;</span>
+<span class="lineNum">     762 </span>            : 
+<span class="lineNum">     763 </span><span class="lineCov">        194 :         btrfs_dev_replace_lock(dev_replace);</span>
+<span class="lineNum">     764 </span><span class="lineCov">        194 :         switch (dev_replace-&gt;replace_state) {</span>
+<span class="lineNum">     765 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_NEVER_STARTED:
+<span class="lineNum">     766 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_FINISHED:
+<span class="lineNum">     767 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_CANCELED:
+<span class="lineNum">     768 </span><span class="lineCov">        194 :                 btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     769 </span><span class="lineCov">        194 :                 return 0;</span>
+<span class="lineNum">     770 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_STARTED:
+<span class="lineNum">     771 </span>            :                 break;
+<span class="lineNum">     772 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_SUSPENDED:
+<span class="lineNum">     773 </span><span class="lineNoCov">          0 :                 dev_replace-&gt;replace_state =</span>
+<span class="lineNum">     774 </span>            :                         BTRFS_IOCTL_DEV_REPLACE_STATE_STARTED;
+<span class="lineNum">     775 </span><span class="lineNoCov">          0 :                 break;</span>
+<span class="lineNum">     776 </span>            :         }
+<span class="lineNum">     777 </span><span class="lineNoCov">          0 :         if (!dev_replace-&gt;tgtdev || !dev_replace-&gt;tgtdev-&gt;bdev) {</span>
+<span class="lineNum">     778 </span><span class="lineNoCov">          0 :                 btrfs_info(fs_info, &quot;cannot continue dev_replace, tgtdev is missing&quot;);</span>
+<span class="lineNum">     779 </span><span class="lineNoCov">          0 :                 btrfs_info(fs_info,</span>
+<span class="lineNum">     780 </span>            :                         &quot;you may cancel the operation after 'mount -o degraded'&quot;);
+<span class="lineNum">     781 </span><span class="lineNoCov">          0 :                 btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     782 </span><span class="lineNoCov">          0 :                 return 0;</span>
+<span class="lineNum">     783 </span>            :         }
+<span class="lineNum">     784 </span><span class="lineNoCov">          0 :         btrfs_dev_replace_unlock(dev_replace);</span>
+<span class="lineNum">     785 </span>            : 
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :         WARN_ON(atomic_xchg(</span>
+<span class="lineNum">     787 </span>            :                 &amp;fs_info-&gt;mutually_exclusive_operation_running, 1));
+<span class="lineNum">     788 </span><span class="lineNoCov">          0 :         task = kthread_run(btrfs_dev_replace_kthread, fs_info, &quot;btrfs-devrepl&quot;);</span>
+<span class="lineNum">     789 </span><span class="lineNoCov">          0 :         return PTR_ERR_OR_ZERO(task);</span>
+<a name="790"><span class="lineNum">     790 </span>            : }</a>
+<span class="lineNum">     791 </span>            : 
+<span class="lineNum">     792 </span><span class="lineNoCov">          0 : static int btrfs_dev_replace_kthread(void *data)</span>
+<span class="lineNum">     793 </span>            : {
+<span class="lineNum">     794 </span>            :         struct btrfs_fs_info *fs_info = data;
+<span class="lineNum">     795 </span>            :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;
+<span class="lineNum">     796 </span>            :         struct btrfs_ioctl_dev_replace_args *status_args;
+<span class="lineNum">     797 </span>            :         u64 progress;
+<span class="lineNum">     798 </span>            : 
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :         status_args = kzalloc(sizeof(*status_args), GFP_NOFS);</span>
+<span class="lineNum">     800 </span><span class="lineNoCov">          0 :         if (status_args) {</span>
+<span class="lineNum">     801 </span><span class="lineNoCov">          0 :                 btrfs_dev_replace_status(fs_info, status_args);</span>
+<span class="lineNum">     802 </span><span class="lineNoCov">          0 :                 progress = status_args-&gt;status.progress_1000;</span>
+<span class="lineNum">     803 </span><span class="lineNoCov">          0 :                 kfree(status_args);</span>
+<span class="lineNum">     804 </span><span class="lineNoCov">          0 :                 do_div(progress, 10);</span>
+<span class="lineNum">     805 </span><span class="lineNoCov">          0 :                 printk_in_rcu(KERN_INFO</span>
+<span class="lineNum">     806 </span>            :                         &quot;BTRFS: continuing dev_replace from %s (devid %llu) to %s @%u%%\n&quot;,
+<span class="lineNum">     807 </span>            :                         dev_replace-&gt;srcdev-&gt;missing ? &quot;&lt;missing disk&gt;&quot; :
+<span class="lineNum">     808 </span>            :                         rcu_str_deref(dev_replace-&gt;srcdev-&gt;name),
+<span class="lineNum">     809 </span>            :                         dev_replace-&gt;srcdev-&gt;devid,
+<span class="lineNum">     810 </span>            :                         dev_replace-&gt;tgtdev ?
+<span class="lineNum">     811 </span>            :                         rcu_str_deref(dev_replace-&gt;tgtdev-&gt;name) :
+<span class="lineNum">     812 </span>            :                         &quot;&lt;missing target disk&gt;&quot;,
+<span class="lineNum">     813 </span>            :                         (unsigned int)progress);
+<span class="lineNum">     814 </span>            :         }
+<span class="lineNum">     815 </span><span class="lineNoCov">          0 :         btrfs_dev_replace_continue_on_mount(fs_info);</span>
+<span class="lineNum">     816 </span>            :         atomic_set(&amp;fs_info-&gt;mutually_exclusive_operation_running, 0);
+<span class="lineNum">     817 </span>            : 
+<span class="lineNum">     818 </span><span class="lineNoCov">          0 :         return 0;</span>
+<a name="819"><span class="lineNum">     819 </span>            : }</a>
+<span class="lineNum">     820 </span>            : 
+<span class="lineNum">     821 </span><span class="lineNoCov">          0 : static int btrfs_dev_replace_continue_on_mount(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     822 </span>            : {
+<span class="lineNum">     823 </span>            :         struct btrfs_dev_replace *dev_replace = &amp;fs_info-&gt;dev_replace;
+<span class="lineNum">     824 </span>            :         int ret;
+<span class="lineNum">     825 </span>            : 
+<span class="lineNum">     826 </span><span class="lineNoCov">          0 :         ret = btrfs_scrub_dev(fs_info, dev_replace-&gt;srcdev-&gt;devid,</span>
+<span class="lineNum">     827 </span>            :                               dev_replace-&gt;committed_cursor_left,
+<span class="lineNum">     828 </span><span class="lineNoCov">          0 :                               dev_replace-&gt;srcdev-&gt;total_bytes,</span>
+<span class="lineNum">     829 </span>            :                               &amp;dev_replace-&gt;scrub_progress, 0, 1);
+<span class="lineNum">     830 </span><span class="lineNoCov">          0 :         ret = btrfs_dev_replace_finishing(fs_info, ret);</span>
+<span class="lineNum">     831 </span><span class="lineNoCov">          0 :         WARN_ON(ret);</span>
+<span class="lineNum">     832 </span><span class="lineNoCov">          0 :         return 0;</span>
+<a name="833"><span class="lineNum">     833 </span>            : }</a>
+<span class="lineNum">     834 </span>            : 
+<span class="lineNum">     835 </span><span class="lineCov">     253844 : int btrfs_dev_replace_is_ongoing(struct btrfs_dev_replace *dev_replace)</span>
+<span class="lineNum">     836 </span>            : {
+<span class="lineNum">     837 </span><span class="lineCov">     253844 :         if (!dev_replace-&gt;is_valid)</span>
+<span class="lineNum">     838 </span>            :                 return 0;
+<span class="lineNum">     839 </span>            : 
+<span class="lineNum">     840 </span><span class="lineCov">     113894 :         switch (dev_replace-&gt;replace_state) {</span>
+<span class="lineNum">     841 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_NEVER_STARTED:
+<span class="lineNum">     842 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_FINISHED:
+<span class="lineNum">     843 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_CANCELED:
+<span class="lineNum">     844 </span>            :                 return 0;
+<span class="lineNum">     845 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_STARTED:
+<span class="lineNum">     846 </span>            :         case BTRFS_IOCTL_DEV_REPLACE_STATE_SUSPENDED:
+<span class="lineNum">     847 </span>            :                 /*
+<span class="lineNum">     848 </span>            :                  * return true even if tgtdev is missing (this is
+<span class="lineNum">     849 </span>            :                  * something that can happen if the dev_replace
+<span class="lineNum">     850 </span>            :                  * procedure is suspended by an umount and then
+<span class="lineNum">     851 </span>            :                  * the tgtdev is missing (or &quot;btrfs dev scan&quot;) was
+<span class="lineNum">     852 </span>            :                  * not called and the the filesystem is remounted
+<span class="lineNum">     853 </span>            :                  * in degraded state. This does not stop the
+<span class="lineNum">     854 </span>            :                  * dev_replace procedure. It needs to be canceled
+<span class="lineNum">     855 </span>            :                  * manually if the cancelation is wanted.
+<span class="lineNum">     856 </span>            :                  */
+<span class="lineNum">     857 </span>            :                 break;
+<span class="lineNum">     858 </span>            :         }
+<span class="lineNum">     859 </span><span class="lineCov">      94595 :         return 1;</span>
+<a name="860"><span class="lineNum">     860 </span>            : }</a>
+<span class="lineNum">     861 </span>            : 
+<span class="lineNum">     862 </span><span class="lineCov">     256422 : void btrfs_dev_replace_lock(struct btrfs_dev_replace *dev_replace)</span>
+<span class="lineNum">     863 </span>            : {
+<span class="lineNum">     864 </span>            :         /* the beginning is just an optimization for the typical case */
+<span class="lineNum">     865 </span><span class="lineCov">     256422 :         if (atomic_read(&amp;dev_replace-&gt;nesting_level) == 0) {</span>
+<span class="lineNum">     866 </span>            : acquire_lock:
+<span class="lineNum">     867 </span>            :                 /* this is not a nested case where the same thread
+<span class="lineNum">     868 </span>            :                  * is trying to acqurire the same lock twice */
+<span class="lineNum">     869 </span><span class="lineCov">     256422 :                 mutex_lock(&amp;dev_replace-&gt;lock);</span>
+<span class="lineNum">     870 </span><span class="lineCov">     256438 :                 mutex_lock(&amp;dev_replace-&gt;lock_management_lock);</span>
+<span class="lineNum">     871 </span><span class="lineCov">     256439 :                 dev_replace-&gt;lock_owner = current-&gt;pid;</span>
+<span class="lineNum">     872 </span><span class="lineCov">     256439 :                 atomic_inc(&amp;dev_replace-&gt;nesting_level);</span>
+<span class="lineNum">     873 </span><span class="lineCov">     256439 :                 mutex_unlock(&amp;dev_replace-&gt;lock_management_lock);</span>
+<span class="lineNum">     874 </span><span class="lineCov">     256439 :                 return;</span>
+<span class="lineNum">     875 </span>            :         }
+<span class="lineNum">     876 </span>            : 
+<span class="lineNum">     877 </span><span class="lineCov">         39 :         mutex_lock(&amp;dev_replace-&gt;lock_management_lock);</span>
+<span class="lineNum">     878 </span><span class="lineCov">         67 :         if (atomic_read(&amp;dev_replace-&gt;nesting_level) &gt; 0 &amp;&amp;</span>
+<span class="lineNum">     879 </span><span class="lineCov">         56 :             dev_replace-&gt;lock_owner == current-&gt;pid) {</span>
+<span class="lineNum">     880 </span><span class="lineNoCov">          0 :                 WARN_ON(!mutex_is_locked(&amp;dev_replace-&gt;lock));</span>
+<span class="lineNum">     881 </span><span class="lineNoCov">          0 :                 atomic_inc(&amp;dev_replace-&gt;nesting_level);</span>
+<span class="lineNum">     882 </span><span class="lineNoCov">          0 :                 mutex_unlock(&amp;dev_replace-&gt;lock_management_lock);</span>
+<span class="lineNum">     883 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     884 </span>            :         }
+<span class="lineNum">     885 </span>            : 
+<span class="lineNum">     886 </span><span class="lineCov">         39 :         mutex_unlock(&amp;dev_replace-&gt;lock_management_lock);</span>
+<span class="lineNum">     887 </span><span class="lineCov">         39 :         goto acquire_lock;</span>
+<a name="888"><span class="lineNum">     888 </span>            : }</a>
+<span class="lineNum">     889 </span>            : 
+<span class="lineNum">     890 </span><span class="lineCov">     256438 : void btrfs_dev_replace_unlock(struct btrfs_dev_replace *dev_replace)</span>
+<span class="lineNum">     891 </span>            : {
+<span class="lineNum">     892 </span><span class="lineCov">     256438 :         WARN_ON(!mutex_is_locked(&amp;dev_replace-&gt;lock));</span>
+<span class="lineNum">     893 </span><span class="lineCov">     256438 :         mutex_lock(&amp;dev_replace-&gt;lock_management_lock);</span>
+<span class="lineNum">     894 </span><span class="lineCov">     256439 :         WARN_ON(atomic_read(&amp;dev_replace-&gt;nesting_level) &lt; 1);</span>
+<span class="lineNum">     895 </span><span class="lineCov">     512876 :         WARN_ON(dev_replace-&gt;lock_owner != current-&gt;pid);</span>
+<span class="lineNum">     896 </span><span class="lineCov">     256438 :         atomic_dec(&amp;dev_replace-&gt;nesting_level);</span>
+<span class="lineNum">     897 </span><span class="lineCov">     256439 :         if (atomic_read(&amp;dev_replace-&gt;nesting_level) == 0) {</span>
+<span class="lineNum">     898 </span><span class="lineCov">     256439 :                 dev_replace-&gt;lock_owner = 0;</span>
+<span class="lineNum">     899 </span><span class="lineCov">     256439 :                 mutex_unlock(&amp;dev_replace-&gt;lock_management_lock);</span>
+<span class="lineNum">     900 </span><span class="lineCov">     256439 :                 mutex_unlock(&amp;dev_replace-&gt;lock);</span>
+<span class="lineNum">     901 </span>            :         } else {
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :                 mutex_unlock(&amp;dev_replace-&gt;lock_management_lock);</span>
+<span class="lineNum">     903 </span>            :         }
+<a name="904"><span class="lineNum">     904 </span><span class="lineCov">     256438 : }</span></a>
+<span class="lineNum">     905 </span>            : 
+<span class="lineNum">     906 </span><span class="lineCov">     212908 : void btrfs_bio_counter_inc_noblocked(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     907 </span>            : {
+<span class="lineNum">     908 </span><span class="lineCov">     212908 :         percpu_counter_inc(&amp;fs_info-&gt;bio_counter);</span>
+<a name="909"><span class="lineNum">     909 </span><span class="lineCov">     212906 : }</span></a>
+<span class="lineNum">     910 </span>            : 
+<span class="lineNum">     911 </span><span class="lineCov">     360460 : void btrfs_bio_counter_dec(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     912 </span>            : {
+<span class="lineNum">     913 </span><span class="lineCov">     360460 :         percpu_counter_dec(&amp;fs_info-&gt;bio_counter);</span>
+<span class="lineNum">     914 </span>            : 
+<span class="lineNum">     915 </span><span class="lineCov">     360467 :         if (waitqueue_active(&amp;fs_info-&gt;replace_wait))</span>
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :                 wake_up(&amp;fs_info-&gt;replace_wait);</span>
+<a name="917"><span class="lineNum">     917 </span><span class="lineCov">     360467 : }</span></a>
+<span class="lineNum">     918 </span>            : 
+<span class="lineNum">     919 </span><span class="lineCov">     147582 : void btrfs_bio_counter_inc_blocked(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     920 </span>            : {
+<span class="lineNum">     921 </span><span class="lineCov">     295164 :         DEFINE_WAIT(wait);</span>
+<span class="lineNum">     922 </span>            : again:
+<span class="lineNum">     923 </span><span class="lineCov">     147582 :         percpu_counter_inc(&amp;fs_info-&gt;bio_counter);</span>
+<span class="lineNum">     924 </span><span class="lineCov">     147588 :         if (test_bit(BTRFS_FS_STATE_DEV_REPLACING, &amp;fs_info-&gt;fs_state)) {</span>
+<span class="lineNum">     925 </span><span class="lineNoCov">          0 :                 btrfs_bio_counter_dec(fs_info);</span>
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :                 wait_event(fs_info-&gt;replace_wait,</span>
+<span class="lineNum">     927 </span>            :                            !test_bit(BTRFS_FS_STATE_DEV_REPLACING,
+<span class="lineNum">     928 </span>            :                                      &amp;fs_info-&gt;fs_state));
+<span class="lineNum">     929 </span>            :                 goto again;
+<span class="lineNum">     930 </span>            :         }
+<span class="lineNum">     931 </span>            : 
+<span class="lineNum">     932 </span><span class="lineCov">     147588 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

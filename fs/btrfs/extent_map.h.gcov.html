@@ -1,0 +1,161 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/extent_map.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - extent_map.h<span style="font-size: 80%;"> (source / <a href="extent_map.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef __EXTENTMAP__</a>
+<span class="lineNum">       2 </span>            : #define __EXTENTMAP__
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;linux/rbtree.h&gt;
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : #define EXTENT_MAP_LAST_BYTE ((u64)-4)
+<span class="lineNum">       7 </span>            : #define EXTENT_MAP_HOLE ((u64)-3)
+<span class="lineNum">       8 </span>            : #define EXTENT_MAP_INLINE ((u64)-2)
+<span class="lineNum">       9 </span>            : #define EXTENT_MAP_DELALLOC ((u64)-1)
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : /* bits for the flags field */
+<span class="lineNum">      12 </span>            : #define EXTENT_FLAG_PINNED 0 /* this entry not yet on disk, don't free it */
+<span class="lineNum">      13 </span>            : #define EXTENT_FLAG_COMPRESSED 1
+<span class="lineNum">      14 </span>            : #define EXTENT_FLAG_VACANCY 2 /* no file extent item found */
+<span class="lineNum">      15 </span>            : #define EXTENT_FLAG_PREALLOC 3 /* pre-allocated extent */
+<span class="lineNum">      16 </span>            : #define EXTENT_FLAG_LOGGING 4 /* Logging this extent */
+<span class="lineNum">      17 </span>            : #define EXTENT_FLAG_FILLING 5 /* Filling in a preallocated extent */
+<span class="lineNum">      18 </span>            : #define EXTENT_FLAG_FS_MAPPING 6 /* filesystem extent mapping type */
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : struct extent_map {
+<span class="lineNum">      21 </span>            :         struct rb_node rb_node;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            :         /* all of these are in bytes */
+<span class="lineNum">      24 </span>            :         u64 start;
+<span class="lineNum">      25 </span>            :         u64 len;
+<span class="lineNum">      26 </span>            :         u64 mod_start;
+<span class="lineNum">      27 </span>            :         u64 mod_len;
+<span class="lineNum">      28 </span>            :         u64 orig_start;
+<span class="lineNum">      29 </span>            :         u64 orig_block_len;
+<span class="lineNum">      30 </span>            :         u64 ram_bytes;
+<span class="lineNum">      31 </span>            :         u64 block_start;
+<span class="lineNum">      32 </span>            :         u64 block_len;
+<span class="lineNum">      33 </span>            :         u64 generation;
+<span class="lineNum">      34 </span>            :         unsigned long flags;
+<span class="lineNum">      35 </span>            :         struct block_device *bdev;
+<span class="lineNum">      36 </span>            :         atomic_t refs;
+<span class="lineNum">      37 </span>            :         unsigned int compress_type;
+<span class="lineNum">      38 </span>            :         struct list_head list;
+<span class="lineNum">      39 </span>            : };
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : struct extent_map_tree {
+<span class="lineNum">      42 </span>            :         struct rb_root map;
+<span class="lineNum">      43 </span>            :         struct list_head modified_extents;
+<span class="lineNum">      44 </span>            :         rwlock_t lock;
+<span class="lineNum">      45 </span>            : };
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : static inline int extent_map_in_tree(const struct extent_map *em)
+<span class="lineNum">      48 </span>            : {
+<span class="lineNum">      49 </span><span class="lineCov">     868539 :         return !RB_EMPTY_NODE(&amp;em-&gt;rb_node);</span>
+<span class="lineNum">      50 </span>            : }
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span>            : static inline u64 extent_map_end(struct extent_map *em)
+<span class="lineNum">      53 </span>            : {
+<span class="lineNum">      54 </span><span class="lineCov">   18679995 :         if (em-&gt;start + em-&gt;len &lt; em-&gt;start)</span>
+<span class="lineNum">      55 </span>            :                 return (u64)-1;
+<span class="lineNum">      56 </span>            :         return em-&gt;start + em-&gt;len;
+<span class="lineNum">      57 </span>            : }
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : static inline u64 extent_map_block_end(struct extent_map *em)
+<span class="lineNum">      60 </span>            : {
+<span class="lineNum">      61 </span><span class="lineCov">      25012 :         if (em-&gt;block_start + em-&gt;block_len &lt; em-&gt;block_start)</span>
+<span class="lineNum">      62 </span>            :                 return (u64)-1;
+<span class="lineNum">      63 </span>            :         return em-&gt;block_start + em-&gt;block_len;
+<span class="lineNum">      64 </span>            : }
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : void extent_map_tree_init(struct extent_map_tree *tree);
+<span class="lineNum">      67 </span>            : struct extent_map *lookup_extent_mapping(struct extent_map_tree *tree,
+<span class="lineNum">      68 </span>            :                                          u64 start, u64 len);
+<span class="lineNum">      69 </span>            : int add_extent_mapping(struct extent_map_tree *tree,
+<span class="lineNum">      70 </span>            :                        struct extent_map *em, int modified);
+<span class="lineNum">      71 </span>            : int remove_extent_mapping(struct extent_map_tree *tree, struct extent_map *em);
+<span class="lineNum">      72 </span>            : void replace_extent_mapping(struct extent_map_tree *tree,
+<span class="lineNum">      73 </span>            :                             struct extent_map *cur,
+<span class="lineNum">      74 </span>            :                             struct extent_map *new,
+<span class="lineNum">      75 </span>            :                             int modified);
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : struct extent_map *alloc_extent_map(void);
+<span class="lineNum">      78 </span>            : void free_extent_map(struct extent_map *em);
+<span class="lineNum">      79 </span>            : int __init extent_map_init(void);
+<span class="lineNum">      80 </span>            : void extent_map_exit(void);
+<span class="lineNum">      81 </span>            : int unpin_extent_cache(struct extent_map_tree *tree, u64 start, u64 len, u64 gen);
+<span class="lineNum">      82 </span>            : void clear_em_logging(struct extent_map_tree *tree, struct extent_map *em);
+<span class="lineNum">      83 </span>            : struct extent_map *search_extent_mapping(struct extent_map_tree *tree,
+<span class="lineNum">      84 </span>            :                                          u64 start, u64 len);
+<span class="lineNum">      85 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

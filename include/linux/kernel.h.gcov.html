@@ -1,0 +1,927 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/kernel.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - kernel.h<span style="font-size: 80%;"> (source / <a href="kernel.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryLo">0.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_KERNEL_H</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_KERNEL_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : 
+<span class="lineNum">       5 </span>            : #include &lt;stdarg.h&gt;
+<span class="lineNum">       6 </span>            : #include &lt;linux/linkage.h&gt;
+<span class="lineNum">       7 </span>            : #include &lt;linux/stddef.h&gt;
+<span class="lineNum">       8 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;linux/compiler.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;linux/bitops.h&gt;
+<span class="lineNum">      11 </span>            : #include &lt;linux/log2.h&gt;
+<span class="lineNum">      12 </span>            : #include &lt;linux/typecheck.h&gt;
+<span class="lineNum">      13 </span>            : #include &lt;linux/printk.h&gt;
+<span class="lineNum">      14 </span>            : #include &lt;linux/dynamic_debug.h&gt;
+<span class="lineNum">      15 </span>            : #include &lt;asm/byteorder.h&gt;
+<span class="lineNum">      16 </span>            : #include &lt;uapi/linux/kernel.h&gt;
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : #define USHRT_MAX       ((u16)(~0U))
+<span class="lineNum">      19 </span>            : #define SHRT_MAX        ((s16)(USHRT_MAX&gt;&gt;1))
+<span class="lineNum">      20 </span>            : #define SHRT_MIN        ((s16)(-SHRT_MAX - 1))
+<span class="lineNum">      21 </span>            : #define INT_MAX         ((int)(~0U&gt;&gt;1))
+<span class="lineNum">      22 </span>            : #define INT_MIN         (-INT_MAX - 1)
+<span class="lineNum">      23 </span>            : #define UINT_MAX        (~0U)
+<span class="lineNum">      24 </span>            : #define LONG_MAX        ((long)(~0UL&gt;&gt;1))
+<span class="lineNum">      25 </span>            : #define LONG_MIN        (-LONG_MAX - 1)
+<span class="lineNum">      26 </span>            : #define ULONG_MAX       (~0UL)
+<span class="lineNum">      27 </span>            : #define LLONG_MAX       ((long long)(~0ULL&gt;&gt;1))
+<span class="lineNum">      28 </span>            : #define LLONG_MIN       (-LLONG_MAX - 1)
+<span class="lineNum">      29 </span>            : #define ULLONG_MAX      (~0ULL)
+<span class="lineNum">      30 </span>            : #define SIZE_MAX        (~(size_t)0)
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #define U8_MAX          ((u8)~0U)
+<span class="lineNum">      33 </span>            : #define S8_MAX          ((s8)(U8_MAX&gt;&gt;1))
+<span class="lineNum">      34 </span>            : #define S8_MIN          ((s8)(-S8_MAX - 1))
+<span class="lineNum">      35 </span>            : #define U16_MAX         ((u16)~0U)
+<span class="lineNum">      36 </span>            : #define S16_MAX         ((s16)(U16_MAX&gt;&gt;1))
+<span class="lineNum">      37 </span>            : #define S16_MIN         ((s16)(-S16_MAX - 1))
+<span class="lineNum">      38 </span>            : #define U32_MAX         ((u32)~0U)
+<span class="lineNum">      39 </span>            : #define S32_MAX         ((s32)(U32_MAX&gt;&gt;1))
+<span class="lineNum">      40 </span>            : #define S32_MIN         ((s32)(-S32_MAX - 1))
+<span class="lineNum">      41 </span>            : #define U64_MAX         ((u64)~0ULL)
+<span class="lineNum">      42 </span>            : #define S64_MAX         ((s64)(U64_MAX&gt;&gt;1))
+<span class="lineNum">      43 </span>            : #define S64_MIN         ((s64)(-S64_MAX - 1))
+<span class="lineNum">      44 </span>            : 
+<span class="lineNum">      45 </span>            : #define STACK_MAGIC     0xdeadbeef
+<span class="lineNum">      46 </span>            : 
+<span class="lineNum">      47 </span>            : #define REPEAT_BYTE(x)  ((~0ul / 0xff) * (x))
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            : #define ALIGN(x, a)             __ALIGN_KERNEL((x), (a))
+<span class="lineNum">      50 </span>            : #define __ALIGN_MASK(x, mask)   __ALIGN_KERNEL_MASK((x), (mask))
+<span class="lineNum">      51 </span>            : #define PTR_ALIGN(p, a)         ((typeof(p))ALIGN((unsigned long)(p), (a)))
+<span class="lineNum">      52 </span>            : #define IS_ALIGNED(x, a)                (((x) &amp; ((typeof(x))(a) - 1)) == 0)
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : /*
+<span class="lineNum">      57 </span>            :  * This looks more complex than it should be. But we need to
+<span class="lineNum">      58 </span>            :  * get the type for the ~ right in round_down (it needs to be
+<span class="lineNum">      59 </span>            :  * as wide as the result!), and we want to evaluate the macro
+<span class="lineNum">      60 </span>            :  * arguments just once each.
+<span class="lineNum">      61 </span>            :  */
+<span class="lineNum">      62 </span>            : #define __round_mask(x, y) ((__typeof__(x))((y)-1))
+<span class="lineNum">      63 </span>            : #define round_up(x, y) ((((x)-1) | __round_mask(x, y))+1)
+<span class="lineNum">      64 </span>            : #define round_down(x, y) ((x) &amp; ~__round_mask(x, y))
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : #define FIELD_SIZEOF(t, f) (sizeof(((t*)0)-&gt;f))
+<span class="lineNum">      67 </span>            : #define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
+<span class="lineNum">      68 </span>            : #define DIV_ROUND_UP_ULL(ll,d) \
+<span class="lineNum">      69 </span>            :         ({ unsigned long long _tmp = (ll)+(d)-1; do_div(_tmp, d); _tmp; })
+<span class="lineNum">      70 </span>            : 
+<span class="lineNum">      71 </span>            : #if BITS_PER_LONG == 32
+<span class="lineNum">      72 </span>            : # define DIV_ROUND_UP_SECTOR_T(ll,d) DIV_ROUND_UP_ULL(ll, d)
+<span class="lineNum">      73 </span>            : #else
+<span class="lineNum">      74 </span>            : # define DIV_ROUND_UP_SECTOR_T(ll,d) DIV_ROUND_UP(ll,d)
+<span class="lineNum">      75 </span>            : #endif
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : /* The `const' in roundup() prevents gcc-3.3 from calling __divdi3 */
+<span class="lineNum">      78 </span>            : #define roundup(x, y) (                                 \
+<span class="lineNum">      79 </span>            : {                                                       \
+<span class="lineNum">      80 </span>            :         const typeof(y) __y = y;                        \
+<span class="lineNum">      81 </span>            :         (((x) + (__y - 1)) / __y) * __y;                \
+<span class="lineNum">      82 </span>            : }                                                       \
+<span class="lineNum">      83 </span>            : )
+<span class="lineNum">      84 </span>            : #define rounddown(x, y) (                               \
+<span class="lineNum">      85 </span>            : {                                                       \
+<span class="lineNum">      86 </span>            :         typeof(x) __x = (x);                            \
+<span class="lineNum">      87 </span>            :         __x - (__x % (y));                              \
+<span class="lineNum">      88 </span>            : }                                                       \
+<span class="lineNum">      89 </span>            : )
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span>            : /*
+<span class="lineNum">      92 </span>            :  * Divide positive or negative dividend by positive divisor and round
+<span class="lineNum">      93 </span>            :  * to closest integer. Result is undefined for negative divisors and
+<span class="lineNum">      94 </span>            :  * for negative dividends if the divisor variable type is unsigned.
+<span class="lineNum">      95 </span>            :  */
+<span class="lineNum">      96 </span>            : #define DIV_ROUND_CLOSEST(x, divisor)(                  \
+<span class="lineNum">      97 </span>            : {                                                       \
+<span class="lineNum">      98 </span>            :         typeof(x) __x = x;                              \
+<span class="lineNum">      99 </span>            :         typeof(divisor) __d = divisor;                  \
+<span class="lineNum">     100 </span>            :         (((typeof(x))-1) &gt; 0 ||                              \
+<span class="lineNum">     101 </span>            :          ((typeof(divisor))-1) &gt; 0 || (__x) &gt; 0) ?        \
+<span class="lineNum">     102 </span>            :                 (((__x) + ((__d) / 2)) / (__d)) :       \
+<span class="lineNum">     103 </span>            :                 (((__x) - ((__d) / 2)) / (__d));        \
+<span class="lineNum">     104 </span>            : }                                                       \
+<span class="lineNum">     105 </span>            : )
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : /*
+<span class="lineNum">     108 </span>            :  * Multiplies an integer by a fraction, while avoiding unnecessary
+<span class="lineNum">     109 </span>            :  * overflow or loss of precision.
+<span class="lineNum">     110 </span>            :  */
+<span class="lineNum">     111 </span>            : #define mult_frac(x, numer, denom)(                     \
+<span class="lineNum">     112 </span>            : {                                                       \
+<span class="lineNum">     113 </span>            :         typeof(x) quot = (x) / (denom);                 \
+<span class="lineNum">     114 </span>            :         typeof(x) rem  = (x) % (denom);                 \
+<span class="lineNum">     115 </span>            :         (quot * (numer)) + ((rem * (numer)) / (denom)); \
+<span class="lineNum">     116 </span>            : }                                                       \
+<span class="lineNum">     117 </span>            : )
+<span class="lineNum">     118 </span>            : 
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : #define _RET_IP_                (unsigned long)__builtin_return_address(0)
+<span class="lineNum">     121 </span>            : #define _THIS_IP_  ({ __label__ __here; __here: (unsigned long)&amp;&amp;__here; })
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : #ifdef CONFIG_LBDAF
+<span class="lineNum">     124 </span>            : # include &lt;asm/div64.h&gt;
+<span class="lineNum">     125 </span>            : # define sector_div(a, b) do_div(a, b)
+<span class="lineNum">     126 </span>            : #else
+<span class="lineNum">     127 </span>            : # define sector_div(n, b)( \
+<span class="lineNum">     128 </span>            : { \
+<span class="lineNum">     129 </span>            :         int _res; \
+<span class="lineNum">     130 </span>            :         _res = (n) % (b); \
+<span class="lineNum">     131 </span>            :         (n) /= (b); \
+<span class="lineNum">     132 </span>            :         _res; \
+<span class="lineNum">     133 </span>            : } \
+<span class="lineNum">     134 </span>            : )
+<span class="lineNum">     135 </span>            : #endif
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span>            : /**
+<span class="lineNum">     138 </span>            :  * upper_32_bits - return bits 32-63 of a number
+<span class="lineNum">     139 </span>            :  * @n: the number we're accessing
+<span class="lineNum">     140 </span>            :  *
+<span class="lineNum">     141 </span>            :  * A basic shift-right of a 64- or 32-bit quantity.  Use this to suppress
+<span class="lineNum">     142 </span>            :  * the &quot;right shift count &gt;= width of type&quot; warning when that quantity is
+<span class="lineNum">     143 </span>            :  * 32-bits.
+<span class="lineNum">     144 </span>            :  */
+<span class="lineNum">     145 </span>            : #define upper_32_bits(n) ((u32)(((n) &gt;&gt; 16) &gt;&gt; 16))
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            : /**
+<span class="lineNum">     148 </span>            :  * lower_32_bits - return bits 0-31 of a number
+<span class="lineNum">     149 </span>            :  * @n: the number we're accessing
+<span class="lineNum">     150 </span>            :  */
+<span class="lineNum">     151 </span>            : #define lower_32_bits(n) ((u32)(n))
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            : struct completion;
+<span class="lineNum">     154 </span>            : struct pt_regs;
+<span class="lineNum">     155 </span>            : struct user;
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            : #ifdef CONFIG_PREEMPT_VOLUNTARY
+<span class="lineNum">     158 </span>            : extern int _cond_resched(void);
+<span class="lineNum">     159 </span>            : # define might_resched() _cond_resched()
+<span class="lineNum">     160 </span>            : #else
+<span class="lineNum">     161 </span>            : # define might_resched() do { } while (0)
+<span class="lineNum">     162 </span>            : #endif
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span>            : #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
+<span class="lineNum">     165 </span>            :   void __might_sleep(const char *file, int line, int preempt_offset);
+<span class="lineNum">     166 </span>            : /**
+<span class="lineNum">     167 </span>            :  * might_sleep - annotation for functions that can sleep
+<span class="lineNum">     168 </span>            :  *
+<span class="lineNum">     169 </span>            :  * this macro will print a stack trace if it is executed in an atomic
+<span class="lineNum">     170 </span>            :  * context (spinlock, irq-handler, ...).
+<span class="lineNum">     171 </span>            :  *
+<span class="lineNum">     172 </span>            :  * This is a useful debugging help to be able to catch problems early and not
+<span class="lineNum">     173 </span>            :  * be bitten later when the calling function happens to sleep when it is not
+<span class="lineNum">     174 </span>            :  * supposed to.
+<span class="lineNum">     175 </span>            :  */
+<span class="lineNum">     176 </span>            : # define might_sleep() \
+<span class="lineNum">     177 </span>            :         do { __might_sleep(__FILE__, __LINE__, 0); might_resched(); } while (0)
+<span class="lineNum">     178 </span>            : #else
+<span class="lineNum">     179 </span>            :   static inline void __might_sleep(const char *file, int line,
+<span class="lineNum">     180 </span>            :                                    int preempt_offset) { }
+<span class="lineNum">     181 </span>            : # define might_sleep() do { might_resched(); } while (0)
+<span class="lineNum">     182 </span>            : #endif
+<span class="lineNum">     183 </span>            : 
+<span class="lineNum">     184 </span>            : #define might_sleep_if(cond) do { if (cond) might_sleep(); } while (0)
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : /*
+<span class="lineNum">     187 </span>            :  * abs() handles unsigned and signed longs, ints, shorts and chars.  For all
+<span class="lineNum">     188 </span>            :  * input types abs() returns a signed long.
+<span class="lineNum">     189 </span>            :  * abs() should not be used for 64-bit types (s64, u64, long long) - use abs64()
+<span class="lineNum">     190 </span>            :  * for those.
+<span class="lineNum">     191 </span>            :  */
+<span class="lineNum">     192 </span>            : #define abs(x) ({                                               \
+<span class="lineNum">     193 </span>            :                 long ret;                                       \
+<span class="lineNum">     194 </span>            :                 if (sizeof(x) == sizeof(long)) {                \
+<span class="lineNum">     195 </span>            :                         long __x = (x);                         \
+<span class="lineNum">     196 </span>            :                         ret = (__x &lt; 0) ? -__x : __x;                \
+<span class="lineNum">     197 </span>            :                 } else {                                        \
+<span class="lineNum">     198 </span>            :                         int __x = (x);                          \
+<span class="lineNum">     199 </span>            :                         ret = (__x &lt; 0) ? -__x : __x;                \
+<span class="lineNum">     200 </span>            :                 }                                               \
+<span class="lineNum">     201 </span>            :                 ret;                                            \
+<span class="lineNum">     202 </span>            :         })
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            : #define abs64(x) ({                             \
+<span class="lineNum">     205 </span>            :                 s64 __x = (x);                  \
+<span class="lineNum">     206 </span>            :                 (__x &lt; 0) ? -__x : __x;              \
+<span class="lineNum">     207 </span>            :         })
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            : /**
+<span class="lineNum">     210 </span>            :  * reciprocal_scale - &quot;scale&quot; a value into range [0, ep_ro)
+<span class="lineNum">     211 </span>            :  * @val: value
+<span class="lineNum">     212 </span>            :  * @ep_ro: right open interval endpoint
+<span class="lineNum">     213 </span>            :  *
+<span class="lineNum">     214 </span>            :  * Perform a &quot;reciprocal multiplication&quot; in order to &quot;scale&quot; a value into
+<span class="lineNum">     215 </span>            :  * range [0, ep_ro), where the upper interval endpoint is right-open.
+<span class="lineNum">     216 </span>            :  * This is useful, e.g. for accessing a index of an array containing
+<span class="lineNum">     217 </span>            :  * ep_ro elements, for example. Think of it as sort of modulus, only that
+<span class="lineNum">     218 </span>            :  * the result isn't that of modulo. ;) Note that if initial input is a
+<span class="lineNum">     219 </span>            :  * small value, then result will return 0.
+<span class="lineNum">     220 </span>            :  *
+<span class="lineNum">     221 </span>            :  * Return: a result based on val in interval [0, ep_ro).
+<span class="lineNum">     222 </span>            :  */
+<span class="lineNum">     223 </span>            : static inline u32 reciprocal_scale(u32 val, u32 ep_ro)
+<span class="lineNum">     224 </span>            : {
+<span class="lineNum">     225 </span>            :         return (u32)(((u64) val * ep_ro) &gt;&gt; 32);
+<span class="lineNum">     226 </span>            : }
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            : #if defined(CONFIG_MMU) &amp;&amp; \
+<span class="lineNum">     229 </span>            :         (defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP))
+<span class="lineNum">     230 </span>            : void might_fault(void);
+<span class="lineNum">     231 </span>            : #else
+<span class="lineNum">     232 </span>            : static inline void might_fault(void) { }
+<span class="lineNum">     233 </span>            : #endif
+<span class="lineNum">     234 </span>            : 
+<span class="lineNum">     235 </span>            : extern struct atomic_notifier_head panic_notifier_list;
+<span class="lineNum">     236 </span>            : extern long (*panic_blink)(int state);
+<span class="lineNum">     237 </span>            : __printf(1, 2)
+<span class="lineNum">     238 </span>            : void panic(const char *fmt, ...)
+<span class="lineNum">     239 </span>            :         __noreturn __cold;
+<span class="lineNum">     240 </span>            : extern void oops_enter(void);
+<span class="lineNum">     241 </span>            : extern void oops_exit(void);
+<span class="lineNum">     242 </span>            : void print_oops_end_marker(void);
+<span class="lineNum">     243 </span>            : extern int oops_may_print(void);
+<span class="lineNum">     244 </span>            : void do_exit(long error_code)
+<span class="lineNum">     245 </span>            :         __noreturn;
+<span class="lineNum">     246 </span>            : void complete_and_exit(struct completion *, long)
+<span class="lineNum">     247 </span>            :         __noreturn;
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            : /* Internal, do not use. */
+<span class="lineNum">     250 </span>            : int __must_check _kstrtoul(const char *s, unsigned int base, unsigned long *res);
+<span class="lineNum">     251 </span>            : int __must_check _kstrtol(const char *s, unsigned int base, long *res);
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span>            : int __must_check kstrtoull(const char *s, unsigned int base, unsigned long long *res);
+<span class="lineNum">     254 </span>            : int __must_check kstrtoll(const char *s, unsigned int base, long long *res);
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            : /**
+<span class="lineNum">     257 </span>            :  * kstrtoul - convert a string to an unsigned long
+<span class="lineNum">     258 </span>            :  * @s: The start of the string. The string must be null-terminated, and may also
+<span class="lineNum">     259 </span>            :  *  include a single newline before its terminating null. The first character
+<span class="lineNum">     260 </span>            :  *  may also be a plus sign, but not a minus sign.
+<span class="lineNum">     261 </span>            :  * @base: The number base to use. The maximum supported base is 16. If base is
+<span class="lineNum">     262 </span>            :  *  given as 0, then the base of the string is automatically detected with the
+<span class="lineNum">     263 </span>            :  *  conventional semantics - If it begins with 0x the number will be parsed as a
+<span class="lineNum">     264 </span>            :  *  hexadecimal (case insensitive), if it otherwise begins with 0, it will be
+<span class="lineNum">     265 </span>            :  *  parsed as an octal number. Otherwise it will be parsed as a decimal.
+<span class="lineNum">     266 </span>            :  * @res: Where to write the result of the conversion on success.
+<span class="lineNum">     267 </span>            :  *
+<span class="lineNum">     268 </span>            :  * Returns 0 on success, -ERANGE on overflow and -EINVAL on parsing error.
+<span class="lineNum">     269 </span>            :  * Used as a replacement for the obsolete simple_strtoull. Return code must
+<span class="lineNum">     270 </span>            :  * be checked.
+<span class="lineNum">     271 </span>            : */
+<span class="lineNum">     272 </span>            : static inline int __must_check kstrtoul(const char *s, unsigned int base, unsigned long *res)
+<span class="lineNum">     273 </span>            : {
+<span class="lineNum">     274 </span>            :         /*
+<span class="lineNum">     275 </span>            :          * We want to shortcut function call, but
+<span class="lineNum">     276 </span>            :          * __builtin_types_compatible_p(unsigned long, unsigned long long) = 0.
+<span class="lineNum">     277 </span>            :          */
+<span class="lineNum">     278 </span>            :         if (sizeof(unsigned long) == sizeof(unsigned long long) &amp;&amp;
+<span class="lineNum">     279 </span>            :             __alignof__(unsigned long) == __alignof__(unsigned long long))
+<span class="lineNum">     280 </span><span class="lineNoCov">          0 :                 return kstrtoull(s, base, (unsigned long long *)res);</span>
+<span class="lineNum">     281 </span>            :         else
+<span class="lineNum">     282 </span>            :                 return _kstrtoul(s, base, res);
+<span class="lineNum">     283 </span>            : }
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            : /**
+<span class="lineNum">     286 </span>            :  * kstrtol - convert a string to a long
+<span class="lineNum">     287 </span>            :  * @s: The start of the string. The string must be null-terminated, and may also
+<span class="lineNum">     288 </span>            :  *  include a single newline before its terminating null. The first character
+<span class="lineNum">     289 </span>            :  *  may also be a plus sign or a minus sign.
+<span class="lineNum">     290 </span>            :  * @base: The number base to use. The maximum supported base is 16. If base is
+<span class="lineNum">     291 </span>            :  *  given as 0, then the base of the string is automatically detected with the
+<span class="lineNum">     292 </span>            :  *  conventional semantics - If it begins with 0x the number will be parsed as a
+<span class="lineNum">     293 </span>            :  *  hexadecimal (case insensitive), if it otherwise begins with 0, it will be
+<span class="lineNum">     294 </span>            :  *  parsed as an octal number. Otherwise it will be parsed as a decimal.
+<span class="lineNum">     295 </span>            :  * @res: Where to write the result of the conversion on success.
+<span class="lineNum">     296 </span>            :  *
+<span class="lineNum">     297 </span>            :  * Returns 0 on success, -ERANGE on overflow and -EINVAL on parsing error.
+<span class="lineNum">     298 </span>            :  * Used as a replacement for the obsolete simple_strtoull. Return code must
+<span class="lineNum">     299 </span>            :  * be checked.
+<span class="lineNum">     300 </span>            :  */
+<span class="lineNum">     301 </span>            : static inline int __must_check kstrtol(const char *s, unsigned int base, long *res)
+<span class="lineNum">     302 </span>            : {
+<span class="lineNum">     303 </span>            :         /*
+<span class="lineNum">     304 </span>            :          * We want to shortcut function call, but
+<span class="lineNum">     305 </span>            :          * __builtin_types_compatible_p(long, long long) = 0.
+<span class="lineNum">     306 </span>            :          */
+<span class="lineNum">     307 </span>            :         if (sizeof(long) == sizeof(long long) &amp;&amp;
+<span class="lineNum">     308 </span>            :             __alignof__(long) == __alignof__(long long))
+<span class="lineNum">     309 </span>            :                 return kstrtoll(s, base, (long long *)res);
+<span class="lineNum">     310 </span>            :         else
+<span class="lineNum">     311 </span>            :                 return _kstrtol(s, base, res);
+<span class="lineNum">     312 </span>            : }
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span>            : int __must_check kstrtouint(const char *s, unsigned int base, unsigned int *res);
+<span class="lineNum">     315 </span>            : int __must_check kstrtoint(const char *s, unsigned int base, int *res);
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span>            : static inline int __must_check kstrtou64(const char *s, unsigned int base, u64 *res)
+<span class="lineNum">     318 </span>            : {
+<span class="lineNum">     319 </span>            :         return kstrtoull(s, base, res);
+<span class="lineNum">     320 </span>            : }
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span>            : static inline int __must_check kstrtos64(const char *s, unsigned int base, s64 *res)
+<span class="lineNum">     323 </span>            : {
+<span class="lineNum">     324 </span>            :         return kstrtoll(s, base, res);
+<span class="lineNum">     325 </span>            : }
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span>            : static inline int __must_check kstrtou32(const char *s, unsigned int base, u32 *res)
+<span class="lineNum">     328 </span>            : {
+<span class="lineNum">     329 </span>            :         return kstrtouint(s, base, res);
+<span class="lineNum">     330 </span>            : }
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            : static inline int __must_check kstrtos32(const char *s, unsigned int base, s32 *res)
+<span class="lineNum">     333 </span>            : {
+<span class="lineNum">     334 </span>            :         return kstrtoint(s, base, res);
+<span class="lineNum">     335 </span>            : }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            : int __must_check kstrtou16(const char *s, unsigned int base, u16 *res);
+<span class="lineNum">     338 </span>            : int __must_check kstrtos16(const char *s, unsigned int base, s16 *res);
+<span class="lineNum">     339 </span>            : int __must_check kstrtou8(const char *s, unsigned int base, u8 *res);
+<span class="lineNum">     340 </span>            : int __must_check kstrtos8(const char *s, unsigned int base, s8 *res);
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span>            : int __must_check kstrtoull_from_user(const char __user *s, size_t count, unsigned int base, unsigned long long *res);
+<span class="lineNum">     343 </span>            : int __must_check kstrtoll_from_user(const char __user *s, size_t count, unsigned int base, long long *res);
+<span class="lineNum">     344 </span>            : int __must_check kstrtoul_from_user(const char __user *s, size_t count, unsigned int base, unsigned long *res);
+<span class="lineNum">     345 </span>            : int __must_check kstrtol_from_user(const char __user *s, size_t count, unsigned int base, long *res);
+<span class="lineNum">     346 </span>            : int __must_check kstrtouint_from_user(const char __user *s, size_t count, unsigned int base, unsigned int *res);
+<span class="lineNum">     347 </span>            : int __must_check kstrtoint_from_user(const char __user *s, size_t count, unsigned int base, int *res);
+<span class="lineNum">     348 </span>            : int __must_check kstrtou16_from_user(const char __user *s, size_t count, unsigned int base, u16 *res);
+<span class="lineNum">     349 </span>            : int __must_check kstrtos16_from_user(const char __user *s, size_t count, unsigned int base, s16 *res);
+<span class="lineNum">     350 </span>            : int __must_check kstrtou8_from_user(const char __user *s, size_t count, unsigned int base, u8 *res);
+<span class="lineNum">     351 </span>            : int __must_check kstrtos8_from_user(const char __user *s, size_t count, unsigned int base, s8 *res);
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            : static inline int __must_check kstrtou64_from_user(const char __user *s, size_t count, unsigned int base, u64 *res)
+<span class="lineNum">     354 </span>            : {
+<span class="lineNum">     355 </span>            :         return kstrtoull_from_user(s, count, base, res);
+<span class="lineNum">     356 </span>            : }
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            : static inline int __must_check kstrtos64_from_user(const char __user *s, size_t count, unsigned int base, s64 *res)
+<span class="lineNum">     359 </span>            : {
+<span class="lineNum">     360 </span>            :         return kstrtoll_from_user(s, count, base, res);
+<span class="lineNum">     361 </span>            : }
+<span class="lineNum">     362 </span>            : 
+<span class="lineNum">     363 </span>            : static inline int __must_check kstrtou32_from_user(const char __user *s, size_t count, unsigned int base, u32 *res)
+<span class="lineNum">     364 </span>            : {
+<span class="lineNum">     365 </span>            :         return kstrtouint_from_user(s, count, base, res);
+<span class="lineNum">     366 </span>            : }
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            : static inline int __must_check kstrtos32_from_user(const char __user *s, size_t count, unsigned int base, s32 *res)
+<span class="lineNum">     369 </span>            : {
+<span class="lineNum">     370 </span>            :         return kstrtoint_from_user(s, count, base, res);
+<span class="lineNum">     371 </span>            : }
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span>            : /* Obsolete, do not use.  Use kstrto&lt;foo&gt; instead */
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span>            : extern unsigned long simple_strtoul(const char *,char **,unsigned int);
+<span class="lineNum">     376 </span>            : extern long simple_strtol(const char *,char **,unsigned int);
+<span class="lineNum">     377 </span>            : extern unsigned long long simple_strtoull(const char *,char **,unsigned int);
+<span class="lineNum">     378 </span>            : extern long long simple_strtoll(const char *,char **,unsigned int);
+<span class="lineNum">     379 </span>            : #define strict_strtoul  kstrtoul
+<span class="lineNum">     380 </span>            : #define strict_strtol   kstrtol
+<span class="lineNum">     381 </span>            : #define strict_strtoull kstrtoull
+<span class="lineNum">     382 </span>            : #define strict_strtoll  kstrtoll
+<span class="lineNum">     383 </span>            : 
+<span class="lineNum">     384 </span>            : extern int num_to_str(char *buf, int size, unsigned long long num);
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span>            : /* lib/printf utilities */
+<span class="lineNum">     387 </span>            : 
+<span class="lineNum">     388 </span>            : extern __printf(2, 3) int sprintf(char *buf, const char * fmt, ...);
+<span class="lineNum">     389 </span>            : extern __printf(2, 0) int vsprintf(char *buf, const char *, va_list);
+<span class="lineNum">     390 </span>            : extern __printf(3, 4)
+<span class="lineNum">     391 </span>            : int snprintf(char *buf, size_t size, const char *fmt, ...);
+<span class="lineNum">     392 </span>            : extern __printf(3, 0)
+<span class="lineNum">     393 </span>            : int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
+<span class="lineNum">     394 </span>            : extern __printf(3, 4)
+<span class="lineNum">     395 </span>            : int scnprintf(char *buf, size_t size, const char *fmt, ...);
+<span class="lineNum">     396 </span>            : extern __printf(3, 0)
+<span class="lineNum">     397 </span>            : int vscnprintf(char *buf, size_t size, const char *fmt, va_list args);
+<span class="lineNum">     398 </span>            : extern __printf(2, 3)
+<span class="lineNum">     399 </span>            : char *kasprintf(gfp_t gfp, const char *fmt, ...);
+<span class="lineNum">     400 </span>            : extern char *kvasprintf(gfp_t gfp, const char *fmt, va_list args);
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span>            : extern __scanf(2, 3)
+<span class="lineNum">     403 </span>            : int sscanf(const char *, const char *, ...);
+<span class="lineNum">     404 </span>            : extern __scanf(2, 0)
+<span class="lineNum">     405 </span>            : int vsscanf(const char *, const char *, va_list);
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            : extern int get_option(char **str, int *pint);
+<span class="lineNum">     408 </span>            : extern char *get_options(const char *str, int nints, int *ints);
+<span class="lineNum">     409 </span>            : extern unsigned long long memparse(const char *ptr, char **retptr);
+<span class="lineNum">     410 </span>            : 
+<span class="lineNum">     411 </span>            : extern int core_kernel_text(unsigned long addr);
+<span class="lineNum">     412 </span>            : extern int core_kernel_data(unsigned long addr);
+<span class="lineNum">     413 </span>            : extern int __kernel_text_address(unsigned long addr);
+<span class="lineNum">     414 </span>            : extern int kernel_text_address(unsigned long addr);
+<span class="lineNum">     415 </span>            : extern int func_ptr_is_kernel_text(void *ptr);
+<span class="lineNum">     416 </span>            : 
+<span class="lineNum">     417 </span>            : struct pid;
+<span class="lineNum">     418 </span>            : extern struct pid *session_of_pgrp(struct pid *pgrp);
+<span class="lineNum">     419 </span>            : 
+<span class="lineNum">     420 </span>            : unsigned long int_sqrt(unsigned long);
+<span class="lineNum">     421 </span>            : 
+<span class="lineNum">     422 </span>            : extern void bust_spinlocks(int yes);
+<span class="lineNum">     423 </span>            : extern int oops_in_progress;            /* If set, an oops, panic(), BUG() or die() is in progress */
+<span class="lineNum">     424 </span>            : extern int panic_timeout;
+<span class="lineNum">     425 </span>            : extern int panic_on_oops;
+<span class="lineNum">     426 </span>            : extern int panic_on_unrecovered_nmi;
+<span class="lineNum">     427 </span>            : extern int panic_on_io_nmi;
+<span class="lineNum">     428 </span>            : extern int sysctl_panic_on_stackoverflow;
+<span class="lineNum">     429 </span>            : /*
+<span class="lineNum">     430 </span>            :  * Only to be used by arch init code. If the user over-wrote the default
+<span class="lineNum">     431 </span>            :  * CONFIG_PANIC_TIMEOUT, honor it.
+<span class="lineNum">     432 </span>            :  */
+<span class="lineNum">     433 </span>            : static inline void set_arch_panic_timeout(int timeout, int arch_default_timeout)
+<span class="lineNum">     434 </span>            : {
+<span class="lineNum">     435 </span>            :         if (panic_timeout == arch_default_timeout)
+<span class="lineNum">     436 </span>            :                 panic_timeout = timeout;
+<span class="lineNum">     437 </span>            : }
+<span class="lineNum">     438 </span>            : extern const char *print_tainted(void);
+<span class="lineNum">     439 </span>            : enum lockdep_ok {
+<span class="lineNum">     440 </span>            :         LOCKDEP_STILL_OK,
+<span class="lineNum">     441 </span>            :         LOCKDEP_NOW_UNRELIABLE
+<span class="lineNum">     442 </span>            : };
+<span class="lineNum">     443 </span>            : extern void add_taint(unsigned flag, enum lockdep_ok);
+<span class="lineNum">     444 </span>            : extern int test_taint(unsigned flag);
+<span class="lineNum">     445 </span>            : extern unsigned long get_taint(void);
+<span class="lineNum">     446 </span>            : extern int root_mountflags;
+<span class="lineNum">     447 </span>            : 
+<span class="lineNum">     448 </span>            : extern bool early_boot_irqs_disabled;
+<span class="lineNum">     449 </span>            : 
+<span class="lineNum">     450 </span>            : /* Values used for system_state */
+<span class="lineNum">     451 </span>            : extern enum system_states {
+<span class="lineNum">     452 </span>            :         SYSTEM_BOOTING,
+<span class="lineNum">     453 </span>            :         SYSTEM_RUNNING,
+<span class="lineNum">     454 </span>            :         SYSTEM_HALT,
+<span class="lineNum">     455 </span>            :         SYSTEM_POWER_OFF,
+<span class="lineNum">     456 </span>            :         SYSTEM_RESTART,
+<span class="lineNum">     457 </span>            : } system_state;
+<span class="lineNum">     458 </span>            : 
+<span class="lineNum">     459 </span>            : #define TAINT_PROPRIETARY_MODULE        0
+<span class="lineNum">     460 </span>            : #define TAINT_FORCED_MODULE             1
+<span class="lineNum">     461 </span>            : #define TAINT_CPU_OUT_OF_SPEC           2
+<span class="lineNum">     462 </span>            : #define TAINT_FORCED_RMMOD              3
+<span class="lineNum">     463 </span>            : #define TAINT_MACHINE_CHECK             4
+<span class="lineNum">     464 </span>            : #define TAINT_BAD_PAGE                  5
+<span class="lineNum">     465 </span>            : #define TAINT_USER                      6
+<span class="lineNum">     466 </span>            : #define TAINT_DIE                       7
+<span class="lineNum">     467 </span>            : #define TAINT_OVERRIDDEN_ACPI_TABLE     8
+<span class="lineNum">     468 </span>            : #define TAINT_WARN                      9
+<span class="lineNum">     469 </span>            : #define TAINT_CRAP                      10
+<span class="lineNum">     470 </span>            : #define TAINT_FIRMWARE_WORKAROUND       11
+<span class="lineNum">     471 </span>            : #define TAINT_OOT_MODULE                12
+<span class="lineNum">     472 </span>            : #define TAINT_UNSIGNED_MODULE           13
+<span class="lineNum">     473 </span>            : #define TAINT_SOFTLOCKUP                14
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span>            : extern const char hex_asc[];
+<span class="lineNum">     476 </span>            : #define hex_asc_lo(x)   hex_asc[((x) &amp; 0x0f)]
+<span class="lineNum">     477 </span>            : #define hex_asc_hi(x)   hex_asc[((x) &amp; 0xf0) &gt;&gt; 4]
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            : static inline char *hex_byte_pack(char *buf, u8 byte)
+<span class="lineNum">     480 </span>            : {
+<span class="lineNum">     481 </span>            :         *buf++ = hex_asc_hi(byte);
+<span class="lineNum">     482 </span>            :         *buf++ = hex_asc_lo(byte);
+<span class="lineNum">     483 </span>            :         return buf;
+<span class="lineNum">     484 </span>            : }
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span>            : extern const char hex_asc_upper[];
+<span class="lineNum">     487 </span>            : #define hex_asc_upper_lo(x)     hex_asc_upper[((x) &amp; 0x0f)]
+<span class="lineNum">     488 </span>            : #define hex_asc_upper_hi(x)     hex_asc_upper[((x) &amp; 0xf0) &gt;&gt; 4]
+<span class="lineNum">     489 </span>            : 
+<span class="lineNum">     490 </span>            : static inline char *hex_byte_pack_upper(char *buf, u8 byte)
+<span class="lineNum">     491 </span>            : {
+<span class="lineNum">     492 </span>            :         *buf++ = hex_asc_upper_hi(byte);
+<span class="lineNum">     493 </span>            :         *buf++ = hex_asc_upper_lo(byte);
+<span class="lineNum">     494 </span>            :         return buf;
+<span class="lineNum">     495 </span>            : }
+<span class="lineNum">     496 </span>            : 
+<span class="lineNum">     497 </span>            : extern int hex_to_bin(char ch);
+<span class="lineNum">     498 </span>            : extern int __must_check hex2bin(u8 *dst, const char *src, size_t count);
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span>            : bool mac_pton(const char *s, u8 *mac);
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            : /*
+<span class="lineNum">     503 </span>            :  * General tracing related utility functions - trace_printk(),
+<span class="lineNum">     504 </span>            :  * tracing_on/tracing_off and tracing_start()/tracing_stop
+<span class="lineNum">     505 </span>            :  *
+<span class="lineNum">     506 </span>            :  * Use tracing_on/tracing_off when you want to quickly turn on or off
+<span class="lineNum">     507 </span>            :  * tracing. It simply enables or disables the recording of the trace events.
+<span class="lineNum">     508 </span>            :  * This also corresponds to the user space /sys/kernel/debug/tracing/tracing_on
+<span class="lineNum">     509 </span>            :  * file, which gives a means for the kernel and userspace to interact.
+<span class="lineNum">     510 </span>            :  * Place a tracing_off() in the kernel where you want tracing to end.
+<span class="lineNum">     511 </span>            :  * From user space, examine the trace, and then echo 1 &gt; tracing_on
+<span class="lineNum">     512 </span>            :  * to continue tracing.
+<span class="lineNum">     513 </span>            :  *
+<span class="lineNum">     514 </span>            :  * tracing_stop/tracing_start has slightly more overhead. It is used
+<span class="lineNum">     515 </span>            :  * by things like suspend to ram where disabling the recording of the
+<span class="lineNum">     516 </span>            :  * trace is not enough, but tracing must actually stop because things
+<span class="lineNum">     517 </span>            :  * like calling smp_processor_id() may crash the system.
+<span class="lineNum">     518 </span>            :  *
+<span class="lineNum">     519 </span>            :  * Most likely, you want to use tracing_on/tracing_off.
+<span class="lineNum">     520 </span>            :  */
+<span class="lineNum">     521 </span>            : #ifdef CONFIG_RING_BUFFER
+<span class="lineNum">     522 </span>            : /* trace_off_permanent stops recording with no way to bring it back */
+<span class="lineNum">     523 </span>            : void tracing_off_permanent(void);
+<span class="lineNum">     524 </span>            : #else
+<span class="lineNum">     525 </span>            : static inline void tracing_off_permanent(void) { }
+<span class="lineNum">     526 </span>            : #endif
+<span class="lineNum">     527 </span>            : 
+<span class="lineNum">     528 </span>            : enum ftrace_dump_mode {
+<span class="lineNum">     529 </span>            :         DUMP_NONE,
+<span class="lineNum">     530 </span>            :         DUMP_ALL,
+<span class="lineNum">     531 </span>            :         DUMP_ORIG,
+<span class="lineNum">     532 </span>            : };
+<span class="lineNum">     533 </span>            : 
+<span class="lineNum">     534 </span>            : #ifdef CONFIG_TRACING
+<span class="lineNum">     535 </span>            : void tracing_on(void);
+<span class="lineNum">     536 </span>            : void tracing_off(void);
+<span class="lineNum">     537 </span>            : int tracing_is_on(void);
+<span class="lineNum">     538 </span>            : void tracing_snapshot(void);
+<span class="lineNum">     539 </span>            : void tracing_snapshot_alloc(void);
+<span class="lineNum">     540 </span>            : 
+<span class="lineNum">     541 </span>            : extern void tracing_start(void);
+<span class="lineNum">     542 </span>            : extern void tracing_stop(void);
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span>            : static inline __printf(1, 2)
+<span class="lineNum">     545 </span>            : void ____trace_printk_check_format(const char *fmt, ...)
+<span class="lineNum">     546 </span>            : {
+<span class="lineNum">     547 </span>            : }
+<span class="lineNum">     548 </span>            : #define __trace_printk_check_format(fmt, args...)                       \
+<span class="lineNum">     549 </span>            : do {                                                                    \
+<span class="lineNum">     550 </span>            :         if (0)                                                          \
+<span class="lineNum">     551 </span>            :                 ____trace_printk_check_format(fmt, ##args);             \
+<span class="lineNum">     552 </span>            : } while (0)
+<span class="lineNum">     553 </span>            : 
+<span class="lineNum">     554 </span>            : /**
+<span class="lineNum">     555 </span>            :  * trace_printk - printf formatting in the ftrace buffer
+<span class="lineNum">     556 </span>            :  * @fmt: the printf format for printing
+<span class="lineNum">     557 </span>            :  *
+<span class="lineNum">     558 </span>            :  * Note: __trace_printk is an internal function for trace_printk and
+<span class="lineNum">     559 </span>            :  *       the @ip is passed in via the trace_printk macro.
+<span class="lineNum">     560 </span>            :  *
+<span class="lineNum">     561 </span>            :  * This function allows a kernel developer to debug fast path sections
+<span class="lineNum">     562 </span>            :  * that printk is not appropriate for. By scattering in various
+<span class="lineNum">     563 </span>            :  * printk like tracing in the code, a developer can quickly see
+<span class="lineNum">     564 </span>            :  * where problems are occurring.
+<span class="lineNum">     565 </span>            :  *
+<span class="lineNum">     566 </span>            :  * This is intended as a debugging tool for the developer only.
+<span class="lineNum">     567 </span>            :  * Please refrain from leaving trace_printks scattered around in
+<span class="lineNum">     568 </span>            :  * your code. (Extra memory is used for special buffers that are
+<span class="lineNum">     569 </span>            :  * allocated when trace_printk() is used)
+<span class="lineNum">     570 </span>            :  *
+<span class="lineNum">     571 </span>            :  * A little optization trick is done here. If there's only one
+<span class="lineNum">     572 </span>            :  * argument, there's no need to scan the string for printf formats.
+<span class="lineNum">     573 </span>            :  * The trace_puts() will suffice. But how can we take advantage of
+<span class="lineNum">     574 </span>            :  * using trace_puts() when trace_printk() has only one argument?
+<span class="lineNum">     575 </span>            :  * By stringifying the args and checking the size we can tell
+<span class="lineNum">     576 </span>            :  * whether or not there are args. __stringify((__VA_ARGS__)) will
+<span class="lineNum">     577 </span>            :  * turn into &quot;()\0&quot; with a size of 3 when there are no args, anything
+<span class="lineNum">     578 </span>            :  * else will be bigger. All we need to do is define a string to this,
+<span class="lineNum">     579 </span>            :  * and then take its size and compare to 3. If it's bigger, use
+<span class="lineNum">     580 </span>            :  * do_trace_printk() otherwise, optimize it to trace_puts(). Then just
+<span class="lineNum">     581 </span>            :  * let gcc optimize the rest.
+<span class="lineNum">     582 </span>            :  */
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span>            : #define trace_printk(fmt, ...)                          \
+<span class="lineNum">     585 </span>            : do {                                                    \
+<span class="lineNum">     586 </span>            :         char _______STR[] = __stringify((__VA_ARGS__)); \
+<span class="lineNum">     587 </span>            :         if (sizeof(_______STR) &gt; 3)                  \
+<span class="lineNum">     588 </span>            :                 do_trace_printk(fmt, ##__VA_ARGS__);    \
+<span class="lineNum">     589 </span>            :         else                                            \
+<span class="lineNum">     590 </span>            :                 trace_puts(fmt);                        \
+<span class="lineNum">     591 </span>            : } while (0)
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span>            : #define do_trace_printk(fmt, args...)                                   \
+<span class="lineNum">     594 </span>            : do {                                                                    \
+<span class="lineNum">     595 </span>            :         static const char *trace_printk_fmt                             \
+<span class="lineNum">     596 </span>            :                 __attribute__((section(&quot;__trace_printk_fmt&quot;))) =      \
+<span class="lineNum">     597 </span>            :                 __builtin_constant_p(fmt) ? fmt : NULL;                 \
+<span class="lineNum">     598 </span>            :                                                                         \
+<span class="lineNum">     599 </span>            :         __trace_printk_check_format(fmt, ##args);                       \
+<span class="lineNum">     600 </span>            :                                                                         \
+<span class="lineNum">     601 </span>            :         if (__builtin_constant_p(fmt))                                  \
+<span class="lineNum">     602 </span>            :                 __trace_bprintk(_THIS_IP_, trace_printk_fmt, ##args);   \
+<span class="lineNum">     603 </span>            :         else                                                            \
+<span class="lineNum">     604 </span>            :                 __trace_printk(_THIS_IP_, fmt, ##args);                 \
+<span class="lineNum">     605 </span>            : } while (0)
+<span class="lineNum">     606 </span>            : 
+<span class="lineNum">     607 </span>            : extern __printf(2, 3)
+<span class="lineNum">     608 </span>            : int __trace_bprintk(unsigned long ip, const char *fmt, ...);
+<span class="lineNum">     609 </span>            : 
+<span class="lineNum">     610 </span>            : extern __printf(2, 3)
+<span class="lineNum">     611 </span>            : int __trace_printk(unsigned long ip, const char *fmt, ...);
+<span class="lineNum">     612 </span>            : 
+<span class="lineNum">     613 </span>            : /**
+<span class="lineNum">     614 </span>            :  * trace_puts - write a string into the ftrace buffer
+<span class="lineNum">     615 </span>            :  * @str: the string to record
+<span class="lineNum">     616 </span>            :  *
+<span class="lineNum">     617 </span>            :  * Note: __trace_bputs is an internal function for trace_puts and
+<span class="lineNum">     618 </span>            :  *       the @ip is passed in via the trace_puts macro.
+<span class="lineNum">     619 </span>            :  *
+<span class="lineNum">     620 </span>            :  * This is similar to trace_printk() but is made for those really fast
+<span class="lineNum">     621 </span>            :  * paths that a developer wants the least amount of &quot;Heisenbug&quot; affects,
+<span class="lineNum">     622 </span>            :  * where the processing of the print format is still too much.
+<span class="lineNum">     623 </span>            :  *
+<span class="lineNum">     624 </span>            :  * This function allows a kernel developer to debug fast path sections
+<span class="lineNum">     625 </span>            :  * that printk is not appropriate for. By scattering in various
+<span class="lineNum">     626 </span>            :  * printk like tracing in the code, a developer can quickly see
+<span class="lineNum">     627 </span>            :  * where problems are occurring.
+<span class="lineNum">     628 </span>            :  *
+<span class="lineNum">     629 </span>            :  * This is intended as a debugging tool for the developer only.
+<span class="lineNum">     630 </span>            :  * Please refrain from leaving trace_puts scattered around in
+<span class="lineNum">     631 </span>            :  * your code. (Extra memory is used for special buffers that are
+<span class="lineNum">     632 </span>            :  * allocated when trace_puts() is used)
+<span class="lineNum">     633 </span>            :  *
+<span class="lineNum">     634 </span>            :  * Returns: 0 if nothing was written, positive # if string was.
+<span class="lineNum">     635 </span>            :  *  (1 when __trace_bputs is used, strlen(str) when __trace_puts is used)
+<span class="lineNum">     636 </span>            :  */
+<span class="lineNum">     637 </span>            : 
+<span class="lineNum">     638 </span>            : #define trace_puts(str) ({                                              \
+<span class="lineNum">     639 </span>            :         static const char *trace_printk_fmt                             \
+<span class="lineNum">     640 </span>            :                 __attribute__((section(&quot;__trace_printk_fmt&quot;))) =      \
+<span class="lineNum">     641 </span>            :                 __builtin_constant_p(str) ? str : NULL;                 \
+<span class="lineNum">     642 </span>            :                                                                         \
+<span class="lineNum">     643 </span>            :         if (__builtin_constant_p(str))                                  \
+<span class="lineNum">     644 </span>            :                 __trace_bputs(_THIS_IP_, trace_printk_fmt);             \
+<span class="lineNum">     645 </span>            :         else                                                            \
+<span class="lineNum">     646 </span>            :                 __trace_puts(_THIS_IP_, str, strlen(str));              \
+<span class="lineNum">     647 </span>            : })
+<span class="lineNum">     648 </span>            : extern int __trace_bputs(unsigned long ip, const char *str);
+<span class="lineNum">     649 </span>            : extern int __trace_puts(unsigned long ip, const char *str, int size);
+<span class="lineNum">     650 </span>            : 
+<span class="lineNum">     651 </span>            : extern void trace_dump_stack(int skip);
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span>            : /*
+<span class="lineNum">     654 </span>            :  * The double __builtin_constant_p is because gcc will give us an error
+<span class="lineNum">     655 </span>            :  * if we try to allocate the static variable to fmt if it is not a
+<span class="lineNum">     656 </span>            :  * constant. Even with the outer if statement.
+<span class="lineNum">     657 </span>            :  */
+<span class="lineNum">     658 </span>            : #define ftrace_vprintk(fmt, vargs)                                      \
+<span class="lineNum">     659 </span>            : do {                                                                    \
+<span class="lineNum">     660 </span>            :         if (__builtin_constant_p(fmt)) {                                \
+<span class="lineNum">     661 </span>            :                 static const char *trace_printk_fmt                     \
+<span class="lineNum">     662 </span>            :                   __attribute__((section(&quot;__trace_printk_fmt&quot;))) =    \
+<span class="lineNum">     663 </span>            :                         __builtin_constant_p(fmt) ? fmt : NULL;         \
+<span class="lineNum">     664 </span>            :                                                                         \
+<span class="lineNum">     665 </span>            :                 __ftrace_vbprintk(_THIS_IP_, trace_printk_fmt, vargs);  \
+<span class="lineNum">     666 </span>            :         } else                                                          \
+<span class="lineNum">     667 </span>            :                 __ftrace_vprintk(_THIS_IP_, fmt, vargs);                \
+<span class="lineNum">     668 </span>            : } while (0)
+<span class="lineNum">     669 </span>            : 
+<span class="lineNum">     670 </span>            : extern int
+<span class="lineNum">     671 </span>            : __ftrace_vbprintk(unsigned long ip, const char *fmt, va_list ap);
+<span class="lineNum">     672 </span>            : 
+<span class="lineNum">     673 </span>            : extern int
+<span class="lineNum">     674 </span>            : __ftrace_vprintk(unsigned long ip, const char *fmt, va_list ap);
+<span class="lineNum">     675 </span>            : 
+<span class="lineNum">     676 </span>            : extern void ftrace_dump(enum ftrace_dump_mode oops_dump_mode);
+<span class="lineNum">     677 </span>            : #else
+<span class="lineNum">     678 </span>            : static inline void tracing_start(void) { }
+<span class="lineNum">     679 </span>            : static inline void tracing_stop(void) { }
+<span class="lineNum">     680 </span>            : static inline void trace_dump_stack(int skip) { }
+<span class="lineNum">     681 </span>            : 
+<span class="lineNum">     682 </span>            : static inline void tracing_on(void) { }
+<span class="lineNum">     683 </span>            : static inline void tracing_off(void) { }
+<span class="lineNum">     684 </span>            : static inline int tracing_is_on(void) { return 0; }
+<span class="lineNum">     685 </span>            : static inline void tracing_snapshot(void) { }
+<span class="lineNum">     686 </span>            : static inline void tracing_snapshot_alloc(void) { }
+<span class="lineNum">     687 </span>            : 
+<span class="lineNum">     688 </span>            : static inline __printf(1, 2)
+<span class="lineNum">     689 </span>            : int trace_printk(const char *fmt, ...)
+<span class="lineNum">     690 </span>            : {
+<span class="lineNum">     691 </span>            :         return 0;
+<span class="lineNum">     692 </span>            : }
+<span class="lineNum">     693 </span>            : static inline int
+<span class="lineNum">     694 </span>            : ftrace_vprintk(const char *fmt, va_list ap)
+<span class="lineNum">     695 </span>            : {
+<span class="lineNum">     696 </span>            :         return 0;
+<span class="lineNum">     697 </span>            : }
+<span class="lineNum">     698 </span>            : static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
+<span class="lineNum">     699 </span>            : #endif /* CONFIG_TRACING */
+<span class="lineNum">     700 </span>            : 
+<span class="lineNum">     701 </span>            : /*
+<span class="lineNum">     702 </span>            :  * min()/max()/clamp() macros that also do
+<span class="lineNum">     703 </span>            :  * strict type-checking.. See the
+<span class="lineNum">     704 </span>            :  * &quot;unnecessary&quot; pointer comparison.
+<span class="lineNum">     705 </span>            :  */
+<span class="lineNum">     706 </span>            : #define min(x, y) ({                            \
+<span class="lineNum">     707 </span>            :         typeof(x) _min1 = (x);                  \
+<span class="lineNum">     708 </span>            :         typeof(y) _min2 = (y);                  \
+<span class="lineNum">     709 </span>            :         (void) (&amp;_min1 == &amp;_min2);              \
+<span class="lineNum">     710 </span>            :         _min1 &lt; _min2 ? _min1 : _min2; })
+<span class="lineNum">     711 </span>            : 
+<span class="lineNum">     712 </span>            : #define max(x, y) ({                            \
+<span class="lineNum">     713 </span>            :         typeof(x) _max1 = (x);                  \
+<span class="lineNum">     714 </span>            :         typeof(y) _max2 = (y);                  \
+<span class="lineNum">     715 </span>            :         (void) (&amp;_max1 == &amp;_max2);              \
+<span class="lineNum">     716 </span>            :         _max1 &gt; _max2 ? _max1 : _max2; })
+<span class="lineNum">     717 </span>            : 
+<span class="lineNum">     718 </span>            : #define min3(x, y, z) ({                        \
+<span class="lineNum">     719 </span>            :         typeof(x) _min1 = (x);                  \
+<span class="lineNum">     720 </span>            :         typeof(y) _min2 = (y);                  \
+<span class="lineNum">     721 </span>            :         typeof(z) _min3 = (z);                  \
+<span class="lineNum">     722 </span>            :         (void) (&amp;_min1 == &amp;_min2);              \
+<span class="lineNum">     723 </span>            :         (void) (&amp;_min1 == &amp;_min3);              \
+<span class="lineNum">     724 </span>            :         _min1 &lt; _min2 ? (_min1 &lt; _min3 ? _min1 : _min3) : \
+<span class="lineNum">     725 </span>            :                 (_min2 &lt; _min3 ? _min2 : _min3); })
+<span class="lineNum">     726 </span>            : 
+<span class="lineNum">     727 </span>            : #define max3(x, y, z) ({                        \
+<span class="lineNum">     728 </span>            :         typeof(x) _max1 = (x);                  \
+<span class="lineNum">     729 </span>            :         typeof(y) _max2 = (y);                  \
+<span class="lineNum">     730 </span>            :         typeof(z) _max3 = (z);                  \
+<span class="lineNum">     731 </span>            :         (void) (&amp;_max1 == &amp;_max2);              \
+<span class="lineNum">     732 </span>            :         (void) (&amp;_max1 == &amp;_max3);              \
+<span class="lineNum">     733 </span>            :         _max1 &gt; _max2 ? (_max1 &gt; _max3 ? _max1 : _max3) : \
+<span class="lineNum">     734 </span>            :                 (_max2 &gt; _max3 ? _max2 : _max3); })
+<span class="lineNum">     735 </span>            : 
+<span class="lineNum">     736 </span>            : /**
+<span class="lineNum">     737 </span>            :  * min_not_zero - return the minimum that is _not_ zero, unless both are zero
+<span class="lineNum">     738 </span>            :  * @x: value1
+<span class="lineNum">     739 </span>            :  * @y: value2
+<span class="lineNum">     740 </span>            :  */
+<span class="lineNum">     741 </span>            : #define min_not_zero(x, y) ({                   \
+<span class="lineNum">     742 </span>            :         typeof(x) __x = (x);                    \
+<span class="lineNum">     743 </span>            :         typeof(y) __y = (y);                    \
+<span class="lineNum">     744 </span>            :         __x == 0 ? __y : ((__y == 0) ? __x : min(__x, __y)); })
+<span class="lineNum">     745 </span>            : 
+<span class="lineNum">     746 </span>            : /**
+<span class="lineNum">     747 </span>            :  * clamp - return a value clamped to a given range with strict typechecking
+<span class="lineNum">     748 </span>            :  * @val: current value
+<span class="lineNum">     749 </span>            :  * @min: minimum allowable value
+<span class="lineNum">     750 </span>            :  * @max: maximum allowable value
+<span class="lineNum">     751 </span>            :  *
+<span class="lineNum">     752 </span>            :  * This macro does strict typechecking of min/max to make sure they are of the
+<span class="lineNum">     753 </span>            :  * same type as val.  See the unnecessary pointer comparisons.
+<span class="lineNum">     754 </span>            :  */
+<span class="lineNum">     755 </span>            : #define clamp(val, min, max) ({                 \
+<span class="lineNum">     756 </span>            :         typeof(val) __val = (val);              \
+<span class="lineNum">     757 </span>            :         typeof(min) __min = (min);              \
+<span class="lineNum">     758 </span>            :         typeof(max) __max = (max);              \
+<span class="lineNum">     759 </span>            :         (void) (&amp;__val == &amp;__min);              \
+<span class="lineNum">     760 </span>            :         (void) (&amp;__val == &amp;__max);              \
+<span class="lineNum">     761 </span>            :         __val = __val &lt; __min ? __min: __val;        \
+<span class="lineNum">     762 </span>            :         __val &gt; __max ? __max: __val; })
+<span class="lineNum">     763 </span>            : 
+<span class="lineNum">     764 </span>            : /*
+<span class="lineNum">     765 </span>            :  * ..and if you can't take the strict
+<span class="lineNum">     766 </span>            :  * types, you can specify one yourself.
+<span class="lineNum">     767 </span>            :  *
+<span class="lineNum">     768 </span>            :  * Or not use min/max/clamp at all, of course.
+<span class="lineNum">     769 </span>            :  */
+<span class="lineNum">     770 </span>            : #define min_t(type, x, y) ({                    \
+<span class="lineNum">     771 </span>            :         type __min1 = (x);                      \
+<span class="lineNum">     772 </span>            :         type __min2 = (y);                      \
+<span class="lineNum">     773 </span>            :         __min1 &lt; __min2 ? __min1: __min2; })
+<span class="lineNum">     774 </span>            : 
+<span class="lineNum">     775 </span>            : #define max_t(type, x, y) ({                    \
+<span class="lineNum">     776 </span>            :         type __max1 = (x);                      \
+<span class="lineNum">     777 </span>            :         type __max2 = (y);                      \
+<span class="lineNum">     778 </span>            :         __max1 &gt; __max2 ? __max1: __max2; })
+<span class="lineNum">     779 </span>            : 
+<span class="lineNum">     780 </span>            : /**
+<span class="lineNum">     781 </span>            :  * clamp_t - return a value clamped to a given range using a given type
+<span class="lineNum">     782 </span>            :  * @type: the type of variable to use
+<span class="lineNum">     783 </span>            :  * @val: current value
+<span class="lineNum">     784 </span>            :  * @min: minimum allowable value
+<span class="lineNum">     785 </span>            :  * @max: maximum allowable value
+<span class="lineNum">     786 </span>            :  *
+<span class="lineNum">     787 </span>            :  * This macro does no typechecking and uses temporary variables of type
+<span class="lineNum">     788 </span>            :  * 'type' to make all the comparisons.
+<span class="lineNum">     789 </span>            :  */
+<span class="lineNum">     790 </span>            : #define clamp_t(type, val, min, max) ({         \
+<span class="lineNum">     791 </span>            :         type __val = (val);                     \
+<span class="lineNum">     792 </span>            :         type __min = (min);                     \
+<span class="lineNum">     793 </span>            :         type __max = (max);                     \
+<span class="lineNum">     794 </span>            :         __val = __val &lt; __min ? __min: __val;        \
+<span class="lineNum">     795 </span>            :         __val &gt; __max ? __max: __val; })
+<span class="lineNum">     796 </span>            : 
+<span class="lineNum">     797 </span>            : /**
+<span class="lineNum">     798 </span>            :  * clamp_val - return a value clamped to a given range using val's type
+<span class="lineNum">     799 </span>            :  * @val: current value
+<span class="lineNum">     800 </span>            :  * @min: minimum allowable value
+<span class="lineNum">     801 </span>            :  * @max: maximum allowable value
+<span class="lineNum">     802 </span>            :  *
+<span class="lineNum">     803 </span>            :  * This macro does no typechecking and uses temporary variables of whatever
+<span class="lineNum">     804 </span>            :  * type the input argument 'val' is.  This is useful when val is an unsigned
+<span class="lineNum">     805 </span>            :  * type and min and max are literals that will otherwise be assigned a signed
+<span class="lineNum">     806 </span>            :  * integer type.
+<span class="lineNum">     807 </span>            :  */
+<span class="lineNum">     808 </span>            : #define clamp_val(val, min, max) ({             \
+<span class="lineNum">     809 </span>            :         typeof(val) __val = (val);              \
+<span class="lineNum">     810 </span>            :         typeof(val) __min = (min);              \
+<span class="lineNum">     811 </span>            :         typeof(val) __max = (max);              \
+<span class="lineNum">     812 </span>            :         __val = __val &lt; __min ? __min: __val;        \
+<span class="lineNum">     813 </span>            :         __val &gt; __max ? __max: __val; })
+<span class="lineNum">     814 </span>            : 
+<span class="lineNum">     815 </span>            : 
+<span class="lineNum">     816 </span>            : /*
+<span class="lineNum">     817 </span>            :  * swap - swap value of @a and @b
+<span class="lineNum">     818 </span>            :  */
+<span class="lineNum">     819 </span>            : #define swap(a, b) \
+<span class="lineNum">     820 </span>            :         do { typeof(a) __tmp = (a); (a) = (b); (b) = __tmp; } while (0)
+<span class="lineNum">     821 </span>            : 
+<span class="lineNum">     822 </span>            : /**
+<span class="lineNum">     823 </span>            :  * container_of - cast a member of a structure out to the containing structure
+<span class="lineNum">     824 </span>            :  * @ptr:        the pointer to the member.
+<span class="lineNum">     825 </span>            :  * @type:       the type of the container struct this is embedded in.
+<span class="lineNum">     826 </span>            :  * @member:     the name of the member within the struct.
+<span class="lineNum">     827 </span>            :  *
+<span class="lineNum">     828 </span>            :  */
+<span class="lineNum">     829 </span>            : #define container_of(ptr, type, member) ({                      \
+<span class="lineNum">     830 </span>            :         const typeof( ((type *)0)-&gt;member ) *__mptr = (ptr); \
+<span class="lineNum">     831 </span>            :         (type *)( (char *)__mptr - offsetof(type,member) );})
+<span class="lineNum">     832 </span>            : 
+<span class="lineNum">     833 </span>            : /* Trap pasters of __FUNCTION__ at compile-time */
+<span class="lineNum">     834 </span>            : #define __FUNCTION__ (__func__)
+<span class="lineNum">     835 </span>            : 
+<span class="lineNum">     836 </span>            : /* Rebuild everything on CONFIG_FTRACE_MCOUNT_RECORD */
+<span class="lineNum">     837 </span>            : #ifdef CONFIG_FTRACE_MCOUNT_RECORD
+<span class="lineNum">     838 </span>            : # define REBUILD_DUE_TO_FTRACE_MCOUNT_RECORD
+<span class="lineNum">     839 </span>            : #endif
+<span class="lineNum">     840 </span>            : 
+<span class="lineNum">     841 </span>            : /* Permissions on a sysfs file: you didn't miss the 0 prefix did you? */
+<span class="lineNum">     842 </span>            : #define VERIFY_OCTAL_PERMISSIONS(perms)                                 \
+<span class="lineNum">     843 </span>            :         (BUILD_BUG_ON_ZERO((perms) &lt; 0) +                            \
+<span class="lineNum">     844 </span>            :          BUILD_BUG_ON_ZERO((perms) &gt; 0777) +                         \
+<span class="lineNum">     845 </span>            :          /* User perms &gt;= group perms &gt;= other perms */                   \
+<span class="lineNum">     846 </span>            :          BUILD_BUG_ON_ZERO(((perms) &gt;&gt; 6) &lt; (((perms) &gt;&gt; 3) &amp; 7)) +  \
+<span class="lineNum">     847 </span>            :          BUILD_BUG_ON_ZERO((((perms) &gt;&gt; 3) &amp; 7) &lt; ((perms) &amp; 7)) +     \
+<span class="lineNum">     848 </span>            :          /* Other writable?  Generally considered a bad idea. */        \
+<span class="lineNum">     849 </span>            :          BUILD_BUG_ON_ZERO((perms) &amp; 2) +                           \
+<span class="lineNum">     850 </span>            :          (perms))
+<span class="lineNum">     851 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

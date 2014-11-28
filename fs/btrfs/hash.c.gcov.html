@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/hash.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - hash.c<span style="font-size: 80%;"> (source / <a href="hash.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntryLo">56.2 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntryLo">33.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2014 Filipe David Borba Manana &lt;fdmanana@gmail.com&gt;
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  */
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : #include &lt;crypto/hash.h&gt;
+<span class="lineNum">      15 </span>            : #include &lt;linux/err.h&gt;
+<span class="lineNum">      16 </span>            : #include &quot;hash.h&quot;
+<span class="lineNum">      17 </span>            : 
+<a name="18"><span class="lineNum">      18 </span>            : static struct crypto_shash *tfm;</a>
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span><span class="lineNoCov">          0 : int __init btrfs_hash_init(void)</span>
+<span class="lineNum">      21 </span>            : {
+<span class="lineNum">      22 </span><span class="lineNoCov">          0 :         tfm = crypto_alloc_shash(&quot;crc32c&quot;, 0, 0);</span>
+<span class="lineNum">      23 </span><span class="lineNoCov">          0 :         if (IS_ERR(tfm))</span>
+<span class="lineNum">      24 </span><span class="lineNoCov">          0 :                 return PTR_ERR(tfm);</span>
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            :         return 0;
+<a name="27"><span class="lineNum">      27 </span>            : }</a>
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span><span class="lineNoCov">          0 : void btrfs_hash_exit(void)</span>
+<span class="lineNum">      30 </span>            : {
+<span class="lineNum">      31 </span><span class="lineNoCov">          0 :         crypto_free_shash(tfm);</span>
+<a name="32"><span class="lineNum">      32 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span><span class="lineCov">    5966186 : u32 btrfs_crc32c(u32 crc, const void *address, unsigned int length)</span>
+<span class="lineNum">      35 </span>            : {
+<span class="lineNum">      36 </span>            :         struct {
+<span class="lineNum">      37 </span>            :                 struct shash_desc shash;
+<span class="lineNum">      38 </span><span class="lineCov">    5966186 :                 char ctx[crypto_shash_descsize(tfm)];</span>
+<span class="lineNum">      39 </span><span class="lineCov">    5966186 :         } desc;</span>
+<span class="lineNum">      40 </span>            :         int err;
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span><span class="lineCov">    5966186 :         desc.shash.tfm = tfm;</span>
+<span class="lineNum">      43 </span><span class="lineCov">    5966186 :         desc.shash.flags = 0;</span>
+<span class="lineNum">      44 </span><span class="lineCov">    5966186 :         *(u32 *)desc.ctx = crc;</span>
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span><span class="lineCov">    5966186 :         err = crypto_shash_update(&amp;desc.shash, address, length);</span>
+<span class="lineNum">      47 </span><span class="lineCov">    5970266 :         BUG_ON(err);</span>
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span><span class="lineCov">    5970266 :         return *(u32 *)desc.ctx;</span>
+<span class="lineNum">      50 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

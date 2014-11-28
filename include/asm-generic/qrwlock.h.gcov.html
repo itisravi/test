@@ -1,0 +1,242 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/asm-generic/qrwlock.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/asm-generic</a> - qrwlock.h<span style="font-size: 80%;"> (source / <a href="qrwlock.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Queue read/write lock
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or modify
+<span class="lineNum">       5 </span>            :  * it under the terms of the GNU General Public License as published by
+<span class="lineNum">       6 </span>            :  * the Free Software Foundation; either version 2 of the License, or
+<span class="lineNum">       7 </span>            :  * (at your option) any later version.
+<span class="lineNum">       8 </span>            :  *
+<span class="lineNum">       9 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">      10 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      11 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+<span class="lineNum">      12 </span>            :  * GNU General Public License for more details.
+<span class="lineNum">      13 </span>            :  *
+<span class="lineNum">      14 </span>            :  * (C) Copyright 2013-2014 Hewlett-Packard Development Company, L.P.
+<span class="lineNum">      15 </span>            :  *
+<span class="lineNum">      16 </span>            :  * Authors: Waiman Long &lt;waiman.long@hp.com&gt;
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : #ifndef __ASM_GENERIC_QRWLOCK_H
+<span class="lineNum">      19 </span>            : #define __ASM_GENERIC_QRWLOCK_H
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : #include &lt;linux/atomic.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;asm/barrier.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;asm/processor.h&gt;
+<span class="lineNum">      24 </span>            : 
+<span class="lineNum">      25 </span>            : #include &lt;asm-generic/qrwlock_types.h&gt;
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : /*
+<span class="lineNum">      28 </span>            :  * Writer states &amp; reader shift and bias
+<span class="lineNum">      29 </span>            :  */
+<span class="lineNum">      30 </span>            : #define _QW_WAITING     1               /* A writer is waiting     */
+<span class="lineNum">      31 </span>            : #define _QW_LOCKED      0xff            /* A writer holds the lock */
+<span class="lineNum">      32 </span>            : #define _QW_WMASK       0xff            /* Writer mask             */
+<span class="lineNum">      33 </span>            : #define _QR_SHIFT       8               /* Reader count shift      */
+<span class="lineNum">      34 </span>            : #define _QR_BIAS        (1U &lt;&lt; _QR_SHIFT)
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : /*
+<span class="lineNum">      37 </span>            :  * External function declarations
+<span class="lineNum">      38 </span>            :  */
+<span class="lineNum">      39 </span>            : extern void queue_read_lock_slowpath(struct qrwlock *lock);
+<span class="lineNum">      40 </span>            : extern void queue_write_lock_slowpath(struct qrwlock *lock);
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : /**
+<span class="lineNum">      43 </span>            :  * queue_read_can_lock- would read_trylock() succeed?
+<span class="lineNum">      44 </span>            :  * @lock: Pointer to queue rwlock structure
+<span class="lineNum">      45 </span>            :  */
+<span class="lineNum">      46 </span>            : static inline int queue_read_can_lock(struct qrwlock *lock)
+<span class="lineNum">      47 </span>            : {
+<span class="lineNum">      48 </span>            :         return !(atomic_read(&amp;lock-&gt;cnts) &amp; _QW_WMASK);
+<span class="lineNum">      49 </span>            : }
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            : /**
+<span class="lineNum">      52 </span>            :  * queue_write_can_lock- would write_trylock() succeed?
+<span class="lineNum">      53 </span>            :  * @lock: Pointer to queue rwlock structure
+<span class="lineNum">      54 </span>            :  */
+<span class="lineNum">      55 </span>            : static inline int queue_write_can_lock(struct qrwlock *lock)
+<span class="lineNum">      56 </span>            : {
+<span class="lineNum">      57 </span>            :         return !atomic_read(&amp;lock-&gt;cnts);
+<span class="lineNum">      58 </span>            : }
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : /**
+<span class="lineNum">      61 </span>            :  * queue_read_trylock - try to acquire read lock of a queue rwlock
+<span class="lineNum">      62 </span>            :  * @lock : Pointer to queue rwlock structure
+<span class="lineNum">      63 </span>            :  * Return: 1 if lock acquired, 0 if failed
+<span class="lineNum">      64 </span>            :  */
+<span class="lineNum">      65 </span>            : static inline int queue_read_trylock(struct qrwlock *lock)
+<span class="lineNum">      66 </span>            : {
+<span class="lineNum">      67 </span>            :         u32 cnts;
+<span class="lineNum">      68 </span>            : 
+<span class="lineNum">      69 </span>            :         cnts = atomic_read(&amp;lock-&gt;cnts);
+<span class="lineNum">      70 </span>            :         if (likely(!(cnts &amp; _QW_WMASK))) {
+<span class="lineNum">      71 </span>            :                 cnts = (u32)atomic_add_return(_QR_BIAS, &amp;lock-&gt;cnts);
+<span class="lineNum">      72 </span>            :                 if (likely(!(cnts &amp; _QW_WMASK)))
+<span class="lineNum">      73 </span>            :                         return 1;
+<span class="lineNum">      74 </span>            :                 atomic_sub(_QR_BIAS, &amp;lock-&gt;cnts);
+<span class="lineNum">      75 </span>            :         }
+<span class="lineNum">      76 </span>            :         return 0;
+<span class="lineNum">      77 </span>            : }
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : /**
+<span class="lineNum">      80 </span>            :  * queue_write_trylock - try to acquire write lock of a queue rwlock
+<span class="lineNum">      81 </span>            :  * @lock : Pointer to queue rwlock structure
+<span class="lineNum">      82 </span>            :  * Return: 1 if lock acquired, 0 if failed
+<span class="lineNum">      83 </span>            :  */
+<span class="lineNum">      84 </span>            : static inline int queue_write_trylock(struct qrwlock *lock)
+<span class="lineNum">      85 </span>            : {
+<span class="lineNum">      86 </span>            :         u32 cnts;
+<span class="lineNum">      87 </span>            : 
+<span class="lineNum">      88 </span>            :         cnts = atomic_read(&amp;lock-&gt;cnts);
+<span class="lineNum">      89 </span>            :         if (unlikely(cnts))
+<span class="lineNum">      90 </span>            :                 return 0;
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            :         return likely(atomic_cmpxchg(&amp;lock-&gt;cnts,
+<span class="lineNum">      93 </span>            :                                      cnts, cnts | _QW_LOCKED) == cnts);
+<span class="lineNum">      94 </span>            : }
+<span class="lineNum">      95 </span>            : /**
+<span class="lineNum">      96 </span>            :  * queue_read_lock - acquire read lock of a queue rwlock
+<span class="lineNum">      97 </span>            :  * @lock: Pointer to queue rwlock structure
+<span class="lineNum">      98 </span>            :  */
+<span class="lineNum">      99 </span>            : static inline void queue_read_lock(struct qrwlock *lock)
+<span class="lineNum">     100 </span>            : {
+<span class="lineNum">     101 </span>            :         u32 cnts;
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            :         cnts = atomic_add_return(_QR_BIAS, &amp;lock-&gt;cnts);
+<span class="lineNum">     104 </span>            :         if (likely(!(cnts &amp; _QW_WMASK)))
+<span class="lineNum">     105 </span>            :                 return;
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            :         /* The slowpath will decrement the reader count, if necessary. */
+<span class="lineNum">     108 </span>            :         queue_read_lock_slowpath(lock);
+<span class="lineNum">     109 </span>            : }
+<span class="lineNum">     110 </span>            : 
+<span class="lineNum">     111 </span>            : /**
+<span class="lineNum">     112 </span>            :  * queue_write_lock - acquire write lock of a queue rwlock
+<span class="lineNum">     113 </span>            :  * @lock : Pointer to queue rwlock structure
+<span class="lineNum">     114 </span>            :  */
+<span class="lineNum">     115 </span>            : static inline void queue_write_lock(struct qrwlock *lock)
+<span class="lineNum">     116 </span>            : {
+<span class="lineNum">     117 </span>            :         /* Optimize for the unfair lock case where the fair flag is 0. */
+<span class="lineNum">     118 </span>            :         if (atomic_cmpxchg(&amp;lock-&gt;cnts, 0, _QW_LOCKED) == 0)
+<span class="lineNum">     119 </span>            :                 return;
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :         queue_write_lock_slowpath(lock);
+<span class="lineNum">     122 </span>            : }
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            : /**
+<span class="lineNum">     125 </span>            :  * queue_read_unlock - release read lock of a queue rwlock
+<span class="lineNum">     126 </span>            :  * @lock : Pointer to queue rwlock structure
+<span class="lineNum">     127 </span>            :  */
+<span class="lineNum">     128 </span>            : static inline void queue_read_unlock(struct qrwlock *lock)
+<span class="lineNum">     129 </span>            : {
+<span class="lineNum">     130 </span>            :         /*
+<span class="lineNum">     131 </span>            :          * Atomically decrement the reader count
+<span class="lineNum">     132 </span>            :          */
+<span class="lineNum">     133 </span><span class="lineCov">    6317893 :         smp_mb__before_atomic();</span>
+<span class="lineNum">     134 </span><span class="lineCov">    6317887 :         atomic_sub(_QR_BIAS, &amp;lock-&gt;cnts);</span>
+<span class="lineNum">     135 </span>            : }
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span>            : #ifndef queue_write_unlock
+<span class="lineNum">     138 </span>            : /**
+<span class="lineNum">     139 </span>            :  * queue_write_unlock - release write lock of a queue rwlock
+<span class="lineNum">     140 </span>            :  * @lock : Pointer to queue rwlock structure
+<span class="lineNum">     141 </span>            :  */
+<span class="lineNum">     142 </span>            : static inline void queue_write_unlock(struct qrwlock *lock)
+<span class="lineNum">     143 </span>            : {
+<span class="lineNum">     144 </span>            :         /*
+<span class="lineNum">     145 </span>            :          * If the writer field is atomic, it can be cleared directly.
+<span class="lineNum">     146 </span>            :          * Otherwise, an atomic subtraction will be used to clear it.
+<span class="lineNum">     147 </span>            :          */
+<span class="lineNum">     148 </span>            :         smp_mb__before_atomic();
+<span class="lineNum">     149 </span>            :         atomic_sub(_QW_LOCKED, &amp;lock-&gt;cnts);
+<span class="lineNum">     150 </span>            : }
+<span class="lineNum">     151 </span>            : #endif
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span>            : /*
+<span class="lineNum">     154 </span>            :  * Remapping rwlock architecture specific functions to the corresponding
+<span class="lineNum">     155 </span>            :  * queue rwlock functions.
+<span class="lineNum">     156 </span>            :  */
+<span class="lineNum">     157 </span>            : #define arch_read_can_lock(l)   queue_read_can_lock(l)
+<span class="lineNum">     158 </span>            : #define arch_write_can_lock(l)  queue_write_can_lock(l)
+<span class="lineNum">     159 </span>            : #define arch_read_lock(l)       queue_read_lock(l)
+<span class="lineNum">     160 </span>            : #define arch_write_lock(l)      queue_write_lock(l)
+<span class="lineNum">     161 </span>            : #define arch_read_trylock(l)    queue_read_trylock(l)
+<span class="lineNum">     162 </span>            : #define arch_write_trylock(l)   queue_write_trylock(l)
+<span class="lineNum">     163 </span>            : #define arch_read_unlock(l)     queue_read_unlock(l)
+<span class="lineNum">     164 </span>            : #define arch_write_unlock(l)    queue_write_unlock(l)
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            : #endif /* __ASM_GENERIC_QRWLOCK_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

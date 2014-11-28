@@ -1,0 +1,1020 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/delayed-ref.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - delayed-ref.c<span style="font-size: 80%;"> (source / <a href="delayed-ref.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">275</td>
+            <td class="headerCovTableEntry">323</td>
+            <td class="headerCovTableEntryMed">85.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">20</td>
+            <td class="headerCovTableEntry">22</td>
+            <td class="headerCovTableEntryHi">90.9 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2009 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;linux/sched.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/slab.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/sort.h&gt;
+<span class="lineNum">      22 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      23 </span>            : #include &quot;delayed-ref.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;transaction.h&quot;
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : struct kmem_cache *btrfs_delayed_ref_head_cachep;
+<span class="lineNum">      27 </span>            : struct kmem_cache *btrfs_delayed_tree_ref_cachep;
+<span class="lineNum">      28 </span>            : struct kmem_cache *btrfs_delayed_data_ref_cachep;
+<span class="lineNum">      29 </span>            : struct kmem_cache *btrfs_delayed_extent_op_cachep;
+<span class="lineNum">      30 </span>            : /*
+<span class="lineNum">      31 </span>            :  * delayed back reference update tracking.  For subvolume trees
+<span class="lineNum">      32 </span>            :  * we queue up extent allocations and backref maintenance for
+<span class="lineNum">      33 </span>            :  * delayed processing.   This avoids deep call chains where we
+<span class="lineNum">      34 </span>            :  * add extents in the middle of btrfs_search_slot, and it allows
+<span class="lineNum">      35 </span>            :  * us to buffer up frequently modified backrefs in an rb tree instead
+<span class="lineNum">      36 </span>            :  * of hammering updates on the extent allocation tree.
+<span class="lineNum">      37 </span>            :  */
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            : /*
+<span class="lineNum">      40 </span>            :  * compare two delayed tree backrefs with same bytenr and type
+<span class="lineNum">      41 </span>            :  */
+<span class="lineNum">      42 </span>            : static int comp_tree_refs(struct btrfs_delayed_tree_ref *ref2,
+<a name="43"><span class="lineNum">      43 </span>            :                           struct btrfs_delayed_tree_ref *ref1, int type)</a>
+<span class="lineNum">      44 </span>            : {
+<span class="lineNum">      45 </span><span class="lineCov">       2545 :         if (type == BTRFS_TREE_BLOCK_REF_KEY) {</span>
+<span class="lineNum">      46 </span><span class="lineCov">       2472 :                 if (ref1-&gt;root &lt; ref2-&gt;root)</span>
+<span class="lineNum">      47 </span>            :                         return -1;
+<span class="lineNum">      48 </span><span class="lineCov">       2472 :                 if (ref1-&gt;root &gt; ref2-&gt;root)</span>
+<span class="lineNum">      49 </span>            :                         return 1;
+<span class="lineNum">      50 </span>            :         } else {
+<span class="lineNum">      51 </span><span class="lineCov">         73 :                 if (ref1-&gt;parent &lt; ref2-&gt;parent)</span>
+<span class="lineNum">      52 </span>            :                         return -1;
+<span class="lineNum">      53 </span><span class="lineCov">         55 :                 if (ref1-&gt;parent &gt; ref2-&gt;parent)</span>
+<span class="lineNum">      54 </span>            :                         return 1;
+<span class="lineNum">      55 </span>            :         }
+<span class="lineNum">      56 </span>            :         return 0;
+<span class="lineNum">      57 </span>            : }
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : /*
+<a name="60"><span class="lineNum">      60 </span>            :  * compare two delayed data backrefs with same bytenr and type</a>
+<span class="lineNum">      61 </span>            :  */
+<span class="lineNum">      62 </span><span class="lineCov">       6871 : static int comp_data_refs(struct btrfs_delayed_data_ref *ref2,</span>
+<span class="lineNum">      63 </span>            :                           struct btrfs_delayed_data_ref *ref1)
+<span class="lineNum">      64 </span>            : {
+<span class="lineNum">      65 </span><span class="lineCov">       6871 :         if (ref1-&gt;node.type == BTRFS_EXTENT_DATA_REF_KEY) {</span>
+<span class="lineNum">      66 </span><span class="lineCov">       4014 :                 if (ref1-&gt;root &lt; ref2-&gt;root)</span>
+<span class="lineNum">      67 </span>            :                         return -1;
+<span class="lineNum">      68 </span><span class="lineCov">       4010 :                 if (ref1-&gt;root &gt; ref2-&gt;root)</span>
+<span class="lineNum">      69 </span>            :                         return 1;
+<span class="lineNum">      70 </span><span class="lineCov">       3993 :                 if (ref1-&gt;objectid &lt; ref2-&gt;objectid)</span>
+<span class="lineNum">      71 </span>            :                         return -1;
+<span class="lineNum">      72 </span><span class="lineCov">       3992 :                 if (ref1-&gt;objectid &gt; ref2-&gt;objectid)</span>
+<span class="lineNum">      73 </span>            :                         return 1;
+<span class="lineNum">      74 </span><span class="lineCov">       3973 :                 if (ref1-&gt;offset &lt; ref2-&gt;offset)</span>
+<span class="lineNum">      75 </span>            :                         return -1;
+<span class="lineNum">      76 </span><span class="lineCov">       3961 :                 if (ref1-&gt;offset &gt; ref2-&gt;offset)</span>
+<span class="lineNum">      77 </span>            :                         return 1;
+<span class="lineNum">      78 </span>            :         } else {
+<span class="lineNum">      79 </span><span class="lineCov">       2857 :                 if (ref1-&gt;parent &lt; ref2-&gt;parent)</span>
+<span class="lineNum">      80 </span>            :                         return -1;
+<span class="lineNum">      81 </span><span class="lineCov">       2857 :                 if (ref1-&gt;parent &gt; ref2-&gt;parent)</span>
+<span class="lineNum">      82 </span>            :                         return 1;
+<span class="lineNum">      83 </span>            :         }
+<span class="lineNum">      84 </span><span class="lineCov">       5780 :         return 0;</span>
+<span class="lineNum">      85 </span>            : }
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            : /*
+<span class="lineNum">      88 </span>            :  * entries in the rb tree are ordered by the byte number of the extent,
+<span class="lineNum">      89 </span>            :  * type of the delayed backrefs and content of delayed backrefs.
+<span class="lineNum">      90 </span>            :  */
+<span class="lineNum">      91 </span><span class="lineCov">      16469 : static int comp_entry(struct btrfs_delayed_ref_node *ref2,</span>
+<span class="lineNum">      92 </span>            :                       struct btrfs_delayed_ref_node *ref1,
+<span class="lineNum">      93 </span>            :                       bool compare_seq)
+<span class="lineNum">      94 </span>            : {
+<span class="lineNum">      95 </span><span class="lineCov">      16469 :         if (ref1-&gt;bytenr &lt; ref2-&gt;bytenr)</span>
+<span class="lineNum">      96 </span>            :                 return -1;
+<span class="lineNum">      97 </span><span class="lineCov">      16469 :         if (ref1-&gt;bytenr &gt; ref2-&gt;bytenr)</span>
+<span class="lineNum">      98 </span>            :                 return 1;
+<span class="lineNum">      99 </span><span class="lineCov">      16469 :         if (ref1-&gt;is_head &amp;&amp; ref2-&gt;is_head)</span>
+<span class="lineNum">     100 </span>            :                 return 0;
+<span class="lineNum">     101 </span><span class="lineCov">      16469 :         if (ref2-&gt;is_head)</span>
+<span class="lineNum">     102 </span>            :                 return -1;
+<span class="lineNum">     103 </span><span class="lineCov">      16469 :         if (ref1-&gt;is_head)</span>
+<span class="lineNum">     104 </span>            :                 return 1;
+<span class="lineNum">     105 </span><span class="lineCov">      16469 :         if (ref1-&gt;type &lt; ref2-&gt;type)</span>
+<span class="lineNum">     106 </span>            :                 return -1;
+<span class="lineNum">     107 </span><span class="lineCov">      12906 :         if (ref1-&gt;type &gt; ref2-&gt;type)</span>
+<span class="lineNum">     108 </span>            :                 return 1;
+<span class="lineNum">     109 </span><span class="lineCov">      10391 :         if (ref1-&gt;no_quota &gt; ref2-&gt;no_quota)</span>
+<span class="lineNum">     110 </span>            :                 return 1;
+<span class="lineNum">     111 </span><span class="lineCov">      10288 :         if (ref1-&gt;no_quota &lt; ref2-&gt;no_quota)</span>
+<span class="lineNum">     112 </span>            :                 return -1;
+<span class="lineNum">     113 </span>            :         /* merging of sequenced refs is not allowed */
+<span class="lineNum">     114 </span><span class="lineCov">       9740 :         if (compare_seq) {</span>
+<span class="lineNum">     115 </span><span class="lineCov">       9458 :                 if (ref1-&gt;seq &lt; ref2-&gt;seq)</span>
+<span class="lineNum">     116 </span>            :                         return -1;
+<span class="lineNum">     117 </span><span class="lineCov">       9458 :                 if (ref1-&gt;seq &gt; ref2-&gt;seq)</span>
+<span class="lineNum">     118 </span>            :                         return 1;
+<span class="lineNum">     119 </span>            :         }
+<span class="lineNum">     120 </span><span class="lineCov">       9416 :         if (ref1-&gt;type == BTRFS_TREE_BLOCK_REF_KEY ||</span>
+<span class="lineNum">     121 </span>            :             ref1-&gt;type == BTRFS_SHARED_BLOCK_REF_KEY) {
+<span class="lineNum">     122 </span><span class="lineCov">       5090 :                 return comp_tree_refs(btrfs_delayed_node_to_tree_ref(ref2),</span>
+<span class="lineNum">     123 </span>            :                                       btrfs_delayed_node_to_tree_ref(ref1),
+<span class="lineNum">     124 </span>            :                                       ref1-&gt;type);
+<span class="lineNum">     125 </span><span class="lineCov">       6871 :         } else if (ref1-&gt;type == BTRFS_EXTENT_DATA_REF_KEY ||</span>
+<span class="lineNum">     126 </span>            :                    ref1-&gt;type == BTRFS_SHARED_DATA_REF_KEY) {
+<span class="lineNum">     127 </span><span class="lineCov">       6871 :                 return comp_data_refs(btrfs_delayed_node_to_data_ref(ref2),</span>
+<span class="lineNum">     128 </span>            :                                       btrfs_delayed_node_to_data_ref(ref1));
+<span class="lineNum">     129 </span>            :         }
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         BUG();</span>
+<span class="lineNum">     131 </span>            :         return 0;
+<span class="lineNum">     132 </span>            : }
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            : /*
+<span class="lineNum">     135 </span>            :  * insert a new ref into the rbtree.  This returns any existing refs
+<span class="lineNum">     136 </span>            :  * for the same (bytenr,parent) tuple, or NULL if the new node was properly
+<a name="137"><span class="lineNum">     137 </span>            :  * inserted.</a>
+<span class="lineNum">     138 </span>            :  */
+<span class="lineNum">     139 </span><span class="lineCov">     209209 : static struct btrfs_delayed_ref_node *tree_insert(struct rb_root *root,</span>
+<span class="lineNum">     140 </span>            :                                                   struct rb_node *node)
+<span class="lineNum">     141 </span>            : {
+<span class="lineNum">     142 </span><span class="lineCov">     209209 :         struct rb_node **p = &amp;root-&gt;rb_node;</span>
+<span class="lineNum">     143 </span>            :         struct rb_node *parent_node = NULL;
+<span class="lineNum">     144 </span>            :         struct btrfs_delayed_ref_node *entry;
+<span class="lineNum">     145 </span>            :         struct btrfs_delayed_ref_node *ins;
+<span class="lineNum">     146 </span>            :         int cmp;
+<span class="lineNum">     147 </span>            : 
+<span class="lineNum">     148 </span>            :         ins = rb_entry(node, struct btrfs_delayed_ref_node, rb_node);
+<span class="lineNum">     149 </span><span class="lineCov">     426091 :         while (*p) {</span>
+<span class="lineNum">     150 </span>            :                 parent_node = *p;
+<span class="lineNum">     151 </span>            :                 entry = rb_entry(parent_node, struct btrfs_delayed_ref_node,
+<span class="lineNum">     152 </span>            :                                  rb_node);
+<span class="lineNum">     153 </span>            : 
+<span class="lineNum">     154 </span><span class="lineCov">      15669 :                 cmp = comp_entry(entry, ins, 1);</span>
+<span class="lineNum">     155 </span><span class="lineCov">      15669 :                 if (cmp &lt; 0)</span>
+<span class="lineNum">     156 </span><span class="lineCov">       4146 :                         p = &amp;(*p)-&gt;rb_left;</span>
+<span class="lineNum">     157 </span><span class="lineCov">      11523 :                 else if (cmp &gt; 0)</span>
+<span class="lineNum">     158 </span><span class="lineCov">       3527 :                         p = &amp;(*p)-&gt;rb_right;</span>
+<span class="lineNum">     159 </span>            :                 else
+<span class="lineNum">     160 </span>            :                         return entry;
+<span class="lineNum">     161 </span>            :         }
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            :         rb_link_node(node, parent_node, p);
+<span class="lineNum">     164 </span><span class="lineCov">     201213 :         rb_insert_color(node, root);</span>
+<span class="lineNum">     165 </span><span class="lineCov">     201213 :         return NULL;</span>
+<span class="lineNum">     166 </span>            : }
+<a name="167"><span class="lineNum">     167 </span>            : </a>
+<span class="lineNum">     168 </span>            : /* insert a new ref to head ref rbtree */
+<span class="lineNum">     169 </span><span class="lineCov">     209593 : static struct btrfs_delayed_ref_head *htree_insert(struct rb_root *root,</span>
+<span class="lineNum">     170 </span>            :                                                    struct rb_node *node)
+<span class="lineNum">     171 </span>            : {
+<span class="lineNum">     172 </span><span class="lineCov">     209593 :         struct rb_node **p = &amp;root-&gt;rb_node;</span>
+<span class="lineNum">     173 </span>            :         struct rb_node *parent_node = NULL;
+<span class="lineNum">     174 </span>            :         struct btrfs_delayed_ref_head *entry;
+<span class="lineNum">     175 </span>            :         struct btrfs_delayed_ref_head *ins;
+<span class="lineNum">     176 </span>            :         u64 bytenr;
+<span class="lineNum">     177 </span>            : 
+<span class="lineNum">     178 </span>            :         ins = rb_entry(node, struct btrfs_delayed_ref_head, href_node);
+<span class="lineNum">     179 </span><span class="lineCov">     209593 :         bytenr = ins-&gt;node.bytenr;</span>
+<span class="lineNum">     180 </span><span class="lineCov">    2093066 :         while (*p) {</span>
+<span class="lineNum">     181 </span>            :                 parent_node = *p;
+<span class="lineNum">     182 </span><span class="lineCov">    1689445 :                 entry = rb_entry(parent_node, struct btrfs_delayed_ref_head,</span>
+<span class="lineNum">     183 </span>            :                                  href_node);
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineCov">    1689445 :                 if (bytenr &lt; entry-&gt;node.bytenr)</span>
+<span class="lineNum">     186 </span><span class="lineCov">     443539 :                         p = &amp;(*p)-&gt;rb_left;</span>
+<span class="lineNum">     187 </span><span class="lineCov">    1245906 :                 else if (bytenr &gt; entry-&gt;node.bytenr)</span>
+<span class="lineNum">     188 </span><span class="lineCov">    1230341 :                         p = &amp;(*p)-&gt;rb_right;</span>
+<span class="lineNum">     189 </span>            :                 else
+<span class="lineNum">     190 </span>            :                         return entry;
+<span class="lineNum">     191 </span>            :         }
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            :         rb_link_node(node, parent_node, p);
+<span class="lineNum">     194 </span><span class="lineCov">     194028 :         rb_insert_color(node, root);</span>
+<span class="lineNum">     195 </span><span class="lineCov">     194028 :         return NULL;</span>
+<span class="lineNum">     196 </span>            : }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : /*
+<span class="lineNum">     199 </span>            :  * find an head entry based on bytenr. This returns the delayed ref
+<span class="lineNum">     200 </span>            :  * head if it was able to find one, or NULL if nothing was in that spot.
+<span class="lineNum">     201 </span>            :  * If return_bigger is given, the next bigger entry is returned if no exact
+<span class="lineNum">     202 </span>            :  * match is found.
+<a name="203"><span class="lineNum">     203 </span>            :  */</a>
+<span class="lineNum">     204 </span>            : static struct btrfs_delayed_ref_head *
+<span class="lineNum">     205 </span><span class="lineCov">     299244 : find_ref_head(struct rb_root *root, u64 bytenr,</span>
+<span class="lineNum">     206 </span>            :               int return_bigger)
+<span class="lineNum">     207 </span>            : {
+<span class="lineNum">     208 </span>            :         struct rb_node *n;
+<span class="lineNum">     209 </span>            :         struct btrfs_delayed_ref_head *entry;
+<span class="lineNum">     210 </span>            : 
+<span class="lineNum">     211 </span><span class="lineCov">     299244 :         n = root-&gt;rb_node;</span>
+<span class="lineNum">     212 </span>            :         entry = NULL;
+<span class="lineNum">     213 </span><span class="lineCov">    1507529 :         while (n) {</span>
+<span class="lineNum">     214 </span><span class="lineCov">    1041382 :                 entry = rb_entry(n, struct btrfs_delayed_ref_head, href_node);</span>
+<span class="lineNum">     215 </span>            : 
+<span class="lineNum">     216 </span><span class="lineCov">    1041382 :                 if (bytenr &lt; entry-&gt;node.bytenr)</span>
+<span class="lineNum">     217 </span><span class="lineCov">     714798 :                         n = n-&gt;rb_left;</span>
+<span class="lineNum">     218 </span><span class="lineCov">     326584 :                 else if (bytenr &gt; entry-&gt;node.bytenr)</span>
+<span class="lineNum">     219 </span><span class="lineCov">     194243 :                         n = n-&gt;rb_right;</span>
+<span class="lineNum">     220 </span>            :                 else
+<span class="lineNum">     221 </span>            :                         return entry;
+<span class="lineNum">     222 </span>            :         }
+<span class="lineNum">     223 </span><span class="lineCov">     166903 :         if (entry &amp;&amp; return_bigger) {</span>
+<span class="lineNum">     224 </span><span class="lineCov">      73344 :                 if (bytenr &gt; entry-&gt;node.bytenr) {</span>
+<span class="lineNum">     225 </span><span class="lineCov">      22932 :                         n = rb_next(&amp;entry-&gt;href_node);</span>
+<span class="lineNum">     226 </span><span class="lineCov">      22932 :                         if (!n)</span>
+<span class="lineNum">     227 </span><span class="lineCov">       2383 :                                 n = rb_first(root);</span>
+<span class="lineNum">     228 </span>            :                         entry = rb_entry(n, struct btrfs_delayed_ref_head,
+<span class="lineNum">     229 </span>            :                                          href_node);
+<span class="lineNum">     230 </span><span class="lineCov">      22932 :                         return entry;</span>
+<span class="lineNum">     231 </span>            :                 }
+<span class="lineNum">     232 </span>            :                 return entry;
+<span class="lineNum">     233 </span>            :         }
+<span class="lineNum">     234 </span>            :         return NULL;
+<a name="235"><span class="lineNum">     235 </span>            : }</a>
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span><span class="lineCov">     191772 : int btrfs_delayed_ref_lock(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     238 </span>            :                            struct btrfs_delayed_ref_head *head)
+<span class="lineNum">     239 </span>            : {
+<span class="lineNum">     240 </span>            :         struct btrfs_delayed_ref_root *delayed_refs;
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineCov">     191772 :         delayed_refs = &amp;trans-&gt;transaction-&gt;delayed_refs;</span>
+<span class="lineNum">     243 </span><span class="lineCov">     191772 :         assert_spin_locked(&amp;delayed_refs-&gt;lock);</span>
+<span class="lineNum">     244 </span><span class="lineCov">     191772 :         if (mutex_trylock(&amp;head-&gt;mutex))</span>
+<span class="lineNum">     245 </span>            :                 return 0;
+<span class="lineNum">     246 </span>            : 
+<span class="lineNum">     247 </span><span class="lineNoCov">          0 :         atomic_inc(&amp;head-&gt;node.refs);</span>
+<span class="lineNum">     248 </span>            :         spin_unlock(&amp;delayed_refs-&gt;lock);
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineNoCov">          0 :         mutex_lock(&amp;head-&gt;mutex);</span>
+<span class="lineNum">     251 </span>            :         spin_lock(&amp;delayed_refs-&gt;lock);
+<span class="lineNum">     252 </span><span class="lineNoCov">          0 :         if (!head-&gt;node.in_tree) {</span>
+<span class="lineNum">     253 </span><span class="lineNoCov">          0 :                 mutex_unlock(&amp;head-&gt;mutex);</span>
+<span class="lineNum">     254 </span><span class="lineNoCov">          0 :                 btrfs_put_delayed_ref(&amp;head-&gt;node);</span>
+<span class="lineNum">     255 </span><span class="lineNoCov">          0 :                 return -EAGAIN;</span>
+<span class="lineNum">     256 </span>            :         }
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :         btrfs_put_delayed_ref(&amp;head-&gt;node);</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :         return 0;</span>
+<a name="259"><span class="lineNum">     259 </span>            : }</a>
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span><span class="lineCov">       6448 : static inline void drop_delayed_ref(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     262 </span>            :                                     struct btrfs_delayed_ref_root *delayed_refs,
+<span class="lineNum">     263 </span>            :                                     struct btrfs_delayed_ref_head *head,
+<span class="lineNum">     264 </span>            :                                     struct btrfs_delayed_ref_node *ref)
+<span class="lineNum">     265 </span>            : {
+<span class="lineNum">     266 </span><span class="lineCov">       6448 :         if (btrfs_delayed_ref_is_head(ref)) {</span>
+<span class="lineNum">     267 </span>            :                 head = btrfs_delayed_node_to_head(ref);
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :                 rb_erase(&amp;head-&gt;href_node, &amp;delayed_refs-&gt;href_root);</span>
+<span class="lineNum">     269 </span>            :         } else {
+<span class="lineNum">     270 </span><span class="lineCov">       6448 :                 assert_spin_locked(&amp;head-&gt;lock);</span>
+<span class="lineNum">     271 </span><span class="lineCov">       6448 :                 rb_erase(&amp;ref-&gt;rb_node, &amp;head-&gt;ref_root);</span>
+<span class="lineNum">     272 </span>            :         }
+<span class="lineNum">     273 </span><span class="lineCov">       6448 :         ref-&gt;in_tree = 0;</span>
+<span class="lineNum">     274 </span><span class="lineCov">       6448 :         btrfs_put_delayed_ref(ref);</span>
+<span class="lineNum">     275 </span><span class="lineCov">       6448 :         atomic_dec(&amp;delayed_refs-&gt;num_entries);</span>
+<span class="lineNum">     276 </span><span class="lineCov">       6448 :         if (trans-&gt;delayed_ref_updates)</span>
+<span class="lineNum">     277 </span><span class="lineCov">       3755 :                 trans-&gt;delayed_ref_updates--;</span>
+<a name="278"><span class="lineNum">     278 </span><span class="lineCov">       6448 : }</span></a>
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineCov">     106802 : static int merge_ref(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     281 </span>            :                      struct btrfs_delayed_ref_root *delayed_refs,
+<span class="lineNum">     282 </span>            :                      struct btrfs_delayed_ref_head *head,
+<span class="lineNum">     283 </span>            :                      struct btrfs_delayed_ref_node *ref, u64 seq)
+<span class="lineNum">     284 </span>            : {
+<span class="lineNum">     285 </span>            :         struct rb_node *node;
+<span class="lineNum">     286 </span>            :         int mod = 0;
+<span class="lineNum">     287 </span>            :         int done = 0;
+<span class="lineNum">     288 </span>            : 
+<span class="lineNum">     289 </span><span class="lineCov">     106802 :         node = rb_next(&amp;ref-&gt;rb_node);</span>
+<span class="lineNum">     290 </span><span class="lineCov">     214404 :         while (!done &amp;&amp; node) {</span>
+<span class="lineNum">     291 </span>            :                 struct btrfs_delayed_ref_node *next;
+<span class="lineNum">     292 </span>            : 
+<span class="lineNum">     293 </span>            :                 next = rb_entry(node, struct btrfs_delayed_ref_node, rb_node);
+<span class="lineNum">     294 </span><span class="lineCov">        800 :                 node = rb_next(node);</span>
+<span class="lineNum">     295 </span><span class="lineCov">        800 :                 if (seq &amp;&amp; next-&gt;seq &gt;= seq)</span>
+<span class="lineNum">     296 </span>            :                         break;
+<span class="lineNum">     297 </span><span class="lineCov">        800 :                 if (comp_entry(ref, next, 0))</span>
+<span class="lineNum">     298 </span><span class="lineCov">        531 :                         continue;</span>
+<span class="lineNum">     299 </span>            : 
+<span class="lineNum">     300 </span><span class="lineCov">        269 :                 if (ref-&gt;action == next-&gt;action) {</span>
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 :                         mod = next-&gt;ref_mod;</span>
+<span class="lineNum">     302 </span>            :                 } else {
+<span class="lineNum">     303 </span><span class="lineCov">        269 :                         if (ref-&gt;ref_mod &lt; next-&gt;ref_mod) {</span>
+<span class="lineNum">     304 </span>            :                                 struct btrfs_delayed_ref_node *tmp;
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span>            :                                 tmp = ref;
+<span class="lineNum">     307 </span>            :                                 ref = next;
+<span class="lineNum">     308 </span>            :                                 next = tmp;
+<span class="lineNum">     309 </span>            :                                 done = 1;
+<span class="lineNum">     310 </span>            :                         }
+<span class="lineNum">     311 </span><span class="lineCov">        269 :                         mod = -next-&gt;ref_mod;</span>
+<span class="lineNum">     312 </span>            :                 }
+<span class="lineNum">     313 </span>            : 
+<span class="lineNum">     314 </span><span class="lineCov">        269 :                 drop_delayed_ref(trans, delayed_refs, head, next);</span>
+<span class="lineNum">     315 </span><span class="lineCov">        269 :                 ref-&gt;ref_mod += mod;</span>
+<span class="lineNum">     316 </span><span class="lineCov">        269 :                 if (ref-&gt;ref_mod == 0) {</span>
+<span class="lineNum">     317 </span><span class="lineCov">        269 :                         drop_delayed_ref(trans, delayed_refs, head, ref);</span>
+<span class="lineNum">     318 </span>            :                         done = 1;
+<span class="lineNum">     319 </span>            :                 } else {
+<span class="lineNum">     320 </span>            :                         /*
+<span class="lineNum">     321 </span>            :                          * You can't have multiples of the same ref on a tree
+<span class="lineNum">     322 </span>            :                          * block.
+<span class="lineNum">     323 </span>            :                          */
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :                         WARN_ON(ref-&gt;type == BTRFS_TREE_BLOCK_REF_KEY ||</span>
+<span class="lineNum">     325 </span>            :                                 ref-&gt;type == BTRFS_SHARED_BLOCK_REF_KEY);
+<span class="lineNum">     326 </span>            :                 }
+<span class="lineNum">     327 </span>            :         }
+<span class="lineNum">     328 </span><span class="lineCov">     106802 :         return done;</span>
+<a name="329"><span class="lineNum">     329 </span>            : }</a>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineCov">     386443 : void btrfs_merge_delayed_refs(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     332 </span>            :                               struct btrfs_fs_info *fs_info,
+<span class="lineNum">     333 </span>            :                               struct btrfs_delayed_ref_root *delayed_refs,
+<span class="lineNum">     334 </span>            :                               struct btrfs_delayed_ref_head *head)
+<span class="lineNum">     335 </span>            : {
+<span class="lineNum">     336 </span>            :         struct rb_node *node;
+<span class="lineNum">     337 </span>            :         u64 seq = 0;
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineCov">     386443 :         assert_spin_locked(&amp;head-&gt;lock);</span>
+<span class="lineNum">     340 </span>            :         /*
+<span class="lineNum">     341 </span>            :          * We don't have too much refs to merge in the case of delayed data
+<span class="lineNum">     342 </span>            :          * refs.
+<span class="lineNum">     343 </span>            :          */
+<span class="lineNum">     344 </span><span class="lineCov">     386443 :         if (head-&gt;is_data)</span>
+<span class="lineNum">     345 </span><span class="lineCov">     386449 :                 return;</span>
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span>            :         spin_lock(&amp;fs_info-&gt;tree_mod_seq_lock);
+<span class="lineNum">     348 </span><span class="lineCov">     424090 :         if (!list_empty(&amp;fs_info-&gt;tree_mod_seq_list)) {</span>
+<span class="lineNum">     349 </span>            :                 struct seq_list *elem;
+<span class="lineNum">     350 </span>            : 
+<span class="lineNum">     351 </span>            :                 elem = list_first_entry(&amp;fs_info-&gt;tree_mod_seq_list,
+<span class="lineNum">     352 </span>            :                                         struct seq_list, list);
+<span class="lineNum">     353 </span><span class="lineCov">       2114 :                 seq = elem-&gt;seq;</span>
+<span class="lineNum">     354 </span>            :         }
+<span class="lineNum">     355 </span>            :         spin_unlock(&amp;fs_info-&gt;tree_mod_seq_lock);
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineCov">     212045 :         node = rb_first(&amp;head-&gt;ref_root);</span>
+<span class="lineNum">     358 </span><span class="lineCov">     530890 :         while (node) {</span>
+<span class="lineNum">     359 </span>            :                 struct btrfs_delayed_ref_node *ref;
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            :                 ref = rb_entry(node, struct btrfs_delayed_ref_node,
+<span class="lineNum">     362 </span>            :                                rb_node);
+<span class="lineNum">     363 </span>            :                 /* We can't merge refs that are outside of our seq count */
+<span class="lineNum">     364 </span><span class="lineCov">     106804 :                 if (seq &amp;&amp; ref-&gt;seq &gt;= seq)</span>
+<span class="lineNum">     365 </span>            :                         break;
+<span class="lineNum">     366 </span><span class="lineCov">     106802 :                 if (merge_ref(trans, delayed_refs, head, ref, seq))</span>
+<span class="lineNum">     367 </span><span class="lineCov">        269 :                         node = rb_first(&amp;head-&gt;ref_root);</span>
+<span class="lineNum">     368 </span>            :                 else
+<span class="lineNum">     369 </span><span class="lineCov">     106533 :                         node = rb_next(&amp;ref-&gt;rb_node);</span>
+<span class="lineNum">     370 </span>            :         }
+<a name="371"><span class="lineNum">     371 </span>            : }</a>
+<span class="lineNum">     372 </span>            : 
+<span class="lineNum">     373 </span><span class="lineCov">      14648 : int btrfs_check_delayed_seq(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     374 </span>            :                             struct btrfs_delayed_ref_root *delayed_refs,
+<span class="lineNum">     375 </span>            :                             u64 seq)
+<span class="lineNum">     376 </span>            : {
+<span class="lineNum">     377 </span>            :         struct seq_list *elem;
+<span class="lineNum">     378 </span>            :         int ret = 0;
+<span class="lineNum">     379 </span>            : 
+<span class="lineNum">     380 </span>            :         spin_lock(&amp;fs_info-&gt;tree_mod_seq_lock);
+<span class="lineNum">     381 </span><span class="lineCov">      29296 :         if (!list_empty(&amp;fs_info-&gt;tree_mod_seq_list)) {</span>
+<span class="lineNum">     382 </span>            :                 elem = list_first_entry(&amp;fs_info-&gt;tree_mod_seq_list,
+<span class="lineNum">     383 </span>            :                                         struct seq_list, list);
+<span class="lineNum">     384 </span><span class="lineCov">       3595 :                 if (seq &gt;= elem-&gt;seq) {</span>
+<span class="lineNum">     385 </span><span class="lineCov">          8 :                         pr_debug(&quot;holding back delayed_ref %#x.%x, lowest is %#x.%x (%p)\n&quot;,</span>
+<span class="lineNum">     386 </span>            :                                  (u32)(seq &gt;&gt; 32), (u32)seq,
+<span class="lineNum">     387 </span>            :                                  (u32)(elem-&gt;seq &gt;&gt; 32), (u32)elem-&gt;seq,
+<span class="lineNum">     388 </span>            :                                  delayed_refs);
+<span class="lineNum">     389 </span>            :                         ret = 1;
+<span class="lineNum">     390 </span>            :                 }
+<span class="lineNum">     391 </span>            :         }
+<span class="lineNum">     392 </span>            : 
+<span class="lineNum">     393 </span>            :         spin_unlock(&amp;fs_info-&gt;tree_mod_seq_lock);
+<span class="lineNum">     394 </span><span class="lineCov">      14648 :         return ret;</span>
+<span class="lineNum">     395 </span>            : }
+<a name="396"><span class="lineNum">     396 </span>            : </a>
+<span class="lineNum">     397 </span>            : struct btrfs_delayed_ref_head *
+<span class="lineNum">     398 </span><span class="lineCov">     228327 : btrfs_select_ref_head(struct btrfs_trans_handle *trans)</span>
+<span class="lineNum">     399 </span>            : {
+<span class="lineNum">     400 </span>            :         struct btrfs_delayed_ref_root *delayed_refs;
+<span class="lineNum">     401 </span>            :         struct btrfs_delayed_ref_head *head;
+<span class="lineNum">     402 </span>            :         u64 start;
+<span class="lineNum">     403 </span>            :         bool loop = false;
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineCov">     228327 :         delayed_refs = &amp;trans-&gt;transaction-&gt;delayed_refs;</span>
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            : again:
+<span class="lineNum">     408 </span><span class="lineCov">     228538 :         start = delayed_refs-&gt;run_delayed_start;</span>
+<span class="lineNum">     409 </span><span class="lineCov">     228538 :         head = find_ref_head(&amp;delayed_refs-&gt;href_root, start, 1);</span>
+<span class="lineNum">     410 </span><span class="lineCov">     228538 :         if (!head &amp;&amp; !loop) {</span>
+<span class="lineNum">     411 </span><span class="lineCov">      36346 :                 delayed_refs-&gt;run_delayed_start = 0;</span>
+<span class="lineNum">     412 </span>            :                 start = 0;
+<span class="lineNum">     413 </span>            :                 loop = true;
+<span class="lineNum">     414 </span><span class="lineCov">      36346 :                 head = find_ref_head(&amp;delayed_refs-&gt;href_root, start, 1);</span>
+<span class="lineNum">     415 </span><span class="lineCov">      36346 :                 if (!head)</span>
+<span class="lineNum">     416 </span>            :                         return NULL;
+<span class="lineNum">     417 </span><span class="lineCov">     192192 :         } else if (!head &amp;&amp; loop) {</span>
+<span class="lineNum">     418 </span>            :                 return NULL;
+<span class="lineNum">     419 </span>            :         }
+<span class="lineNum">     420 </span>            : 
+<span class="lineNum">     421 </span><span class="lineCov">     192446 :         while (head-&gt;processing) {</span>
+<span class="lineNum">     422 </span>            :                 struct rb_node *node;
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span><span class="lineCov">        674 :                 node = rb_next(&amp;head-&gt;href_node);</span>
+<span class="lineNum">     425 </span><span class="lineCov">        674 :                 if (!node) {</span>
+<span class="lineNum">     426 </span><span class="lineCov">        420 :                         if (loop)</span>
+<span class="lineNum">     427 </span>            :                                 return NULL;
+<span class="lineNum">     428 </span><span class="lineCov">        211 :                         delayed_refs-&gt;run_delayed_start = 0;</span>
+<span class="lineNum">     429 </span>            :                         start = 0;
+<span class="lineNum">     430 </span>            :                         loop = true;
+<span class="lineNum">     431 </span><span class="lineCov">        211 :                         goto again;</span>
+<span class="lineNum">     432 </span>            :                 }
+<span class="lineNum">     433 </span><span class="lineCov">        254 :                 head = rb_entry(node, struct btrfs_delayed_ref_head,</span>
+<span class="lineNum">     434 </span>            :                                 href_node);
+<span class="lineNum">     435 </span>            :         }
+<span class="lineNum">     436 </span>            : 
+<span class="lineNum">     437 </span><span class="lineCov">     191772 :         head-&gt;processing = 1;</span>
+<span class="lineNum">     438 </span><span class="lineCov">     191772 :         WARN_ON(delayed_refs-&gt;num_heads_ready == 0);</span>
+<span class="lineNum">     439 </span><span class="lineCov">     191772 :         delayed_refs-&gt;num_heads_ready--;</span>
+<span class="lineNum">     440 </span><span class="lineCov">     383544 :         delayed_refs-&gt;run_delayed_start = head-&gt;node.bytenr +</span>
+<span class="lineNum">     441 </span><span class="lineCov">     191772 :                 head-&gt;node.num_bytes;</span>
+<span class="lineNum">     442 </span><span class="lineCov">     191772 :         return head;</span>
+<span class="lineNum">     443 </span>            : }
+<span class="lineNum">     444 </span>            : 
+<span class="lineNum">     445 </span>            : /*
+<span class="lineNum">     446 </span>            :  * helper function to update an extent delayed ref in the
+<span class="lineNum">     447 </span>            :  * rbtree.  existing and update must both have the same
+<span class="lineNum">     448 </span>            :  * bytenr and parent
+<span class="lineNum">     449 </span>            :  *
+<span class="lineNum">     450 </span>            :  * This may free existing if the update cancels out whatever
+<span class="lineNum">     451 </span>            :  * operation it was doing.
+<a name="452"><span class="lineNum">     452 </span>            :  */</a>
+<span class="lineNum">     453 </span>            : static noinline void
+<span class="lineNum">     454 </span><span class="lineCov">       7996 : update_existing_ref(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     455 </span>            :                     struct btrfs_delayed_ref_root *delayed_refs,
+<span class="lineNum">     456 </span>            :                     struct btrfs_delayed_ref_head *head,
+<span class="lineNum">     457 </span>            :                     struct btrfs_delayed_ref_node *existing,
+<span class="lineNum">     458 </span>            :                     struct btrfs_delayed_ref_node *update)
+<span class="lineNum">     459 </span>            : {
+<span class="lineNum">     460 </span><span class="lineCov">       7996 :         if (update-&gt;action != existing-&gt;action) {</span>
+<span class="lineNum">     461 </span>            :                 /*
+<span class="lineNum">     462 </span>            :                  * this is effectively undoing either an add or a
+<span class="lineNum">     463 </span>            :                  * drop.  We decrement the ref_mod, and if it goes
+<span class="lineNum">     464 </span>            :                  * down to zero we just delete the entry without
+<span class="lineNum">     465 </span>            :                  * every changing the extent allocation tree.
+<span class="lineNum">     466 </span>            :                  */
+<span class="lineNum">     467 </span><span class="lineCov">       5937 :                 existing-&gt;ref_mod--;</span>
+<span class="lineNum">     468 </span><span class="lineCov">       5937 :                 if (existing-&gt;ref_mod == 0)</span>
+<span class="lineNum">     469 </span><span class="lineCov">       5910 :                         drop_delayed_ref(trans, delayed_refs, head, existing);</span>
+<span class="lineNum">     470 </span>            :                 else
+<span class="lineNum">     471 </span><span class="lineCov">         27 :                         WARN_ON(existing-&gt;type == BTRFS_TREE_BLOCK_REF_KEY ||</span>
+<span class="lineNum">     472 </span>            :                                 existing-&gt;type == BTRFS_SHARED_BLOCK_REF_KEY);
+<span class="lineNum">     473 </span>            :         } else {
+<span class="lineNum">     474 </span><span class="lineCov">       2059 :                 WARN_ON(existing-&gt;type == BTRFS_TREE_BLOCK_REF_KEY ||</span>
+<span class="lineNum">     475 </span>            :                         existing-&gt;type == BTRFS_SHARED_BLOCK_REF_KEY);
+<span class="lineNum">     476 </span>            :                 /*
+<span class="lineNum">     477 </span>            :                  * the action on the existing ref matches
+<span class="lineNum">     478 </span>            :                  * the action on the ref we're trying to add.
+<span class="lineNum">     479 </span>            :                  * Bump the ref_mod by one so the backref that
+<span class="lineNum">     480 </span>            :                  * is eventually added/removed has the correct
+<span class="lineNum">     481 </span>            :                  * reference count
+<span class="lineNum">     482 </span>            :                  */
+<span class="lineNum">     483 </span><span class="lineCov">       2059 :                 existing-&gt;ref_mod += update-&gt;ref_mod;</span>
+<span class="lineNum">     484 </span>            :         }
+<span class="lineNum">     485 </span><span class="lineCov">       7996 : }</span>
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            : /*
+<span class="lineNum">     488 </span>            :  * helper function to update the accounting in the head ref
+<span class="lineNum">     489 </span>            :  * existing and update must have the same bytenr
+<a name="490"><span class="lineNum">     490 </span>            :  */</a>
+<span class="lineNum">     491 </span>            : static noinline void
+<span class="lineNum">     492 </span><span class="lineCov">      15591 : update_existing_head_ref(struct btrfs_delayed_ref_node *existing,</span>
+<span class="lineNum">     493 </span>            :                          struct btrfs_delayed_ref_node *update)
+<span class="lineNum">     494 </span>            : {
+<span class="lineNum">     495 </span>            :         struct btrfs_delayed_ref_head *existing_ref;
+<span class="lineNum">     496 </span>            :         struct btrfs_delayed_ref_head *ref;
+<span class="lineNum">     497 </span>            : 
+<span class="lineNum">     498 </span>            :         existing_ref = btrfs_delayed_node_to_head(existing);
+<span class="lineNum">     499 </span>            :         ref = btrfs_delayed_node_to_head(update);
+<span class="lineNum">     500 </span><span class="lineCov">      15591 :         BUG_ON(existing_ref-&gt;is_data != ref-&gt;is_data);</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            :         spin_lock(&amp;existing_ref-&gt;lock);
+<span class="lineNum">     503 </span><span class="lineCov">      15591 :         if (ref-&gt;must_insert_reserved) {</span>
+<span class="lineNum">     504 </span>            :                 /* if the extent was freed and then
+<span class="lineNum">     505 </span>            :                  * reallocated before the delayed ref
+<span class="lineNum">     506 </span>            :                  * entries were processed, we can end up
+<span class="lineNum">     507 </span>            :                  * with an existing head ref without
+<span class="lineNum">     508 </span>            :                  * the must_insert_reserved flag set.
+<span class="lineNum">     509 </span>            :                  * Set it again here
+<span class="lineNum">     510 </span>            :                  */
+<span class="lineNum">     511 </span><span class="lineNoCov">          0 :                 existing_ref-&gt;must_insert_reserved = ref-&gt;must_insert_reserved;</span>
+<span class="lineNum">     512 </span>            : 
+<span class="lineNum">     513 </span>            :                 /*
+<span class="lineNum">     514 </span>            :                  * update the num_bytes so we make sure the accounting
+<span class="lineNum">     515 </span>            :                  * is done correctly
+<span class="lineNum">     516 </span>            :                  */
+<span class="lineNum">     517 </span><span class="lineNoCov">          0 :                 existing-&gt;num_bytes = update-&gt;num_bytes;</span>
+<span class="lineNum">     518 </span>            : 
+<span class="lineNum">     519 </span>            :         }
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span><span class="lineCov">      15591 :         if (ref-&gt;extent_op) {</span>
+<span class="lineNum">     522 </span><span class="lineCov">        113 :                 if (!existing_ref-&gt;extent_op) {</span>
+<span class="lineNum">     523 </span><span class="lineCov">        113 :                         existing_ref-&gt;extent_op = ref-&gt;extent_op;</span>
+<span class="lineNum">     524 </span>            :                 } else {
+<span class="lineNum">     525 </span><span class="lineNoCov">          0 :                         if (ref-&gt;extent_op-&gt;update_key) {</span>
+<span class="lineNum">     526 </span><span class="lineNoCov">          0 :                                 memcpy(&amp;existing_ref-&gt;extent_op-&gt;key,</span>
+<span class="lineNum">     527 </span><span class="lineNoCov">          0 :                                        &amp;ref-&gt;extent_op-&gt;key,</span>
+<span class="lineNum">     528 </span>            :                                        sizeof(ref-&gt;extent_op-&gt;key));
+<span class="lineNum">     529 </span><span class="lineNoCov">          0 :                                 existing_ref-&gt;extent_op-&gt;update_key = 1;</span>
+<span class="lineNum">     530 </span>            :                         }
+<span class="lineNum">     531 </span><span class="lineNoCov">          0 :                         if (ref-&gt;extent_op-&gt;update_flags) {</span>
+<span class="lineNum">     532 </span><span class="lineNoCov">          0 :                                 existing_ref-&gt;extent_op-&gt;flags_to_set |=</span>
+<span class="lineNum">     533 </span><span class="lineNoCov">          0 :                                         ref-&gt;extent_op-&gt;flags_to_set;</span>
+<span class="lineNum">     534 </span><span class="lineNoCov">          0 :                                 existing_ref-&gt;extent_op-&gt;update_flags = 1;</span>
+<span class="lineNum">     535 </span>            :                         }
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :                         btrfs_free_delayed_extent_op(ref-&gt;extent_op);</span>
+<span class="lineNum">     537 </span>            :                 }
+<span class="lineNum">     538 </span>            :         }
+<span class="lineNum">     539 </span>            :         /*
+<span class="lineNum">     540 </span>            :          * update the reference mod on the head to reflect this new operation,
+<span class="lineNum">     541 </span>            :          * only need the lock for this case cause we could be processing it
+<span class="lineNum">     542 </span>            :          * currently, for refs we just added we know we're a-ok.
+<span class="lineNum">     543 </span>            :          */
+<span class="lineNum">     544 </span><span class="lineCov">      15591 :         existing-&gt;ref_mod += update-&gt;ref_mod;</span>
+<span class="lineNum">     545 </span>            :         spin_unlock(&amp;existing_ref-&gt;lock);
+<span class="lineNum">     546 </span><span class="lineCov">      15591 : }</span>
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span>            : /*
+<span class="lineNum">     549 </span>            :  * helper function to actually insert a head node into the rbtree.
+<span class="lineNum">     550 </span>            :  * this does all the dirty work in terms of maintaining the correct
+<span class="lineNum">     551 </span>            :  * overall modification count.
+<a name="552"><span class="lineNum">     552 </span>            :  */</a>
+<span class="lineNum">     553 </span>            : static noinline struct btrfs_delayed_ref_head *
+<span class="lineNum">     554 </span><span class="lineCov">     209618 : add_delayed_ref_head(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     555 </span>            :                      struct btrfs_trans_handle *trans,
+<span class="lineNum">     556 </span>            :                      struct btrfs_delayed_ref_node *ref, u64 bytenr,
+<span class="lineNum">     557 </span>            :                      u64 num_bytes, int action, int is_data)
+<span class="lineNum">     558 </span>            : {
+<span class="lineNum">     559 </span>            :         struct btrfs_delayed_ref_head *existing;
+<span class="lineNum">     560 </span>            :         struct btrfs_delayed_ref_head *head_ref = NULL;
+<span class="lineNum">     561 </span>            :         struct btrfs_delayed_ref_root *delayed_refs;
+<span class="lineNum">     562 </span>            :         int count_mod = 1;
+<span class="lineNum">     563 </span>            :         int must_insert_reserved = 0;
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span>            :         /*
+<span class="lineNum">     566 </span>            :          * the head node stores the sum of all the mods, so dropping a ref
+<span class="lineNum">     567 </span>            :          * should drop the sum in the head node by one.
+<span class="lineNum">     568 </span>            :          */
+<span class="lineNum">     569 </span><span class="lineCov">     209618 :         if (action == BTRFS_UPDATE_DELAYED_HEAD)</span>
+<span class="lineNum">     570 </span>            :                 count_mod = 0;
+<span class="lineNum">     571 </span><span class="lineCov">     209206 :         else if (action == BTRFS_DROP_DELAYED_REF)</span>
+<span class="lineNum">     572 </span>            :                 count_mod = -1;
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span>            :         /*
+<span class="lineNum">     575 </span>            :          * BTRFS_ADD_DELAYED_EXTENT means that we need to update
+<span class="lineNum">     576 </span>            :          * the reserved accounting when the extent is finally added, or
+<span class="lineNum">     577 </span>            :          * if a later modification deletes the delayed ref without ever
+<span class="lineNum">     578 </span>            :          * inserting the extent into the extent allocation tree.
+<span class="lineNum">     579 </span>            :          * ref-&gt;must_insert_reserved is the flag used to record
+<span class="lineNum">     580 </span>            :          * that accounting mods are required.
+<span class="lineNum">     581 </span>            :          *
+<span class="lineNum">     582 </span>            :          * Once we record must_insert_reserved, switch the action to
+<span class="lineNum">     583 </span>            :          * BTRFS_ADD_DELAYED_REF because other special casing is not required.
+<span class="lineNum">     584 </span>            :          */
+<span class="lineNum">     585 </span><span class="lineCov">     209618 :         if (action == BTRFS_ADD_DELAYED_EXTENT)</span>
+<span class="lineNum">     586 </span>            :                 must_insert_reserved = 1;
+<span class="lineNum">     587 </span>            :         else
+<span class="lineNum">     588 </span>            :                 must_insert_reserved = 0;
+<span class="lineNum">     589 </span>            : 
+<span class="lineNum">     590 </span><span class="lineCov">     209618 :         delayed_refs = &amp;trans-&gt;transaction-&gt;delayed_refs;</span>
+<span class="lineNum">     591 </span>            : 
+<span class="lineNum">     592 </span>            :         /* first set the basic ref node struct up */
+<span class="lineNum">     593 </span>            :         atomic_set(&amp;ref-&gt;refs, 1);
+<span class="lineNum">     594 </span><span class="lineCov">     209618 :         ref-&gt;bytenr = bytenr;</span>
+<span class="lineNum">     595 </span><span class="lineCov">     209618 :         ref-&gt;num_bytes = num_bytes;</span>
+<span class="lineNum">     596 </span><span class="lineCov">     209618 :         ref-&gt;ref_mod = count_mod;</span>
+<span class="lineNum">     597 </span><span class="lineCov">     209618 :         ref-&gt;type  = 0;</span>
+<span class="lineNum">     598 </span><span class="lineCov">     209618 :         ref-&gt;action  = 0;</span>
+<span class="lineNum">     599 </span><span class="lineCov">     209618 :         ref-&gt;is_head = 1;</span>
+<span class="lineNum">     600 </span><span class="lineCov">     209618 :         ref-&gt;in_tree = 1;</span>
+<span class="lineNum">     601 </span><span class="lineCov">     209618 :         ref-&gt;seq = 0;</span>
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            :         head_ref = btrfs_delayed_node_to_head(ref);
+<span class="lineNum">     604 </span><span class="lineCov">     209618 :         head_ref-&gt;must_insert_reserved = must_insert_reserved;</span>
+<span class="lineNum">     605 </span><span class="lineCov">     209618 :         head_ref-&gt;is_data = is_data;</span>
+<span class="lineNum">     606 </span><span class="lineCov">     209618 :         head_ref-&gt;ref_root = RB_ROOT;</span>
+<span class="lineNum">     607 </span><span class="lineCov">     209618 :         head_ref-&gt;processing = 0;</span>
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span><span class="lineCov">     209618 :         spin_lock_init(&amp;head_ref-&gt;lock);</span>
+<span class="lineNum">     610 </span><span class="lineCov">     209618 :         mutex_init(&amp;head_ref-&gt;mutex);</span>
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span><span class="lineCov">     209619 :         trace_add_delayed_ref_head(ref, head_ref, action);</span>
+<span class="lineNum">     613 </span>            : 
+<span class="lineNum">     614 </span><span class="lineCov">     209619 :         existing = htree_insert(&amp;delayed_refs-&gt;href_root,</span>
+<span class="lineNum">     615 </span>            :                                 &amp;head_ref-&gt;href_node);
+<span class="lineNum">     616 </span><span class="lineCov">     209619 :         if (existing) {</span>
+<span class="lineNum">     617 </span><span class="lineCov">      15591 :                 update_existing_head_ref(&amp;existing-&gt;node, ref);</span>
+<span class="lineNum">     618 </span>            :                 /*
+<span class="lineNum">     619 </span>            :                  * we've updated the existing ref, free the newly
+<span class="lineNum">     620 </span>            :                  * allocated ref
+<span class="lineNum">     621 </span>            :                  */
+<span class="lineNum">     622 </span><span class="lineCov">      15591 :                 kmem_cache_free(btrfs_delayed_ref_head_cachep, head_ref);</span>
+<span class="lineNum">     623 </span>            :                 head_ref = existing;
+<span class="lineNum">     624 </span>            :         } else {
+<span class="lineNum">     625 </span><span class="lineCov">     194028 :                 delayed_refs-&gt;num_heads++;</span>
+<span class="lineNum">     626 </span><span class="lineCov">     194028 :                 delayed_refs-&gt;num_heads_ready++;</span>
+<span class="lineNum">     627 </span><span class="lineCov">     194028 :                 atomic_inc(&amp;delayed_refs-&gt;num_entries);</span>
+<span class="lineNum">     628 </span><span class="lineCov">     194030 :                 trans-&gt;delayed_ref_updates++;</span>
+<span class="lineNum">     629 </span>            :         }
+<span class="lineNum">     630 </span><span class="lineCov">     209621 :         return head_ref;</span>
+<span class="lineNum">     631 </span>            : }
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span>            : /*
+<span class="lineNum">     634 </span>            :  * helper to insert a delayed tree ref into the rbtree.
+<a name="635"><span class="lineNum">     635 </span>            :  */</a>
+<span class="lineNum">     636 </span>            : static noinline void
+<span class="lineNum">     637 </span><span class="lineCov">     111044 : add_delayed_tree_ref(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     638 </span>            :                      struct btrfs_trans_handle *trans,
+<span class="lineNum">     639 </span>            :                      struct btrfs_delayed_ref_head *head_ref,
+<span class="lineNum">     640 </span>            :                      struct btrfs_delayed_ref_node *ref, u64 bytenr,
+<span class="lineNum">     641 </span>            :                      u64 num_bytes, u64 parent, u64 ref_root, int level,
+<span class="lineNum">     642 </span>            :                      int action, int no_quota)
+<span class="lineNum">     643 </span>            : {
+<span class="lineNum">     644 </span>            :         struct btrfs_delayed_ref_node *existing;
+<span class="lineNum">     645 </span>            :         struct btrfs_delayed_tree_ref *full_ref;
+<span class="lineNum">     646 </span>            :         struct btrfs_delayed_ref_root *delayed_refs;
+<span class="lineNum">     647 </span>            :         u64 seq = 0;
+<span class="lineNum">     648 </span>            : 
+<span class="lineNum">     649 </span><span class="lineCov">     111044 :         if (action == BTRFS_ADD_DELAYED_EXTENT)</span>
+<span class="lineNum">     650 </span>            :                 action = BTRFS_ADD_DELAYED_REF;
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span><span class="lineCov">     111044 :         if (is_fstree(ref_root))</span>
+<span class="lineNum">     653 </span><span class="lineCov">      54947 :                 seq = atomic64_read(&amp;fs_info-&gt;tree_mod_seq);</span>
+<span class="lineNum">     654 </span><span class="lineCov">     111044 :         delayed_refs = &amp;trans-&gt;transaction-&gt;delayed_refs;</span>
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span>            :         /* first set the basic ref node struct up */
+<span class="lineNum">     657 </span>            :         atomic_set(&amp;ref-&gt;refs, 1);
+<span class="lineNum">     658 </span><span class="lineCov">     111044 :         ref-&gt;bytenr = bytenr;</span>
+<span class="lineNum">     659 </span><span class="lineCov">     111044 :         ref-&gt;num_bytes = num_bytes;</span>
+<span class="lineNum">     660 </span><span class="lineCov">     111044 :         ref-&gt;ref_mod = 1;</span>
+<span class="lineNum">     661 </span><span class="lineCov">     111044 :         ref-&gt;action = action;</span>
+<span class="lineNum">     662 </span><span class="lineCov">     111044 :         ref-&gt;is_head = 0;</span>
+<span class="lineNum">     663 </span><span class="lineCov">     111044 :         ref-&gt;in_tree = 1;</span>
+<span class="lineNum">     664 </span><span class="lineCov">     111044 :         ref-&gt;no_quota = no_quota;</span>
+<span class="lineNum">     665 </span><span class="lineCov">     111044 :         ref-&gt;seq = seq;</span>
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span>            :         full_ref = btrfs_delayed_node_to_tree_ref(ref);
+<span class="lineNum">     668 </span><span class="lineCov">     111044 :         full_ref-&gt;parent = parent;</span>
+<span class="lineNum">     669 </span><span class="lineCov">     111044 :         full_ref-&gt;root = ref_root;</span>
+<span class="lineNum">     670 </span><span class="lineCov">     111044 :         if (parent)</span>
+<span class="lineNum">     671 </span><span class="lineCov">       1390 :                 ref-&gt;type = BTRFS_SHARED_BLOCK_REF_KEY;</span>
+<span class="lineNum">     672 </span>            :         else
+<span class="lineNum">     673 </span><span class="lineCov">     109654 :                 ref-&gt;type = BTRFS_TREE_BLOCK_REF_KEY;</span>
+<span class="lineNum">     674 </span><span class="lineCov">     111044 :         full_ref-&gt;level = level;</span>
+<span class="lineNum">     675 </span>            : 
+<span class="lineNum">     676 </span><span class="lineCov">     111044 :         trace_add_delayed_tree_ref(ref, full_ref, action);</span>
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span>            :         spin_lock(&amp;head_ref-&gt;lock);
+<span class="lineNum">     679 </span><span class="lineCov">     111044 :         existing = tree_insert(&amp;head_ref-&gt;ref_root, &amp;ref-&gt;rb_node);</span>
+<span class="lineNum">     680 </span><span class="lineCov">     111043 :         if (existing) {</span>
+<span class="lineNum">     681 </span><span class="lineCov">       2216 :                 update_existing_ref(trans, delayed_refs, head_ref, existing,</span>
+<span class="lineNum">     682 </span>            :                                     ref);
+<span class="lineNum">     683 </span>            :                 /*
+<span class="lineNum">     684 </span>            :                  * we've updated the existing ref, free the newly
+<span class="lineNum">     685 </span>            :                  * allocated ref
+<span class="lineNum">     686 </span>            :                  */
+<span class="lineNum">     687 </span><span class="lineCov">       2216 :                 kmem_cache_free(btrfs_delayed_tree_ref_cachep, full_ref);</span>
+<span class="lineNum">     688 </span>            :         } else {
+<span class="lineNum">     689 </span><span class="lineCov">     108827 :                 atomic_inc(&amp;delayed_refs-&gt;num_entries);</span>
+<span class="lineNum">     690 </span><span class="lineCov">     108827 :                 trans-&gt;delayed_ref_updates++;</span>
+<span class="lineNum">     691 </span>            :         }
+<span class="lineNum">     692 </span>            :         spin_unlock(&amp;head_ref-&gt;lock);
+<span class="lineNum">     693 </span><span class="lineCov">     111043 : }</span>
+<span class="lineNum">     694 </span>            : 
+<span class="lineNum">     695 </span>            : /*
+<span class="lineNum">     696 </span>            :  * helper to insert a delayed data ref into the rbtree.
+<a name="697"><span class="lineNum">     697 </span>            :  */</a>
+<span class="lineNum">     698 </span>            : static noinline void
+<span class="lineNum">     699 </span><span class="lineCov">      98165 : add_delayed_data_ref(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     700 </span>            :                      struct btrfs_trans_handle *trans,
+<span class="lineNum">     701 </span>            :                      struct btrfs_delayed_ref_head *head_ref,
+<span class="lineNum">     702 </span>            :                      struct btrfs_delayed_ref_node *ref, u64 bytenr,
+<span class="lineNum">     703 </span>            :                      u64 num_bytes, u64 parent, u64 ref_root, u64 owner,
+<span class="lineNum">     704 </span>            :                      u64 offset, int action, int no_quota)
+<span class="lineNum">     705 </span>            : {
+<span class="lineNum">     706 </span>            :         struct btrfs_delayed_ref_node *existing;
+<span class="lineNum">     707 </span>            :         struct btrfs_delayed_data_ref *full_ref;
+<span class="lineNum">     708 </span>            :         struct btrfs_delayed_ref_root *delayed_refs;
+<span class="lineNum">     709 </span>            :         u64 seq = 0;
+<span class="lineNum">     710 </span>            : 
+<span class="lineNum">     711 </span><span class="lineCov">      98165 :         if (action == BTRFS_ADD_DELAYED_EXTENT)</span>
+<span class="lineNum">     712 </span>            :                 action = BTRFS_ADD_DELAYED_REF;
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span><span class="lineCov">      98165 :         delayed_refs = &amp;trans-&gt;transaction-&gt;delayed_refs;</span>
+<span class="lineNum">     715 </span>            : 
+<span class="lineNum">     716 </span><span class="lineCov">      98165 :         if (is_fstree(ref_root))</span>
+<span class="lineNum">     717 </span><span class="lineCov">      88306 :                 seq = atomic64_read(&amp;fs_info-&gt;tree_mod_seq);</span>
+<span class="lineNum">     718 </span>            : 
+<span class="lineNum">     719 </span>            :         /* first set the basic ref node struct up */
+<span class="lineNum">     720 </span>            :         atomic_set(&amp;ref-&gt;refs, 1);
+<span class="lineNum">     721 </span><span class="lineCov">      98165 :         ref-&gt;bytenr = bytenr;</span>
+<span class="lineNum">     722 </span><span class="lineCov">      98165 :         ref-&gt;num_bytes = num_bytes;</span>
+<span class="lineNum">     723 </span><span class="lineCov">      98165 :         ref-&gt;ref_mod = 1;</span>
+<span class="lineNum">     724 </span><span class="lineCov">      98165 :         ref-&gt;action = action;</span>
+<span class="lineNum">     725 </span><span class="lineCov">      98165 :         ref-&gt;is_head = 0;</span>
+<span class="lineNum">     726 </span><span class="lineCov">      98165 :         ref-&gt;in_tree = 1;</span>
+<span class="lineNum">     727 </span><span class="lineCov">      98165 :         ref-&gt;no_quota = no_quota;</span>
+<span class="lineNum">     728 </span><span class="lineCov">      98165 :         ref-&gt;seq = seq;</span>
+<span class="lineNum">     729 </span>            : 
+<span class="lineNum">     730 </span>            :         full_ref = btrfs_delayed_node_to_data_ref(ref);
+<span class="lineNum">     731 </span><span class="lineCov">      98165 :         full_ref-&gt;parent = parent;</span>
+<span class="lineNum">     732 </span><span class="lineCov">      98165 :         full_ref-&gt;root = ref_root;</span>
+<span class="lineNum">     733 </span><span class="lineCov">      98165 :         if (parent)</span>
+<span class="lineNum">     734 </span><span class="lineCov">      18590 :                 ref-&gt;type = BTRFS_SHARED_DATA_REF_KEY;</span>
+<span class="lineNum">     735 </span>            :         else
+<span class="lineNum">     736 </span><span class="lineCov">      79575 :                 ref-&gt;type = BTRFS_EXTENT_DATA_REF_KEY;</span>
+<span class="lineNum">     737 </span>            : 
+<span class="lineNum">     738 </span><span class="lineCov">      98165 :         full_ref-&gt;objectid = owner;</span>
+<span class="lineNum">     739 </span><span class="lineCov">      98165 :         full_ref-&gt;offset = offset;</span>
+<span class="lineNum">     740 </span>            : 
+<span class="lineNum">     741 </span><span class="lineCov">      98165 :         trace_add_delayed_data_ref(ref, full_ref, action);</span>
+<span class="lineNum">     742 </span>            : 
+<span class="lineNum">     743 </span>            :         spin_lock(&amp;head_ref-&gt;lock);
+<span class="lineNum">     744 </span><span class="lineCov">      98165 :         existing = tree_insert(&amp;head_ref-&gt;ref_root, &amp;ref-&gt;rb_node);</span>
+<span class="lineNum">     745 </span><span class="lineCov">      98164 :         if (existing) {</span>
+<span class="lineNum">     746 </span><span class="lineCov">       5780 :                 update_existing_ref(trans, delayed_refs, head_ref, existing,</span>
+<span class="lineNum">     747 </span>            :                                     ref);
+<span class="lineNum">     748 </span>            :                 /*
+<span class="lineNum">     749 </span>            :                  * we've updated the existing ref, free the newly
+<span class="lineNum">     750 </span>            :                  * allocated ref
+<span class="lineNum">     751 </span>            :                  */
+<span class="lineNum">     752 </span><span class="lineCov">       5780 :                 kmem_cache_free(btrfs_delayed_data_ref_cachep, full_ref);</span>
+<span class="lineNum">     753 </span>            :         } else {
+<span class="lineNum">     754 </span><span class="lineCov">      92384 :                 atomic_inc(&amp;delayed_refs-&gt;num_entries);</span>
+<span class="lineNum">     755 </span><span class="lineCov">      92384 :                 trans-&gt;delayed_ref_updates++;</span>
+<span class="lineNum">     756 </span>            :         }
+<span class="lineNum">     757 </span>            :         spin_unlock(&amp;head_ref-&gt;lock);
+<span class="lineNum">     758 </span><span class="lineCov">      98164 : }</span>
+<span class="lineNum">     759 </span>            : 
+<span class="lineNum">     760 </span>            : /*
+<span class="lineNum">     761 </span>            :  * add a delayed tree ref.  This does all of the accounting required
+<span class="lineNum">     762 </span>            :  * to make sure the delayed ref is eventually processed before this
+<a name="763"><span class="lineNum">     763 </span>            :  * transaction commits.</a>
+<span class="lineNum">     764 </span>            :  */
+<span class="lineNum">     765 </span><span class="lineCov">     111033 : int btrfs_add_delayed_tree_ref(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     766 </span><span class="lineCov">     111042 :                                struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     767 </span>            :                                u64 bytenr, u64 num_bytes, u64 parent,
+<span class="lineNum">     768 </span>            :                                u64 ref_root,  int level, int action,
+<span class="lineNum">     769 </span>            :                                struct btrfs_delayed_extent_op *extent_op,
+<span class="lineNum">     770 </span>            :                                int no_quota)
+<span class="lineNum">     771 </span>            : {
+<span class="lineNum">     772 </span>            :         struct btrfs_delayed_tree_ref *ref;
+<span class="lineNum">     773 </span>            :         struct btrfs_delayed_ref_head *head_ref;
+<span class="lineNum">     774 </span>            :         struct btrfs_delayed_ref_root *delayed_refs;
+<span class="lineNum">     775 </span>            : 
+<span class="lineNum">     776 </span><span class="lineCov">     111033 :         if (!is_fstree(ref_root) || !fs_info-&gt;quota_enabled)</span>
+<span class="lineNum">     777 </span>            :                 no_quota = 0;
+<span class="lineNum">     778 </span>            : 
+<span class="lineNum">     779 </span><span class="lineCov">     111033 :         BUG_ON(extent_op &amp;&amp; extent_op-&gt;is_data);</span>
+<span class="lineNum">     780 </span><span class="lineCov">     111033 :         ref = kmem_cache_alloc(btrfs_delayed_tree_ref_cachep, GFP_NOFS);</span>
+<span class="lineNum">     781 </span><span class="lineCov">     111033 :         if (!ref)</span>
+<span class="lineNum">     782 </span>            :                 return -ENOMEM;
+<span class="lineNum">     783 </span>            : 
+<span class="lineNum">     784 </span><span class="lineCov">     111033 :         head_ref = kmem_cache_alloc(btrfs_delayed_ref_head_cachep, GFP_NOFS);</span>
+<span class="lineNum">     785 </span><span class="lineCov">     111039 :         if (!head_ref) {</span>
+<span class="lineNum">     786 </span><span class="lineNoCov">          0 :                 kmem_cache_free(btrfs_delayed_tree_ref_cachep, ref);</span>
+<span class="lineNum">     787 </span><span class="lineNoCov">          0 :                 return -ENOMEM;</span>
+<span class="lineNum">     788 </span>            :         }
+<span class="lineNum">     789 </span>            : 
+<span class="lineNum">     790 </span><span class="lineCov">     111039 :         head_ref-&gt;extent_op = extent_op;</span>
+<span class="lineNum">     791 </span>            : 
+<span class="lineNum">     792 </span><span class="lineCov">     111039 :         delayed_refs = &amp;trans-&gt;transaction-&gt;delayed_refs;</span>
+<span class="lineNum">     793 </span>            :         spin_lock(&amp;delayed_refs-&gt;lock);
+<span class="lineNum">     794 </span>            : 
+<span class="lineNum">     795 </span>            :         /*
+<span class="lineNum">     796 </span>            :          * insert both the head node and the new ref without dropping
+<span class="lineNum">     797 </span>            :          * the spin lock
+<span class="lineNum">     798 </span>            :          */
+<span class="lineNum">     799 </span><span class="lineCov">     222084 :         head_ref = add_delayed_ref_head(fs_info, trans, &amp;head_ref-&gt;node,</span>
+<span class="lineNum">     800 </span>            :                                         bytenr, num_bytes, action, 0);
+<span class="lineNum">     801 </span>            : 
+<span class="lineNum">     802 </span><span class="lineCov">     111044 :         add_delayed_tree_ref(fs_info, trans, head_ref, &amp;ref-&gt;node, bytenr,</span>
+<span class="lineNum">     803 </span>            :                                    num_bytes, parent, ref_root, level, action,
+<span class="lineNum">     804 </span>            :                                    no_quota);
+<span class="lineNum">     805 </span>            :         spin_unlock(&amp;delayed_refs-&gt;lock);
+<span class="lineNum">     806 </span>            : 
+<span class="lineNum">     807 </span><span class="lineCov">     111043 :         return 0;</span>
+<span class="lineNum">     808 </span>            : }
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span>            : /*
+<a name="811"><span class="lineNum">     811 </span>            :  * add a delayed data ref. it's similar to btrfs_add_delayed_tree_ref.</a>
+<span class="lineNum">     812 </span>            :  */
+<span class="lineNum">     813 </span><span class="lineCov">      98161 : int btrfs_add_delayed_data_ref(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     814 </span><span class="lineCov">      98164 :                                struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     815 </span>            :                                u64 bytenr, u64 num_bytes,
+<span class="lineNum">     816 </span>            :                                u64 parent, u64 ref_root,
+<span class="lineNum">     817 </span>            :                                u64 owner, u64 offset, int action,
+<span class="lineNum">     818 </span>            :                                struct btrfs_delayed_extent_op *extent_op,
+<span class="lineNum">     819 </span>            :                                int no_quota)
+<span class="lineNum">     820 </span>            : {
+<span class="lineNum">     821 </span>            :         struct btrfs_delayed_data_ref *ref;
+<span class="lineNum">     822 </span>            :         struct btrfs_delayed_ref_head *head_ref;
+<span class="lineNum">     823 </span>            :         struct btrfs_delayed_ref_root *delayed_refs;
+<span class="lineNum">     824 </span>            : 
+<span class="lineNum">     825 </span><span class="lineCov">      98161 :         if (!is_fstree(ref_root) || !fs_info-&gt;quota_enabled)</span>
+<span class="lineNum">     826 </span>            :                 no_quota = 0;
+<span class="lineNum">     827 </span>            : 
+<span class="lineNum">     828 </span><span class="lineCov">      98161 :         BUG_ON(extent_op &amp;&amp; !extent_op-&gt;is_data);</span>
+<span class="lineNum">     829 </span><span class="lineCov">      98161 :         ref = kmem_cache_alloc(btrfs_delayed_data_ref_cachep, GFP_NOFS);</span>
+<span class="lineNum">     830 </span><span class="lineCov">      98165 :         if (!ref)</span>
+<span class="lineNum">     831 </span>            :                 return -ENOMEM;
+<span class="lineNum">     832 </span>            : 
+<span class="lineNum">     833 </span><span class="lineCov">      98165 :         head_ref = kmem_cache_alloc(btrfs_delayed_ref_head_cachep, GFP_NOFS);</span>
+<span class="lineNum">     834 </span><span class="lineCov">      98163 :         if (!head_ref) {</span>
+<span class="lineNum">     835 </span><span class="lineNoCov">          0 :                 kmem_cache_free(btrfs_delayed_data_ref_cachep, ref);</span>
+<span class="lineNum">     836 </span><span class="lineNoCov">          0 :                 return -ENOMEM;</span>
+<span class="lineNum">     837 </span>            :         }
+<span class="lineNum">     838 </span>            : 
+<span class="lineNum">     839 </span><span class="lineCov">      98163 :         head_ref-&gt;extent_op = extent_op;</span>
+<span class="lineNum">     840 </span>            : 
+<span class="lineNum">     841 </span><span class="lineCov">      98163 :         delayed_refs = &amp;trans-&gt;transaction-&gt;delayed_refs;</span>
+<span class="lineNum">     842 </span>            :         spin_lock(&amp;delayed_refs-&gt;lock);
+<span class="lineNum">     843 </span>            : 
+<span class="lineNum">     844 </span>            :         /*
+<span class="lineNum">     845 </span>            :          * insert both the head node and the new ref without dropping
+<span class="lineNum">     846 </span>            :          * the spin lock
+<span class="lineNum">     847 </span>            :          */
+<span class="lineNum">     848 </span><span class="lineCov">     196328 :         head_ref = add_delayed_ref_head(fs_info, trans, &amp;head_ref-&gt;node,</span>
+<span class="lineNum">     849 </span>            :                                         bytenr, num_bytes, action, 1);
+<span class="lineNum">     850 </span>            : 
+<span class="lineNum">     851 </span><span class="lineCov">      98165 :         add_delayed_data_ref(fs_info, trans, head_ref, &amp;ref-&gt;node, bytenr,</span>
+<span class="lineNum">     852 </span>            :                                    num_bytes, parent, ref_root, owner, offset,
+<span class="lineNum">     853 </span>            :                                    action, no_quota);
+<span class="lineNum">     854 </span>            :         spin_unlock(&amp;delayed_refs-&gt;lock);
+<span class="lineNum">     855 </span>            : 
+<span class="lineNum">     856 </span><span class="lineCov">      98164 :         return 0;</span>
+<a name="857"><span class="lineNum">     857 </span>            : }</a>
+<span class="lineNum">     858 </span>            : 
+<span class="lineNum">     859 </span><span class="lineCov">        412 : int btrfs_add_delayed_extent_op(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     860 </span><span class="lineCov">        412 :                                 struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     861 </span>            :                                 u64 bytenr, u64 num_bytes,
+<span class="lineNum">     862 </span>            :                                 struct btrfs_delayed_extent_op *extent_op)
+<span class="lineNum">     863 </span>            : {
+<span class="lineNum">     864 </span>            :         struct btrfs_delayed_ref_head *head_ref;
+<span class="lineNum">     865 </span>            :         struct btrfs_delayed_ref_root *delayed_refs;
+<span class="lineNum">     866 </span>            : 
+<span class="lineNum">     867 </span><span class="lineCov">        412 :         head_ref = kmem_cache_alloc(btrfs_delayed_ref_head_cachep, GFP_NOFS);</span>
+<span class="lineNum">     868 </span><span class="lineCov">        412 :         if (!head_ref)</span>
+<span class="lineNum">     869 </span>            :                 return -ENOMEM;
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span><span class="lineCov">        412 :         head_ref-&gt;extent_op = extent_op;</span>
+<span class="lineNum">     872 </span>            : 
+<span class="lineNum">     873 </span><span class="lineCov">        412 :         delayed_refs = &amp;trans-&gt;transaction-&gt;delayed_refs;</span>
+<span class="lineNum">     874 </span>            :         spin_lock(&amp;delayed_refs-&gt;lock);
+<span class="lineNum">     875 </span>            : 
+<span class="lineNum">     876 </span><span class="lineCov">        824 :         add_delayed_ref_head(fs_info, trans, &amp;head_ref-&gt;node, bytenr,</span>
+<span class="lineNum">     877 </span>            :                                    num_bytes, BTRFS_UPDATE_DELAYED_HEAD,
+<span class="lineNum">     878 </span><span class="lineCov">        412 :                                    extent_op-&gt;is_data);</span>
+<span class="lineNum">     879 </span>            : 
+<span class="lineNum">     880 </span>            :         spin_unlock(&amp;delayed_refs-&gt;lock);
+<span class="lineNum">     881 </span><span class="lineCov">        412 :         return 0;</span>
+<span class="lineNum">     882 </span>            : }
+<span class="lineNum">     883 </span>            : 
+<span class="lineNum">     884 </span>            : /*
+<span class="lineNum">     885 </span>            :  * this does a simple search for the head node for a given extent.
+<span class="lineNum">     886 </span>            :  * It must be called with the delayed ref spinlock held, and it returns
+<span class="lineNum">     887 </span>            :  * the head node if any where found, or NULL if not.
+<a name="888"><span class="lineNum">     888 </span>            :  */</a>
+<span class="lineNum">     889 </span>            : struct btrfs_delayed_ref_head *
+<span class="lineNum">     890 </span><span class="lineCov">      34358 : btrfs_find_delayed_ref_head(struct btrfs_trans_handle *trans, u64 bytenr)</span>
+<span class="lineNum">     891 </span>            : {
+<span class="lineNum">     892 </span>            :         struct btrfs_delayed_ref_root *delayed_refs;
+<span class="lineNum">     893 </span>            : 
+<span class="lineNum">     894 </span><span class="lineCov">      34358 :         delayed_refs = &amp;trans-&gt;transaction-&gt;delayed_refs;</span>
+<span class="lineNum">     895 </span><span class="lineCov">      34358 :         return find_ref_head(&amp;delayed_refs-&gt;href_root, bytenr, 0);</span>
+<a name="896"><span class="lineNum">     896 </span>            : }</a>
+<span class="lineNum">     897 </span>            : 
+<span class="lineNum">     898 </span><span class="lineNoCov">          0 : void btrfs_delayed_ref_exit(void)</span>
+<span class="lineNum">     899 </span>            : {
+<span class="lineNum">     900 </span><span class="lineNoCov">          0 :         if (btrfs_delayed_ref_head_cachep)</span>
+<span class="lineNum">     901 </span><span class="lineNoCov">          0 :                 kmem_cache_destroy(btrfs_delayed_ref_head_cachep);</span>
+<span class="lineNum">     902 </span><span class="lineNoCov">          0 :         if (btrfs_delayed_tree_ref_cachep)</span>
+<span class="lineNum">     903 </span><span class="lineNoCov">          0 :                 kmem_cache_destroy(btrfs_delayed_tree_ref_cachep);</span>
+<span class="lineNum">     904 </span><span class="lineNoCov">          0 :         if (btrfs_delayed_data_ref_cachep)</span>
+<span class="lineNum">     905 </span><span class="lineNoCov">          0 :                 kmem_cache_destroy(btrfs_delayed_data_ref_cachep);</span>
+<span class="lineNum">     906 </span><span class="lineNoCov">          0 :         if (btrfs_delayed_extent_op_cachep)</span>
+<span class="lineNum">     907 </span><span class="lineNoCov">          0 :                 kmem_cache_destroy(btrfs_delayed_extent_op_cachep);</span>
+<a name="908"><span class="lineNum">     908 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     909 </span>            : 
+<span class="lineNum">     910 </span><span class="lineNoCov">          0 : int btrfs_delayed_ref_init(void)</span>
+<span class="lineNum">     911 </span>            : {
+<span class="lineNum">     912 </span><span class="lineNoCov">          0 :         btrfs_delayed_ref_head_cachep = kmem_cache_create(</span>
+<span class="lineNum">     913 </span>            :                                 &quot;btrfs_delayed_ref_head&quot;,
+<span class="lineNum">     914 </span>            :                                 sizeof(struct btrfs_delayed_ref_head), 0,
+<span class="lineNum">     915 </span>            :                                 SLAB_RECLAIM_ACCOUNT | SLAB_MEM_SPREAD, NULL);
+<span class="lineNum">     916 </span><span class="lineNoCov">          0 :         if (!btrfs_delayed_ref_head_cachep)</span>
+<span class="lineNum">     917 </span>            :                 goto fail;
+<span class="lineNum">     918 </span>            : 
+<span class="lineNum">     919 </span><span class="lineNoCov">          0 :         btrfs_delayed_tree_ref_cachep = kmem_cache_create(</span>
+<span class="lineNum">     920 </span>            :                                 &quot;btrfs_delayed_tree_ref&quot;,
+<span class="lineNum">     921 </span>            :                                 sizeof(struct btrfs_delayed_tree_ref), 0,
+<span class="lineNum">     922 </span>            :                                 SLAB_RECLAIM_ACCOUNT | SLAB_MEM_SPREAD, NULL);
+<span class="lineNum">     923 </span><span class="lineNoCov">          0 :         if (!btrfs_delayed_tree_ref_cachep)</span>
+<span class="lineNum">     924 </span>            :                 goto fail;
+<span class="lineNum">     925 </span>            : 
+<span class="lineNum">     926 </span><span class="lineNoCov">          0 :         btrfs_delayed_data_ref_cachep = kmem_cache_create(</span>
+<span class="lineNum">     927 </span>            :                                 &quot;btrfs_delayed_data_ref&quot;,
+<span class="lineNum">     928 </span>            :                                 sizeof(struct btrfs_delayed_data_ref), 0,
+<span class="lineNum">     929 </span>            :                                 SLAB_RECLAIM_ACCOUNT | SLAB_MEM_SPREAD, NULL);
+<span class="lineNum">     930 </span><span class="lineNoCov">          0 :         if (!btrfs_delayed_data_ref_cachep)</span>
+<span class="lineNum">     931 </span>            :                 goto fail;
+<span class="lineNum">     932 </span>            : 
+<span class="lineNum">     933 </span><span class="lineNoCov">          0 :         btrfs_delayed_extent_op_cachep = kmem_cache_create(</span>
+<span class="lineNum">     934 </span>            :                                 &quot;btrfs_delayed_extent_op&quot;,
+<span class="lineNum">     935 </span>            :                                 sizeof(struct btrfs_delayed_extent_op), 0,
+<span class="lineNum">     936 </span>            :                                 SLAB_RECLAIM_ACCOUNT | SLAB_MEM_SPREAD, NULL);
+<span class="lineNum">     937 </span><span class="lineNoCov">          0 :         if (!btrfs_delayed_extent_op_cachep)</span>
+<span class="lineNum">     938 </span>            :                 goto fail;
+<span class="lineNum">     939 </span>            : 
+<span class="lineNum">     940 </span>            :         return 0;
+<span class="lineNum">     941 </span>            : fail:
+<span class="lineNum">     942 </span><span class="lineNoCov">          0 :         btrfs_delayed_ref_exit();</span>
+<span class="lineNum">     943 </span><span class="lineNoCov">          0 :         return -ENOMEM;</span>
+<span class="lineNum">     944 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

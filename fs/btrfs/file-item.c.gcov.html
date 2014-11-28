@@ -1,0 +1,1039 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/file-item.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - file-item.c<span style="font-size: 80%;"> (source / <a href="file-item.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">406</td>
+            <td class="headerCovTableEntry">426</td>
+            <td class="headerCovTableEntryHi">95.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">12</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryHi">92.3 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2007 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;linux/bio.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/slab.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/pagemap.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;linux/highmem.h&gt;
+<span class="lineNum">      23 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;disk-io.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;transaction.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;volumes.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;print-tree.h&quot;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : #define __MAX_CSUM_ITEMS(r, size) ((unsigned long)(((BTRFS_LEAF_DATA_SIZE(r) - \
+<span class="lineNum">      30 </span>            :                                    sizeof(struct btrfs_item) * 2) / \
+<span class="lineNum">      31 </span>            :                                   size) - 1))
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : #define MAX_CSUM_ITEMS(r, size) (min_t(u32, __MAX_CSUM_ITEMS(r, size), \
+<span class="lineNum">      34 </span>            :                                        PAGE_CACHE_SIZE))
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : #define MAX_ORDERED_SUM_BYTES(r) ((PAGE_SIZE - \
+<span class="lineNum">      37 </span>            :                                    sizeof(struct btrfs_ordered_sum)) / \
+<span class="lineNum">      38 </span>            :                                    sizeof(u32) * (r)-&gt;sectorsize)
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span><span class="lineCov">       5044 : int btrfs_insert_file_extent(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">      41 </span>            :                              struct btrfs_root *root,
+<span class="lineNum">      42 </span>            :                              u64 objectid, u64 pos,
+<span class="lineNum">      43 </span>            :                              u64 disk_offset, u64 disk_num_bytes,
+<span class="lineNum">      44 </span>            :                              u64 num_bytes, u64 offset, u64 ram_bytes,
+<span class="lineNum">      45 </span>            :                              u8 compression, u8 encryption, u16 other_encoding)
+<span class="lineNum">      46 </span>            : {
+<span class="lineNum">      47 </span>            :         int ret = 0;
+<span class="lineNum">      48 </span>            :         struct btrfs_file_extent_item *item;
+<span class="lineNum">      49 </span>            :         struct btrfs_key file_key;
+<span class="lineNum">      50 </span>            :         struct btrfs_path *path;
+<span class="lineNum">      51 </span>            :         struct extent_buffer *leaf;
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span><span class="lineCov">       5044 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">      54 </span><span class="lineCov">       5044 :         if (!path)</span>
+<span class="lineNum">      55 </span>            :                 return -ENOMEM;
+<span class="lineNum">      56 </span><span class="lineCov">       5044 :         file_key.objectid = objectid;</span>
+<span class="lineNum">      57 </span><span class="lineCov">       5044 :         file_key.offset = pos;</span>
+<span class="lineNum">      58 </span>            :         btrfs_set_key_type(&amp;file_key, BTRFS_EXTENT_DATA_KEY);
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineCov">       5044 :         path-&gt;leave_spinning = 1;</span>
+<span class="lineNum">      61 </span>            :         ret = btrfs_insert_empty_item(trans, root, path, &amp;file_key,
+<span class="lineNum">      62 </span>            :                                       sizeof(*item));
+<span class="lineNum">      63 </span><span class="lineCov">       5045 :         if (ret &lt; 0)</span>
+<span class="lineNum">      64 </span>            :                 goto out;
+<span class="lineNum">      65 </span><span class="lineCov">       5045 :         BUG_ON(ret); /* Can't happen */</span>
+<span class="lineNum">      66 </span><span class="lineCov">       5045 :         leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">      67 </span><span class="lineCov">      10090 :         item = btrfs_item_ptr(leaf, path-&gt;slots[0],</span>
+<span class="lineNum">      68 </span>            :                               struct btrfs_file_extent_item);
+<span class="lineNum">      69 </span>            :         btrfs_set_file_extent_disk_bytenr(leaf, item, disk_offset);
+<span class="lineNum">      70 </span>            :         btrfs_set_file_extent_disk_num_bytes(leaf, item, disk_num_bytes);
+<span class="lineNum">      71 </span>            :         btrfs_set_file_extent_offset(leaf, item, offset);
+<span class="lineNum">      72 </span>            :         btrfs_set_file_extent_num_bytes(leaf, item, num_bytes);
+<span class="lineNum">      73 </span>            :         btrfs_set_file_extent_ram_bytes(leaf, item, ram_bytes);
+<span class="lineNum">      74 </span><span class="lineCov">       5045 :         btrfs_set_file_extent_generation(leaf, item, trans-&gt;transid);</span>
+<span class="lineNum">      75 </span>            :         btrfs_set_file_extent_type(leaf, item, BTRFS_FILE_EXTENT_REG);
+<span class="lineNum">      76 </span>            :         btrfs_set_file_extent_compression(leaf, item, compression);
+<span class="lineNum">      77 </span>            :         btrfs_set_file_extent_encryption(leaf, item, encryption);
+<span class="lineNum">      78 </span>            :         btrfs_set_file_extent_other_encoding(leaf, item, other_encoding);
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span><span class="lineCov">       5045 :         btrfs_mark_buffer_dirty(leaf);</span>
+<span class="lineNum">      81 </span>            : out:
+<span class="lineNum">      82 </span><span class="lineCov">       5045 :         btrfs_free_path(path);</span>
+<span class="lineNum">      83 </span><span class="lineCov">       5045 :         return ret;</span>
+<span class="lineNum">      84 </span>            : }
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : static struct btrfs_csum_item *
+<span class="lineNum">      87 </span><span class="lineCov">     121427 : btrfs_lookup_csum(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">      88 </span>            :                   struct btrfs_root *root,
+<span class="lineNum">      89 </span>            :                   struct btrfs_path *path,
+<span class="lineNum">      90 </span>            :                   u64 bytenr, int cow)
+<span class="lineNum">      91 </span>            : {
+<span class="lineNum">      92 </span>            :         int ret;
+<span class="lineNum">      93 </span>            :         struct btrfs_key file_key;
+<span class="lineNum">      94 </span>            :         struct btrfs_key found_key;
+<span class="lineNum">      95 </span>            :         struct btrfs_csum_item *item;
+<span class="lineNum">      96 </span>            :         struct extent_buffer *leaf;
+<span class="lineNum">      97 </span>            :         u64 csum_offset = 0;
+<span class="lineNum">      98 </span><span class="lineCov">     242854 :         u16 csum_size = btrfs_super_csum_size(root-&gt;fs_info-&gt;super_copy);</span>
+<span class="lineNum">      99 </span>            :         int csums_in_item;
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span><span class="lineCov">     121427 :         file_key.objectid = BTRFS_EXTENT_CSUM_OBJECTID;</span>
+<span class="lineNum">     102 </span><span class="lineCov">     121427 :         file_key.offset = bytenr;</span>
+<span class="lineNum">     103 </span>            :         btrfs_set_key_type(&amp;file_key, BTRFS_EXTENT_CSUM_KEY);
+<span class="lineNum">     104 </span><span class="lineCov">     121427 :         ret = btrfs_search_slot(trans, root, &amp;file_key, path, 0, cow);</span>
+<span class="lineNum">     105 </span><span class="lineCov">     121428 :         if (ret &lt; 0)</span>
+<span class="lineNum">     106 </span>            :                 goto fail;
+<span class="lineNum">     107 </span><span class="lineCov">     121428 :         leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     108 </span><span class="lineCov">     121428 :         if (ret &gt; 0) {</span>
+<span class="lineNum">     109 </span>            :                 ret = 1;
+<span class="lineNum">     110 </span><span class="lineCov">     120555 :                 if (path-&gt;slots[0] == 0)</span>
+<span class="lineNum">     111 </span>            :                         goto fail;
+<span class="lineNum">     112 </span><span class="lineCov">     120468 :                 path-&gt;slots[0]--;</span>
+<span class="lineNum">     113 </span><span class="lineCov">     120468 :                 btrfs_item_key_to_cpu(leaf, &amp;found_key, path-&gt;slots[0]);</span>
+<span class="lineNum">     114 </span><span class="lineCov">     120468 :                 if (btrfs_key_type(&amp;found_key) != BTRFS_EXTENT_CSUM_KEY)</span>
+<span class="lineNum">     115 </span>            :                         goto fail;
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineCov">     240524 :                 csum_offset = (bytenr - found_key.offset) &gt;&gt;</span>
+<span class="lineNum">     118 </span><span class="lineCov">     120262 :                                 root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     119 </span><span class="lineCov">     240524 :                 csums_in_item = btrfs_item_size_nr(leaf, path-&gt;slots[0]);</span>
+<span class="lineNum">     120 </span><span class="lineCov">     120262 :                 csums_in_item /= csum_size;</span>
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span><span class="lineCov">     120262 :                 if (csum_offset == csums_in_item) {</span>
+<span class="lineNum">     123 </span>            :                         ret = -EFBIG;
+<span class="lineNum">     124 </span>            :                         goto fail;
+<span class="lineNum">     125 </span><span class="lineCov">      38230 :                 } else if (csum_offset &gt; csums_in_item) {</span>
+<span class="lineNum">     126 </span>            :                         goto fail;
+<span class="lineNum">     127 </span>            :                 }
+<span class="lineNum">     128 </span>            :         }
+<span class="lineNum">     129 </span><span class="lineCov">      54838 :         item = btrfs_item_ptr(leaf, path-&gt;slots[0], struct btrfs_csum_item);</span>
+<span class="lineNum">     130 </span><span class="lineCov">      27419 :         item = (struct btrfs_csum_item *)((unsigned char *)item +</span>
+<span class="lineNum">     131 </span>            :                                           csum_offset * csum_size);
+<span class="lineNum">     132 </span><span class="lineCov">      27419 :         return item;</span>
+<span class="lineNum">     133 </span>            : fail:
+<span class="lineNum">     134 </span><span class="lineCov">      94009 :         if (ret &gt; 0)</span>
+<span class="lineNum">     135 </span>            :                 ret = -ENOENT;
+<span class="lineNum">     136 </span><span class="lineCov">     188018 :         return ERR_PTR(ret);</span>
+<span class="lineNum">     137 </span>            : }
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span><span class="lineCov">     120872 : int btrfs_lookup_file_extent(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     140 </span>            :                              struct btrfs_root *root,
+<span class="lineNum">     141 </span>            :                              struct btrfs_path *path, u64 objectid,
+<span class="lineNum">     142 </span>            :                              u64 offset, int mod)
+<span class="lineNum">     143 </span>            : {
+<span class="lineNum">     144 </span>            :         int ret;
+<span class="lineNum">     145 </span>            :         struct btrfs_key file_key;
+<span class="lineNum">     146 </span><span class="lineCov">     120872 :         int ins_len = mod &lt; 0 ? -1 : 0;</span>
+<span class="lineNum">     147 </span><span class="lineCov">     120872 :         int cow = mod != 0;</span>
+<span class="lineNum">     148 </span>            : 
+<span class="lineNum">     149 </span><span class="lineCov">     120872 :         file_key.objectid = objectid;</span>
+<span class="lineNum">     150 </span><span class="lineCov">     120872 :         file_key.offset = offset;</span>
+<span class="lineNum">     151 </span>            :         btrfs_set_key_type(&amp;file_key, BTRFS_EXTENT_DATA_KEY);
+<span class="lineNum">     152 </span><span class="lineCov">     120872 :         ret = btrfs_search_slot(trans, root, &amp;file_key, path, ins_len, cow);</span>
+<span class="lineNum">     153 </span><span class="lineCov">     120896 :         return ret;</span>
+<a name="154"><span class="lineNum">     154 </span>            : }</a>
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineCov">        375 : static void btrfs_io_bio_endio_readpage(struct btrfs_io_bio *bio, int err)</span>
+<span class="lineNum">     157 </span>            : {
+<span class="lineNum">     158 </span><span class="lineCov">        375 :         kfree(bio-&gt;csum_allocated);</span>
+<span class="lineNum">     159 </span><span class="lineCov">        375 : }</span>
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span><span class="lineCov">      26095 : static int __btrfs_lookup_bio_sums(struct btrfs_root *root,</span>
+<span class="lineNum">     162 </span>            :                                    struct inode *inode, struct bio *bio,
+<span class="lineNum">     163 </span>            :                                    u64 logical_offset, u32 *dst, int dio)
+<span class="lineNum">     164 </span>            : {
+<span class="lineNum">     165 </span><span class="lineCov">      26095 :         struct bio_vec *bvec = bio-&gt;bi_io_vec;</span>
+<span class="lineNum">     166 </span>            :         struct btrfs_io_bio *btrfs_bio = btrfs_io_bio(bio);
+<span class="lineNum">     167 </span>            :         struct btrfs_csum_item *item = NULL;
+<span class="lineNum">     168 </span><span class="lineCov">      26095 :         struct extent_io_tree *io_tree = &amp;BTRFS_I(inode)-&gt;io_tree;</span>
+<span class="lineNum">     169 </span>            :         struct btrfs_path *path;
+<span class="lineNum">     170 </span>            :         u8 *csum;
+<span class="lineNum">     171 </span>            :         u64 offset = 0;
+<span class="lineNum">     172 </span>            :         u64 item_start_offset = 0;
+<span class="lineNum">     173 </span>            :         u64 item_last_offset = 0;
+<span class="lineNum">     174 </span>            :         u64 disk_bytenr;
+<span class="lineNum">     175 </span>            :         u32 diff;
+<span class="lineNum">     176 </span>            :         int nblocks;
+<span class="lineNum">     177 </span>            :         int bio_index = 0;
+<span class="lineNum">     178 </span>            :         int count;
+<span class="lineNum">     179 </span><span class="lineCov">      52190 :         u16 csum_size = btrfs_super_csum_size(root-&gt;fs_info-&gt;super_copy);</span>
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span><span class="lineCov">      26095 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">     182 </span><span class="lineCov">      26095 :         if (!path)</span>
+<span class="lineNum">     183 </span>            :                 return -ENOMEM;
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span><span class="lineCov">      26095 :         nblocks = bio-&gt;bi_iter.bi_size &gt;&gt; inode-&gt;i_sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     186 </span><span class="lineCov">      26095 :         if (!dst) {</span>
+<span class="lineNum">     187 </span><span class="lineCov">      26053 :                 if (nblocks * csum_size &gt; BTRFS_BIO_INLINE_CSUM_SIZE) {</span>
+<span class="lineNum">     188 </span><span class="lineCov">        750 :                         btrfs_bio-&gt;csum_allocated = kmalloc(nblocks * csum_size,</span>
+<span class="lineNum">     189 </span>            :                                                             GFP_NOFS);
+<span class="lineNum">     190 </span><span class="lineCov">        375 :                         if (!btrfs_bio-&gt;csum_allocated) {</span>
+<span class="lineNum">     191 </span><span class="lineNoCov">          0 :                                 btrfs_free_path(path);</span>
+<span class="lineNum">     192 </span>            :                                 return -ENOMEM;
+<span class="lineNum">     193 </span>            :                         }
+<span class="lineNum">     194 </span><span class="lineCov">        375 :                         btrfs_bio-&gt;csum = btrfs_bio-&gt;csum_allocated;</span>
+<span class="lineNum">     195 </span><span class="lineCov">        375 :                         btrfs_bio-&gt;end_io = btrfs_io_bio_endio_readpage;</span>
+<span class="lineNum">     196 </span>            :                 } else {
+<span class="lineNum">     197 </span><span class="lineCov">      25678 :                         btrfs_bio-&gt;csum = btrfs_bio-&gt;csum_inline;</span>
+<span class="lineNum">     198 </span>            :                 }
+<span class="lineNum">     199 </span><span class="lineCov">      26053 :                 csum = btrfs_bio-&gt;csum;</span>
+<span class="lineNum">     200 </span>            :         } else {
+<span class="lineNum">     201 </span>            :                 csum = (u8 *)dst;
+<span class="lineNum">     202 </span>            :         }
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span><span class="lineCov">      26095 :         if (bio-&gt;bi_iter.bi_size &gt; PAGE_CACHE_SIZE * 8)</span>
+<span class="lineNum">     205 </span><span class="lineCov">        508 :                 path-&gt;reada = 2;</span>
+<span class="lineNum">     206 </span>            : 
+<span class="lineNum">     207 </span><span class="lineCov">      26095 :         WARN_ON(bio-&gt;bi_vcnt &lt;= 0);</span>
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            :         /*
+<span class="lineNum">     210 </span>            :          * the free space stuff is only read when it hasn't been
+<span class="lineNum">     211 </span>            :          * updated in the current transaction.  So, we can safely
+<span class="lineNum">     212 </span>            :          * read from the commit root and sidestep a nasty deadlock
+<span class="lineNum">     213 </span>            :          * between reading the free space cache and updating the csum tree.
+<span class="lineNum">     214 </span>            :          */
+<span class="lineNum">     215 </span><span class="lineCov">      26095 :         if (btrfs_is_free_space_inode(inode)) {</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :                 path-&gt;search_commit_root = 1;</span>
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :                 path-&gt;skip_locking = 1;</span>
+<span class="lineNum">     218 </span>            :         }
+<span class="lineNum">     219 </span>            : 
+<span class="lineNum">     220 </span><span class="lineCov">      26095 :         disk_bytenr = (u64)bio-&gt;bi_iter.bi_sector &lt;&lt; 9;</span>
+<span class="lineNum">     221 </span><span class="lineCov">      26095 :         if (dio)</span>
+<span class="lineNum">     222 </span>            :                 offset = logical_offset;
+<span class="lineNum">     223 </span><span class="lineCov">      52684 :         while (bio_index &lt; bio-&gt;bi_vcnt) {</span>
+<span class="lineNum">     224 </span><span class="lineCov">      26589 :                 if (!dio)</span>
+<span class="lineNum">     225 </span><span class="lineCov">      53178 :                         offset = page_offset(bvec-&gt;bv_page) + bvec-&gt;bv_offset;</span>
+<span class="lineNum">     226 </span><span class="lineCov">      26589 :                 count = btrfs_find_ordered_sum(inode, offset, disk_bytenr,</span>
+<span class="lineNum">     227 </span>            :                                                (u32 *)csum, nblocks);
+<span class="lineNum">     228 </span><span class="lineCov">      26589 :                 if (count)</span>
+<span class="lineNum">     229 </span>            :                         goto found;
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span><span class="lineCov">      26589 :                 if (!item || disk_bytenr &lt; item_start_offset ||</span>
+<span class="lineNum">     232 </span>            :                     disk_bytenr &gt;= item_last_offset) {
+<span class="lineNum">     233 </span>            :                         struct btrfs_key found_key;
+<span class="lineNum">     234 </span>            :                         u32 item_size;
+<span class="lineNum">     235 </span>            : 
+<span class="lineNum">     236 </span><span class="lineCov">      26589 :                         if (item)</span>
+<span class="lineNum">     237 </span><span class="lineCov">        243 :                                 btrfs_release_path(path);</span>
+<span class="lineNum">     238 </span><span class="lineCov">      26589 :                         item = btrfs_lookup_csum(NULL, root-&gt;fs_info-&gt;csum_root,</span>
+<span class="lineNum">     239 </span>            :                                                  path, disk_bytenr, 0);
+<span class="lineNum">     240 </span><span class="lineCov">      26589 :                         if (IS_ERR(item)) {</span>
+<span class="lineNum">     241 </span>            :                                 count = 1;
+<span class="lineNum">     242 </span><span class="lineCov">        254 :                                 memset(csum, 0, csum_size);</span>
+<span class="lineNum">     243 </span><span class="lineCov">        254 :                                 if (BTRFS_I(inode)-&gt;root-&gt;root_key.objectid ==</span>
+<span class="lineNum">     244 </span>            :                                     BTRFS_DATA_RELOC_TREE_OBJECTID) {
+<span class="lineNum">     245 </span><span class="lineCov">        254 :                                         set_extent_bits(io_tree, offset,</span>
+<span class="lineNum">     246 </span><span class="lineCov">        254 :                                                 offset + bvec-&gt;bv_len - 1,</span>
+<span class="lineNum">     247 </span>            :                                                 EXTENT_NODATASUM, GFP_NOFS);
+<span class="lineNum">     248 </span>            :                                 } else {
+<span class="lineNum">     249 </span><span class="lineNoCov">          0 :                                         btrfs_info(BTRFS_I(inode)-&gt;root-&gt;fs_info,</span>
+<span class="lineNum">     250 </span>            :                                                    &quot;no csum found for inode %llu start %llu&quot;,
+<span class="lineNum">     251 </span>            :                                                btrfs_ino(inode), offset);
+<span class="lineNum">     252 </span>            :                                 }
+<span class="lineNum">     253 </span>            :                                 item = NULL;
+<span class="lineNum">     254 </span><span class="lineCov">        254 :                                 btrfs_release_path(path);</span>
+<span class="lineNum">     255 </span><span class="lineCov">        254 :                                 goto found;</span>
+<span class="lineNum">     256 </span>            :                         }
+<span class="lineNum">     257 </span><span class="lineCov">      26335 :                         btrfs_item_key_to_cpu(path-&gt;nodes[0], &amp;found_key,</span>
+<span class="lineNum">     258 </span>            :                                               path-&gt;slots[0]);
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineCov">      26335 :                         item_start_offset = found_key.offset;</span>
+<span class="lineNum">     261 </span><span class="lineCov">      26335 :                         item_size = btrfs_item_size_nr(path-&gt;nodes[0],</span>
+<span class="lineNum">     262 </span>            :                                                        path-&gt;slots[0]);
+<span class="lineNum">     263 </span><span class="lineCov">      26335 :                         item_last_offset = item_start_offset +</span>
+<span class="lineNum">     264 </span><span class="lineCov">      52670 :                                 (item_size / csum_size) *</span>
+<span class="lineNum">     265 </span><span class="lineCov">      26335 :                                 root-&gt;sectorsize;</span>
+<span class="lineNum">     266 </span><span class="lineCov">      52670 :                         item = btrfs_item_ptr(path-&gt;nodes[0], path-&gt;slots[0],</span>
+<span class="lineNum">     267 </span>            :                                               struct btrfs_csum_item);
+<span class="lineNum">     268 </span>            :                 }
+<span class="lineNum">     269 </span>            :                 /*
+<span class="lineNum">     270 </span>            :                  * this byte range must be able to fit inside
+<span class="lineNum">     271 </span>            :                  * a single leaf so it will also fit inside a u32
+<span class="lineNum">     272 </span>            :                  */
+<span class="lineNum">     273 </span><span class="lineCov">      26335 :                 diff = disk_bytenr - item_start_offset;</span>
+<span class="lineNum">     274 </span><span class="lineCov">      26335 :                 diff = diff / root-&gt;sectorsize;</span>
+<span class="lineNum">     275 </span><span class="lineCov">      26335 :                 diff = diff * csum_size;</span>
+<span class="lineNum">     276 </span><span class="lineCov">      26335 :                 count = min_t(int, nblocks, (item_last_offset - disk_bytenr) &gt;&gt;</span>
+<span class="lineNum">     277 </span>            :                                             inode-&gt;i_sb-&gt;s_blocksize_bits);
+<span class="lineNum">     278 </span><span class="lineCov">      52670 :                 read_extent_buffer(path-&gt;nodes[0], csum,</span>
+<span class="lineNum">     279 </span><span class="lineCov">      26335 :                                    ((unsigned long)item) + diff,</span>
+<span class="lineNum">     280 </span><span class="lineCov">      26335 :                                    csum_size * count);</span>
+<span class="lineNum">     281 </span>            : found:
+<span class="lineNum">     282 </span><span class="lineCov">      26589 :                 csum += count * csum_size;</span>
+<span class="lineNum">     283 </span><span class="lineCov">      26589 :                 nblocks -= count;</span>
+<span class="lineNum">     284 </span><span class="lineCov">      26589 :                 bio_index += count;</span>
+<span class="lineNum">     285 </span><span class="lineCov">      88672 :                 while (count--) {</span>
+<span class="lineNum">     286 </span><span class="lineCov">      62083 :                         disk_bytenr += bvec-&gt;bv_len;</span>
+<span class="lineNum">     287 </span><span class="lineCov">      62083 :                         offset += bvec-&gt;bv_len;</span>
+<span class="lineNum">     288 </span><span class="lineCov">      62083 :                         bvec++;</span>
+<span class="lineNum">     289 </span>            :                 }
+<span class="lineNum">     290 </span>            :         }
+<span class="lineNum">     291 </span><span class="lineCov">      26095 :         btrfs_free_path(path);</span>
+<span class="lineNum">     292 </span>            :         return 0;
+<a name="293"><span class="lineNum">     293 </span>            : }</a>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span><span class="lineCov">      26095 : int btrfs_lookup_bio_sums(struct btrfs_root *root, struct inode *inode,</span>
+<span class="lineNum">     296 </span>            :                           struct bio *bio, u32 *dst)
+<span class="lineNum">     297 </span>            : {
+<span class="lineNum">     298 </span><span class="lineCov">      26095 :         return __btrfs_lookup_bio_sums(root, inode, bio, 0, dst, 0);</span>
+<span class="lineNum">     299 </span>            : }
+<span class="lineNum">     300 </span>            : 
+<span class="lineNum">     301 </span><span class="lineNoCov">          0 : int btrfs_lookup_bio_sums_dio(struct btrfs_root *root, struct inode *inode,</span>
+<span class="lineNum">     302 </span>            :                               struct btrfs_dio_private *dip, struct bio *bio,
+<span class="lineNum">     303 </span>            :                               u64 offset)
+<span class="lineNum">     304 </span>            : {
+<span class="lineNum">     305 </span><span class="lineNoCov">          0 :         int len = (bio-&gt;bi_iter.bi_sector &lt;&lt; 9) - dip-&gt;disk_bytenr;</span>
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :         u16 csum_size = btrfs_super_csum_size(root-&gt;fs_info-&gt;super_copy);</span>
+<span class="lineNum">     307 </span>            :         int ret;
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :         len &gt;&gt;= inode-&gt;i_sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     310 </span><span class="lineNoCov">          0 :         len *= csum_size;</span>
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         ret = __btrfs_lookup_bio_sums(root, inode, bio, offset,</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :                                       (u32 *)(dip-&gt;csum + len), 1);</span>
+<span class="lineNum">     314 </span><span class="lineNoCov">          0 :         return ret;</span>
+<span class="lineNum">     315 </span>            : }
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span><span class="lineCov">     298804 : int btrfs_lookup_csums_range(struct btrfs_root *root, u64 start, u64 end,</span>
+<span class="lineNum">     318 </span>            :                              struct list_head *list, int search_commit)
+<span class="lineNum">     319 </span>            : {
+<span class="lineNum">     320 </span>            :         struct btrfs_key key;
+<span class="lineNum">     321 </span>            :         struct btrfs_path *path;
+<span class="lineNum">     322 </span><span class="lineCov">     332312 :         struct extent_buffer *leaf;</span>
+<span class="lineNum">     323 </span>            :         struct btrfs_ordered_sum *sums;
+<span class="lineNum">     324 </span>            :         struct btrfs_csum_item *item;
+<span class="lineNum">     325 </span><span class="lineCov">     298804 :         LIST_HEAD(tmplist);</span>
+<span class="lineNum">     326 </span>            :         unsigned long offset;
+<span class="lineNum">     327 </span>            :         int ret;
+<span class="lineNum">     328 </span>            :         size_t size;
+<span class="lineNum">     329 </span>            :         u64 csum_end;
+<span class="lineNum">     330 </span><span class="lineCov">     597608 :         u16 csum_size = btrfs_super_csum_size(root-&gt;fs_info-&gt;super_copy);</span>
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            :         ASSERT(start == ALIGN(start, root-&gt;sectorsize) &amp;&amp;
+<span class="lineNum">     333 </span>            :                (end + 1) == ALIGN(end + 1, root-&gt;sectorsize));
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineCov">     298804 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">     336 </span><span class="lineCov">     298817 :         if (!path)</span>
+<span class="lineNum">     337 </span>            :                 return -ENOMEM;
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineCov">     298818 :         if (search_commit) {</span>
+<span class="lineNum">     340 </span><span class="lineCov">     290477 :                 path-&gt;skip_locking = 1;</span>
+<span class="lineNum">     341 </span><span class="lineCov">     290477 :                 path-&gt;reada = 2;</span>
+<span class="lineNum">     342 </span><span class="lineCov">     290477 :                 path-&gt;search_commit_root = 1;</span>
+<span class="lineNum">     343 </span>            :         }
+<span class="lineNum">     344 </span>            : 
+<span class="lineNum">     345 </span><span class="lineCov">     298818 :         key.objectid = BTRFS_EXTENT_CSUM_OBJECTID;</span>
+<span class="lineNum">     346 </span><span class="lineCov">     298818 :         key.offset = start;</span>
+<span class="lineNum">     347 </span><span class="lineCov">     298818 :         key.type = BTRFS_EXTENT_CSUM_KEY;</span>
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span><span class="lineCov">     298818 :         ret = btrfs_search_slot(NULL, root, &amp;key, path, 0, 0);</span>
+<span class="lineNum">     350 </span><span class="lineCov">     298752 :         if (ret &lt; 0)</span>
+<span class="lineNum">     351 </span>            :                 goto fail;
+<span class="lineNum">     352 </span><span class="lineCov">     298759 :         if (ret &gt; 0 &amp;&amp; path-&gt;slots[0] &gt; 0) {</span>
+<span class="lineNum">     353 </span><span class="lineCov">     265409 :                 leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     354 </span><span class="lineCov">     265409 :                 btrfs_item_key_to_cpu(leaf, &amp;key, path-&gt;slots[0] - 1);</span>
+<span class="lineNum">     355 </span><span class="lineCov">     530919 :                 if (key.objectid == BTRFS_EXTENT_CSUM_OBJECTID &amp;&amp;</span>
+<span class="lineNum">     356 </span><span class="lineCov">     265461 :                     key.type == BTRFS_EXTENT_CSUM_KEY) {</span>
+<span class="lineNum">     357 </span><span class="lineCov">     530916 :                         offset = (start - key.offset) &gt;&gt;</span>
+<span class="lineNum">     358 </span><span class="lineCov">     265458 :                                  root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     359 </span><span class="lineCov">     530905 :                         if (offset * csum_size &lt;</span>
+<span class="lineNum">     360 </span><span class="lineCov">     265458 :                             btrfs_item_size_nr(leaf, path-&gt;slots[0] - 1))</span>
+<span class="lineNum">     361 </span><span class="lineCov">     253980 :                                 path-&gt;slots[0]--;</span>
+<span class="lineNum">     362 </span>            :                 }
+<span class="lineNum">     363 </span>            :         }
+<span class="lineNum">     364 </span>            : 
+<span class="lineNum">     365 </span><span class="lineCov">     615503 :         while (start &lt;= end) {</span>
+<span class="lineNum">     366 </span><span class="lineCov">     332312 :                 leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     367 </span><span class="lineCov">     664624 :                 if (path-&gt;slots[0] &gt;= btrfs_header_nritems(leaf)) {</span>
+<span class="lineNum">     368 </span><span class="lineCov">       4401 :                         ret = btrfs_next_leaf(root, path);</span>
+<span class="lineNum">     369 </span><span class="lineCov">       4401 :                         if (ret &lt; 0)</span>
+<span class="lineNum">     370 </span>            :                                 goto fail;
+<span class="lineNum">     371 </span><span class="lineCov">       4401 :                         if (ret &gt; 0)</span>
+<span class="lineNum">     372 </span>            :                                 break;
+<span class="lineNum">     373 </span><span class="lineCov">       1095 :                         leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     374 </span>            :                 }
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span><span class="lineCov">     329006 :                 btrfs_item_key_to_cpu(leaf, &amp;key, path-&gt;slots[0]);</span>
+<span class="lineNum">     377 </span><span class="lineCov">     658112 :                 if (key.objectid != BTRFS_EXTENT_CSUM_OBJECTID ||</span>
+<span class="lineNum">     378 </span><span class="lineCov">     658114 :                     key.type != BTRFS_EXTENT_CSUM_KEY ||</span>
+<span class="lineNum">     379 </span><span class="lineCov">     329057 :                     key.offset &gt; end)</span>
+<span class="lineNum">     380 </span>            :                         break;
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineCov">     316729 :                 if (key.offset &gt; start)</span>
+<span class="lineNum">     383 </span>            :                         start = key.offset;
+<span class="lineNum">     384 </span>            : 
+<span class="lineNum">     385 </span><span class="lineCov">     633456 :                 size = btrfs_item_size_nr(leaf, path-&gt;slots[0]);</span>
+<span class="lineNum">     386 </span><span class="lineCov">     316727 :                 csum_end = key.offset + (size / csum_size) * root-&gt;sectorsize;</span>
+<span class="lineNum">     387 </span><span class="lineCov">     316727 :                 if (csum_end &lt;= start) {</span>
+<span class="lineNum">     388 </span><span class="lineCov">          6 :                         path-&gt;slots[0]++;</span>
+<span class="lineNum">     389 </span><span class="lineCov">          6 :                         continue;</span>
+<span class="lineNum">     390 </span>            :                 }
+<span class="lineNum">     391 </span>            : 
+<span class="lineNum">     392 </span><span class="lineCov">     316721 :                 csum_end = min(csum_end, end + 1);</span>
+<span class="lineNum">     393 </span><span class="lineCov">     633409 :                 item = btrfs_item_ptr(path-&gt;nodes[0], path-&gt;slots[0],</span>
+<span class="lineNum">     394 </span>            :                                       struct btrfs_csum_item);
+<span class="lineNum">     395 </span><span class="lineCov">     950072 :                 while (start &lt; csum_end) {</span>
+<span class="lineNum">     396 </span><span class="lineCov">     316684 :                         size = min_t(size_t, csum_end - start,</span>
+<span class="lineNum">     397 </span>            :                                      MAX_ORDERED_SUM_BYTES(root));
+<span class="lineNum">     398 </span><span class="lineCov">     316684 :                         sums = kzalloc(btrfs_ordered_sum_size(root, size),</span>
+<span class="lineNum">     399 </span>            :                                        GFP_NOFS);
+<span class="lineNum">     400 </span><span class="lineCov">     316694 :                         if (!sums) {</span>
+<span class="lineNum">     401 </span>            :                                 ret = -ENOMEM;
+<span class="lineNum">     402 </span>            :                                 goto fail;
+<span class="lineNum">     403 </span>            :                         }
+<span class="lineNum">     404 </span>            : 
+<span class="lineNum">     405 </span><span class="lineCov">     316694 :                         sums-&gt;bytenr = start;</span>
+<span class="lineNum">     406 </span><span class="lineCov">     316694 :                         sums-&gt;len = (int)size;</span>
+<span class="lineNum">     407 </span>            : 
+<span class="lineNum">     408 </span><span class="lineCov">     633388 :                         offset = (start - key.offset) &gt;&gt;</span>
+<span class="lineNum">     409 </span><span class="lineCov">     316694 :                                 root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     410 </span><span class="lineCov">     316694 :                         offset *= csum_size;</span>
+<span class="lineNum">     411 </span><span class="lineCov">     316694 :                         size &gt;&gt;= root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span><span class="lineCov">     633388 :                         read_extent_buffer(path-&gt;nodes[0],</span>
+<span class="lineNum">     414 </span><span class="lineCov">     316694 :                                            sums-&gt;sums,</span>
+<span class="lineNum">     415 </span>            :                                            ((unsigned long)item) + offset,
+<span class="lineNum">     416 </span>            :                                            csum_size * size);
+<span class="lineNum">     417 </span>            : 
+<span class="lineNum">     418 </span><span class="lineCov">     316698 :                         start += root-&gt;sectorsize * size;</span>
+<span class="lineNum">     419 </span><span class="lineCov">     316698 :                         list_add_tail(&amp;sums-&gt;list, &amp;tmplist);</span>
+<span class="lineNum">     420 </span>            :                 }
+<span class="lineNum">     421 </span><span class="lineCov">     316700 :                 path-&gt;slots[0]++;</span>
+<span class="lineNum">     422 </span>            :         }
+<span class="lineNum">     423 </span>            :         ret = 0;
+<span class="lineNum">     424 </span>            : fail:
+<span class="lineNum">     425 </span><span class="lineCov">     298770 :         while (ret &lt; 0 &amp;&amp; !list_empty(&amp;tmplist)) {</span>
+<span class="lineNum">     426 </span>            :                 sums = list_entry(&amp;tmplist, struct btrfs_ordered_sum, list);
+<span class="lineNum">     427 </span><span class="lineNoCov">          0 :                 list_del(&amp;sums-&gt;list);</span>
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :                 kfree(sums);</span>
+<span class="lineNum">     429 </span>            :         }
+<span class="lineNum">     430 </span>            :         list_splice_tail(&amp;tmplist, list);
+<span class="lineNum">     431 </span>            : 
+<span class="lineNum">     432 </span><span class="lineCov">     298770 :         btrfs_free_path(path);</span>
+<span class="lineNum">     433 </span><span class="lineCov">     298793 :         return ret;</span>
+<a name="434"><span class="lineNum">     434 </span>            : }</a>
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span><span class="lineCov">     176401 : int btrfs_csum_one_bio(struct btrfs_root *root, struct inode *inode,</span>
+<span class="lineNum">     437 </span>            :                        struct bio *bio, u64 file_start, int contig)
+<span class="lineNum">     438 </span>            : {
+<span class="lineNum">     439 </span>            :         struct btrfs_ordered_sum *sums;
+<span class="lineNum">     440 </span>            :         struct btrfs_ordered_extent *ordered;
+<span class="lineNum">     441 </span>            :         char *data;
+<span class="lineNum">     442 </span><span class="lineCov">      86553 :         struct bio_vec *bvec = bio-&gt;bi_io_vec;</span>
+<span class="lineNum">     443 </span>            :         int bio_index = 0;
+<span class="lineNum">     444 </span>            :         int index;
+<span class="lineNum">     445 </span>            :         unsigned long total_bytes = 0;
+<span class="lineNum">     446 </span>            :         unsigned long this_sum_bytes = 0;
+<span class="lineNum">     447 </span>            :         u64 offset;
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span><span class="lineCov">      86553 :         WARN_ON(bio-&gt;bi_vcnt &lt;= 0);</span>
+<span class="lineNum">     450 </span><span class="lineCov">     173106 :         sums = kzalloc(btrfs_ordered_sum_size(root, bio-&gt;bi_iter.bi_size),</span>
+<span class="lineNum">     451 </span>            :                        GFP_NOFS);
+<span class="lineNum">     452 </span><span class="lineCov">      86511 :         if (!sums)</span>
+<span class="lineNum">     453 </span>            :                 return -ENOMEM;
+<span class="lineNum">     454 </span>            : 
+<span class="lineNum">     455 </span><span class="lineCov">      86516 :         sums-&gt;len = bio-&gt;bi_iter.bi_size;</span>
+<span class="lineNum">     456 </span><span class="lineCov">      86516 :         INIT_LIST_HEAD(&amp;sums-&gt;list);</span>
+<span class="lineNum">     457 </span>            : 
+<span class="lineNum">     458 </span><span class="lineCov">      86516 :         if (contig)</span>
+<span class="lineNum">     459 </span>            :                 offset = file_start;
+<span class="lineNum">     460 </span>            :         else
+<span class="lineNum">     461 </span><span class="lineCov">    1221531 :                 offset = page_offset(bvec-&gt;bv_page) + bvec-&gt;bv_offset;</span>
+<span class="lineNum">     462 </span>            : 
+<span class="lineNum">     463 </span><span class="lineCov">      86516 :         ordered = btrfs_lookup_ordered_extent(inode, offset);</span>
+<span class="lineNum">     464 </span><span class="lineCov">      86325 :         BUG_ON(!ordered); /* Logic error */</span>
+<span class="lineNum">     465 </span><span class="lineCov">      86325 :         sums-&gt;bytenr = (u64)bio-&gt;bi_iter.bi_sector &lt;&lt; 9;</span>
+<span class="lineNum">     466 </span>            :         index = 0;
+<span class="lineNum">     467 </span>            : 
+<span class="lineNum">     468 </span><span class="lineCov">    1297758 :         while (bio_index &lt; bio-&gt;bi_vcnt) {</span>
+<span class="lineNum">     469 </span><span class="lineCov">    1124902 :                 if (!contig)</span>
+<span class="lineNum">     470 </span><span class="lineCov">    2198522 :                         offset = page_offset(bvec-&gt;bv_page) + bvec-&gt;bv_offset;</span>
+<span class="lineNum">     471 </span>            : 
+<span class="lineNum">     472 </span><span class="lineCov">    1124902 :                 if (offset &gt;= ordered-&gt;file_offset + ordered-&gt;len ||</span>
+<span class="lineNum">     473 </span>            :                     offset &lt; ordered-&gt;file_offset) {
+<span class="lineNum">     474 </span>            :                         unsigned long bytes_left;
+<span class="lineNum">     475 </span><span class="lineCov">       3352 :                         sums-&gt;len = this_sum_bytes;</span>
+<span class="lineNum">     476 </span>            :                         this_sum_bytes = 0;
+<span class="lineNum">     477 </span><span class="lineCov">       3352 :                         btrfs_add_ordered_sum(inode, ordered, sums);</span>
+<span class="lineNum">     478 </span><span class="lineCov">       3295 :                         btrfs_put_ordered_extent(ordered);</span>
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span><span class="lineCov">       3295 :                         bytes_left = bio-&gt;bi_iter.bi_size - total_bytes;</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineCov">       3295 :                         sums = kzalloc(btrfs_ordered_sum_size(root, bytes_left),</span>
+<span class="lineNum">     483 </span>            :                                        GFP_NOFS);
+<span class="lineNum">     484 </span><span class="lineCov">       3294 :                         BUG_ON(!sums); /* -ENOMEM */</span>
+<span class="lineNum">     485 </span><span class="lineCov">       3294 :                         sums-&gt;len = bytes_left;</span>
+<span class="lineNum">     486 </span><span class="lineCov">       3294 :                         ordered = btrfs_lookup_ordered_extent(inode, offset);</span>
+<span class="lineNum">     487 </span><span class="lineCov">       3295 :                         BUG_ON(!ordered); /* Logic error */</span>
+<span class="lineNum">     488 </span><span class="lineCov">       3295 :                         sums-&gt;bytenr = ((u64)bio-&gt;bi_iter.bi_sector &lt;&lt; 9) +</span>
+<span class="lineNum">     489 </span>            :                                        total_bytes;
+<span class="lineNum">     490 </span>            :                         index = 0;
+<span class="lineNum">     491 </span>            :                 }
+<span class="lineNum">     492 </span>            : 
+<span class="lineNum">     493 </span><span class="lineCov">    1124845 :                 data = kmap_atomic(bvec-&gt;bv_page);</span>
+<span class="lineNum">     494 </span><span class="lineCov">    1122062 :                 sums-&gt;sums[index] = ~(u32)0;</span>
+<span class="lineNum">     495 </span><span class="lineCov">    1122062 :                 sums-&gt;sums[index] = btrfs_csum_data(data + bvec-&gt;bv_offset,</span>
+<span class="lineNum">     496 </span>            :                                                     sums-&gt;sums[index],
+<span class="lineNum">     497 </span><span class="lineCov">    1122062 :                                                     bvec-&gt;bv_len);</span>
+<span class="lineNum">     498 </span>            :                 kunmap_atomic(data);
+<span class="lineNum">     499 </span><span class="lineCov">    1130189 :                 btrfs_csum_final(sums-&gt;sums[index],</span>
+<span class="lineNum">     500 </span><span class="lineCov">    1130189 :                                  (char *)(sums-&gt;sums + index));</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span><span class="lineCov">    1125108 :                 bio_index++;</span>
+<span class="lineNum">     503 </span><span class="lineCov">    1125108 :                 index++;</span>
+<span class="lineNum">     504 </span><span class="lineCov">    1125108 :                 total_bytes += bvec-&gt;bv_len;</span>
+<span class="lineNum">     505 </span><span class="lineCov">    1125108 :                 this_sum_bytes += bvec-&gt;bv_len;</span>
+<span class="lineNum">     506 </span><span class="lineCov">    1125108 :                 offset += bvec-&gt;bv_len;</span>
+<span class="lineNum">     507 </span><span class="lineCov">    1125108 :                 bvec++;</span>
+<span class="lineNum">     508 </span>            :         }
+<span class="lineNum">     509 </span>            :         this_sum_bytes = 0;
+<span class="lineNum">     510 </span><span class="lineCov">      86531 :         btrfs_add_ordered_sum(inode, ordered, sums);</span>
+<span class="lineNum">     511 </span><span class="lineCov">      86559 :         btrfs_put_ordered_extent(ordered);</span>
+<span class="lineNum">     512 </span><span class="lineCov">      86556 :         return 0;</span>
+<span class="lineNum">     513 </span>            : }
+<span class="lineNum">     514 </span>            : 
+<span class="lineNum">     515 </span>            : /*
+<span class="lineNum">     516 </span>            :  * helper function for csum removal, this expects the
+<span class="lineNum">     517 </span>            :  * key to describe the csum pointed to by the path, and it expects
+<span class="lineNum">     518 </span>            :  * the csum to overlap the range [bytenr, len]
+<span class="lineNum">     519 </span>            :  *
+<span class="lineNum">     520 </span>            :  * The csum should not be entirely contained in the range and the
+<span class="lineNum">     521 </span>            :  * range should not be entirely contained in the csum.
+<span class="lineNum">     522 </span>            :  *
+<span class="lineNum">     523 </span>            :  * This calls btrfs_truncate_item with the correct args based on the
+<span class="lineNum">     524 </span>            :  * overlap, and fixes up the key as required.
+<span class="lineNum">     525 </span>            :  */
+<span class="lineNum">     526 </span><span class="lineCov">       8455 : static noinline void truncate_one_csum(struct btrfs_root *root,</span>
+<span class="lineNum">     527 </span>            :                                        struct btrfs_path *path,
+<span class="lineNum">     528 </span>            :                                        struct btrfs_key *key,
+<span class="lineNum">     529 </span>            :                                        u64 bytenr, u64 len)
+<span class="lineNum">     530 </span>            : {
+<span class="lineNum">     531 </span>            :         struct extent_buffer *leaf;
+<span class="lineNum">     532 </span><span class="lineCov">       8455 :         u16 csum_size = btrfs_super_csum_size(root-&gt;fs_info-&gt;super_copy);</span>
+<span class="lineNum">     533 </span>            :         u64 csum_end;
+<span class="lineNum">     534 </span><span class="lineCov">       8455 :         u64 end_byte = bytenr + len;</span>
+<span class="lineNum">     535 </span><span class="lineCov">       8455 :         u32 blocksize_bits = root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span><span class="lineCov">       8455 :         leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     538 </span><span class="lineCov">      16910 :         csum_end = btrfs_item_size_nr(leaf, path-&gt;slots[0]) / csum_size;</span>
+<span class="lineNum">     539 </span><span class="lineCov">       8455 :         csum_end &lt;&lt;= root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     540 </span><span class="lineCov">       8455 :         csum_end += key-&gt;offset;</span>
+<span class="lineNum">     541 </span>            : 
+<span class="lineNum">     542 </span><span class="lineCov">      11705 :         if (key-&gt;offset &lt; bytenr &amp;&amp; csum_end &lt;= end_byte) {</span>
+<span class="lineNum">     543 </span>            :                 /*
+<span class="lineNum">     544 </span>            :                  *         [ bytenr - len ]
+<span class="lineNum">     545 </span>            :                  *         [   ]
+<span class="lineNum">     546 </span>            :                  *   [csum     ]
+<span class="lineNum">     547 </span>            :                  *   A simple truncate off the end of the item
+<span class="lineNum">     548 </span>            :                  */
+<span class="lineNum">     549 </span><span class="lineCov">       3250 :                 u32 new_size = (bytenr - key-&gt;offset) &gt;&gt; blocksize_bits;</span>
+<span class="lineNum">     550 </span><span class="lineCov">       3250 :                 new_size *= csum_size;</span>
+<span class="lineNum">     551 </span><span class="lineCov">       3250 :                 btrfs_truncate_item(root, path, new_size, 1);</span>
+<span class="lineNum">     552 </span><span class="lineCov">       5205 :         } else if (key-&gt;offset &gt;= bytenr &amp;&amp; csum_end &gt; end_byte &amp;&amp;</span>
+<span class="lineNum">     553 </span><span class="lineCov">       5205 :                    end_byte &gt; key-&gt;offset) {</span>
+<span class="lineNum">     554 </span>            :                 /*
+<span class="lineNum">     555 </span>            :                  *         [ bytenr - len ]
+<span class="lineNum">     556 </span>            :                  *                 [ ]
+<span class="lineNum">     557 </span>            :                  *                 [csum     ]
+<span class="lineNum">     558 </span>            :                  * we need to truncate from the beginning of the csum
+<span class="lineNum">     559 </span>            :                  */
+<span class="lineNum">     560 </span><span class="lineCov">       5205 :                 u32 new_size = (csum_end - end_byte) &gt;&gt; blocksize_bits;</span>
+<span class="lineNum">     561 </span><span class="lineCov">       5205 :                 new_size *= csum_size;</span>
+<span class="lineNum">     562 </span>            : 
+<span class="lineNum">     563 </span><span class="lineCov">       5205 :                 btrfs_truncate_item(root, path, new_size, 0);</span>
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span><span class="lineCov">       5205 :                 key-&gt;offset = end_byte;</span>
+<span class="lineNum">     566 </span><span class="lineCov">       5205 :                 btrfs_set_item_key_safe(root, path, key);</span>
+<span class="lineNum">     567 </span>            :         } else {
+<span class="lineNum">     568 </span><span class="lineNoCov">          0 :                 BUG();</span>
+<span class="lineNum">     569 </span>            :         }
+<span class="lineNum">     570 </span><span class="lineCov">       8455 : }</span>
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span>            : /*
+<span class="lineNum">     573 </span>            :  * deletes the csum items from the csum tree for a given
+<span class="lineNum">     574 </span>            :  * range of bytes.
+<span class="lineNum">     575 </span>            :  */
+<span class="lineNum">     576 </span><span class="lineCov">      16268 : int btrfs_del_csums(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     577 </span>            :                     struct btrfs_root *root, u64 bytenr, u64 len)
+<span class="lineNum">     578 </span>            : {
+<span class="lineNum">     579 </span>            :         struct btrfs_path *path;
+<span class="lineNum">     580 </span>            :         struct btrfs_key key;
+<span class="lineNum">     581 </span><span class="lineCov">      16268 :         u64 end_byte = bytenr + len;</span>
+<span class="lineNum">     582 </span>            :         u64 csum_end;
+<span class="lineNum">     583 </span>            :         struct extent_buffer *leaf;
+<span class="lineNum">     584 </span>            :         int ret;
+<span class="lineNum">     585 </span><span class="lineCov">      32536 :         u16 csum_size = btrfs_super_csum_size(root-&gt;fs_info-&gt;super_copy);</span>
+<span class="lineNum">     586 </span><span class="lineCov">      16268 :         int blocksize_bits = root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span><span class="lineCov">      16268 :         root = root-&gt;fs_info-&gt;csum_root;</span>
+<span class="lineNum">     589 </span>            : 
+<span class="lineNum">     590 </span><span class="lineCov">      16268 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">     591 </span><span class="lineCov">      16268 :         if (!path)</span>
+<span class="lineNum">     592 </span>            :                 return -ENOMEM;
+<span class="lineNum">     593 </span>            : 
+<span class="lineNum">     594 </span>            :         while (1) {
+<span class="lineNum">     595 </span><span class="lineCov">      23314 :                 key.objectid = BTRFS_EXTENT_CSUM_OBJECTID;</span>
+<span class="lineNum">     596 </span><span class="lineCov">      23314 :                 key.offset = end_byte - 1;</span>
+<span class="lineNum">     597 </span><span class="lineCov">      23314 :                 key.type = BTRFS_EXTENT_CSUM_KEY;</span>
+<span class="lineNum">     598 </span>            : 
+<span class="lineNum">     599 </span><span class="lineCov">      23314 :                 path-&gt;leave_spinning = 1;</span>
+<span class="lineNum">     600 </span><span class="lineCov">      23314 :                 ret = btrfs_search_slot(trans, root, &amp;key, path, -1, 1);</span>
+<span class="lineNum">     601 </span><span class="lineCov">      23314 :                 if (ret &gt; 0) {</span>
+<span class="lineNum">     602 </span><span class="lineCov">      23314 :                         if (path-&gt;slots[0] == 0)</span>
+<span class="lineNum">     603 </span>            :                                 break;
+<span class="lineNum">     604 </span><span class="lineCov">      20700 :                         path-&gt;slots[0]--;</span>
+<span class="lineNum">     605 </span><span class="lineNoCov">          0 :                 } else if (ret &lt; 0) {</span>
+<span class="lineNum">     606 </span>            :                         break;
+<span class="lineNum">     607 </span>            :                 }
+<span class="lineNum">     608 </span>            : 
+<span class="lineNum">     609 </span><span class="lineCov">      20700 :                 leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     610 </span><span class="lineCov">      20700 :                 btrfs_item_key_to_cpu(leaf, &amp;key, path-&gt;slots[0]);</span>
+<span class="lineNum">     611 </span>            : 
+<span class="lineNum">     612 </span><span class="lineCov">      41400 :                 if (key.objectid != BTRFS_EXTENT_CSUM_OBJECTID ||</span>
+<span class="lineNum">     613 </span><span class="lineCov">      20700 :                     key.type != BTRFS_EXTENT_CSUM_KEY) {</span>
+<span class="lineNum">     614 </span>            :                         break;
+<span class="lineNum">     615 </span>            :                 }
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span><span class="lineCov">      20700 :                 if (key.offset &gt;= end_byte)</span>
+<span class="lineNum">     618 </span>            :                         break;
+<span class="lineNum">     619 </span>            : 
+<span class="lineNum">     620 </span><span class="lineCov">      41400 :                 csum_end = btrfs_item_size_nr(leaf, path-&gt;slots[0]) / csum_size;</span>
+<span class="lineNum">     621 </span><span class="lineCov">      20700 :                 csum_end &lt;&lt;= blocksize_bits;</span>
+<span class="lineNum">     622 </span><span class="lineCov">      20700 :                 csum_end += key.offset;</span>
+<span class="lineNum">     623 </span>            : 
+<span class="lineNum">     624 </span>            :                 /* this csum ends before we start, we're done */
+<span class="lineNum">     625 </span><span class="lineCov">      20700 :                 if (csum_end &lt;= bytenr)</span>
+<span class="lineNum">     626 </span>            :                         break;
+<span class="lineNum">     627 </span>            : 
+<span class="lineNum">     628 </span>            :                 /* delete the entire item, it is inside our range */
+<span class="lineNum">     629 </span><span class="lineCov">      13043 :                 if (key.offset &gt;= bytenr &amp;&amp; csum_end &lt;= end_byte) {</span>
+<span class="lineNum">     630 </span>            :                         ret = btrfs_del_item(trans, root, path);
+<span class="lineNum">     631 </span><span class="lineCov">       3405 :                         if (ret)</span>
+<span class="lineNum">     632 </span>            :                                 goto out;
+<span class="lineNum">     633 </span><span class="lineCov">       3405 :                         if (key.offset == bytenr)</span>
+<span class="lineNum">     634 </span>            :                                 break;
+<span class="lineNum">     635 </span><span class="lineCov">      10821 :                 } else if (key.offset &lt; bytenr &amp;&amp; csum_end &gt; end_byte) {</span>
+<span class="lineNum">     636 </span>            :                         unsigned long offset;
+<span class="lineNum">     637 </span>            :                         unsigned long shift_len;
+<span class="lineNum">     638 </span>            :                         unsigned long item_offset;
+<span class="lineNum">     639 </span>            :                         /*
+<span class="lineNum">     640 </span>            :                          *        [ bytenr - len ]
+<span class="lineNum">     641 </span>            :                          *     [csum                ]
+<span class="lineNum">     642 </span>            :                          *
+<span class="lineNum">     643 </span>            :                          * Our bytes are in the middle of the csum,
+<span class="lineNum">     644 </span>            :                          * we need to split this item and insert a new one.
+<span class="lineNum">     645 </span>            :                          *
+<span class="lineNum">     646 </span>            :                          * But we can't drop the path because the
+<span class="lineNum">     647 </span>            :                          * csum could change, get removed, extended etc.
+<span class="lineNum">     648 </span>            :                          *
+<span class="lineNum">     649 </span>            :                          * The trick here is the max size of a csum item leaves
+<span class="lineNum">     650 </span>            :                          * enough room in the tree block for a single
+<span class="lineNum">     651 </span>            :                          * item header.  So, we split the item in place,
+<span class="lineNum">     652 </span>            :                          * adding a new header pointing to the existing
+<span class="lineNum">     653 </span>            :                          * bytes.  Then we loop around again and we have
+<span class="lineNum">     654 </span>            :                          * a nicely formed csum item that we can neatly
+<span class="lineNum">     655 </span>            :                          * truncate.
+<span class="lineNum">     656 </span>            :                          */
+<span class="lineNum">     657 </span><span class="lineCov">       1183 :                         offset = (bytenr - key.offset) &gt;&gt; blocksize_bits;</span>
+<span class="lineNum">     658 </span><span class="lineCov">       1183 :                         offset *= csum_size;</span>
+<span class="lineNum">     659 </span>            : 
+<span class="lineNum">     660 </span><span class="lineCov">       1183 :                         shift_len = (len &gt;&gt; blocksize_bits) * csum_size;</span>
+<span class="lineNum">     661 </span>            : 
+<span class="lineNum">     662 </span><span class="lineCov">       2366 :                         item_offset = btrfs_item_ptr_offset(leaf,</span>
+<span class="lineNum">     663 </span>            :                                                             path-&gt;slots[0]);
+<span class="lineNum">     664 </span>            : 
+<span class="lineNum">     665 </span><span class="lineCov">       1183 :                         memset_extent_buffer(leaf, 0, item_offset + offset,</span>
+<span class="lineNum">     666 </span>            :                                              shift_len);
+<span class="lineNum">     667 </span><span class="lineCov">       1183 :                         key.offset = bytenr;</span>
+<span class="lineNum">     668 </span>            : 
+<span class="lineNum">     669 </span>            :                         /*
+<span class="lineNum">     670 </span>            :                          * btrfs_split_item returns -EAGAIN when the
+<span class="lineNum">     671 </span>            :                          * item changed size or key
+<span class="lineNum">     672 </span>            :                          */
+<span class="lineNum">     673 </span><span class="lineCov">       1183 :                         ret = btrfs_split_item(trans, root, path, &amp;key, offset);</span>
+<span class="lineNum">     674 </span><span class="lineCov">       1183 :                         if (ret &amp;&amp; ret != -EAGAIN) {</span>
+<span class="lineNum">     675 </span><span class="lineNoCov">          0 :                                 btrfs_abort_transaction(trans, root, ret);</span>
+<span class="lineNum">     676 </span><span class="lineNoCov">          0 :                                 goto out;</span>
+<span class="lineNum">     677 </span>            :                         }
+<span class="lineNum">     678 </span>            : 
+<span class="lineNum">     679 </span><span class="lineCov">       1183 :                         key.offset = end_byte - 1;</span>
+<span class="lineNum">     680 </span>            :                 } else {
+<span class="lineNum">     681 </span><span class="lineCov">       8455 :                         truncate_one_csum(root, path, &amp;key, bytenr, len);</span>
+<span class="lineNum">     682 </span><span class="lineCov">       8455 :                         if (key.offset &lt; bytenr)</span>
+<span class="lineNum">     683 </span>            :                                 break;
+<span class="lineNum">     684 </span>            :                 }
+<span class="lineNum">     685 </span><span class="lineCov">       7046 :                 btrfs_release_path(path);</span>
+<span class="lineNum">     686 </span><span class="lineCov">       7046 :         }</span>
+<span class="lineNum">     687 </span>            :         ret = 0;
+<span class="lineNum">     688 </span>            : out:
+<span class="lineNum">     689 </span><span class="lineCov">      16268 :         btrfs_free_path(path);</span>
+<span class="lineNum">     690 </span><span class="lineCov">      16268 :         return ret;</span>
+<span class="lineNum">     691 </span>            : }
+<span class="lineNum">     692 </span>            : 
+<span class="lineNum">     693 </span><span class="lineCov">      93666 : int btrfs_csum_file_blocks(struct btrfs_trans_handle *trans,</span>
+<span class="lineNum">     694 </span>            :                            struct btrfs_root *root,
+<span class="lineNum">     695 </span>            :                            struct btrfs_ordered_sum *sums)
+<span class="lineNum">     696 </span>            : {
+<span class="lineNum">     697 </span>            :         struct btrfs_key file_key;
+<span class="lineNum">     698 </span>            :         struct btrfs_key found_key;
+<span class="lineNum">     699 </span>            :         struct btrfs_path *path;
+<span class="lineNum">     700 </span>            :         struct btrfs_csum_item *item;
+<span class="lineNum">     701 </span>            :         struct btrfs_csum_item *item_end;
+<span class="lineNum">     702 </span>            :         struct extent_buffer *leaf = NULL;
+<span class="lineNum">     703 </span>            :         u64 next_offset;
+<span class="lineNum">     704 </span>            :         u64 total_bytes = 0;
+<span class="lineNum">     705 </span>            :         u64 csum_offset;
+<span class="lineNum">     706 </span>            :         u64 bytenr;
+<span class="lineNum">     707 </span>            :         u32 nritems;
+<span class="lineNum">     708 </span>            :         u32 ins_size;
+<span class="lineNum">     709 </span>            :         int index = 0;
+<span class="lineNum">     710 </span>            :         int found_next;
+<span class="lineNum">     711 </span>            :         int ret;
+<span class="lineNum">     712 </span><span class="lineCov">     187332 :         u16 csum_size = btrfs_super_csum_size(root-&gt;fs_info-&gt;super_copy);</span>
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span><span class="lineCov">      93666 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">     715 </span><span class="lineCov">      93674 :         if (!path)</span>
+<span class="lineNum">     716 </span>            :                 return -ENOMEM;
+<span class="lineNum">     717 </span>            : again:
+<span class="lineNum">     718 </span>            :         next_offset = (u64)-1;
+<span class="lineNum">     719 </span>            :         found_next = 0;
+<span class="lineNum">     720 </span><span class="lineCov">      94836 :         bytenr = sums-&gt;bytenr + total_bytes;</span>
+<span class="lineNum">     721 </span><span class="lineCov">      94836 :         file_key.objectid = BTRFS_EXTENT_CSUM_OBJECTID;</span>
+<span class="lineNum">     722 </span><span class="lineCov">      94836 :         file_key.offset = bytenr;</span>
+<span class="lineNum">     723 </span>            :         btrfs_set_key_type(&amp;file_key, BTRFS_EXTENT_CSUM_KEY);
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span><span class="lineCov">      94836 :         item = btrfs_lookup_csum(trans, root, path, bytenr, 1);</span>
+<span class="lineNum">     726 </span><span class="lineCov">      94839 :         if (!IS_ERR(item)) {</span>
+<span class="lineNum">     727 </span>            :                 ret = 0;
+<span class="lineNum">     728 </span><span class="lineCov">       1084 :                 leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     729 </span><span class="lineCov">       2168 :                 item_end = btrfs_item_ptr(leaf, path-&gt;slots[0],</span>
+<span class="lineNum">     730 </span>            :                                           struct btrfs_csum_item);
+<span class="lineNum">     731 </span><span class="lineCov">       1084 :                 item_end = (struct btrfs_csum_item *)((char *)item_end +</span>
+<span class="lineNum">     732 </span><span class="lineCov">       1084 :                            btrfs_item_size_nr(leaf, path-&gt;slots[0]));</span>
+<span class="lineNum">     733 </span><span class="lineCov">       1084 :                 goto found;</span>
+<span class="lineNum">     734 </span>            :         }
+<span class="lineNum">     735 </span><span class="lineCov">      93755 :         ret = PTR_ERR(item);</span>
+<span class="lineNum">     736 </span><span class="lineCov">      93755 :         if (ret != -EFBIG &amp;&amp; ret != -ENOENT)</span>
+<span class="lineNum">     737 </span>            :                 goto fail_unlock;
+<span class="lineNum">     738 </span>            : 
+<span class="lineNum">     739 </span><span class="lineCov">      93755 :         if (ret == -EFBIG) {</span>
+<span class="lineNum">     740 </span>            :                 u32 item_size;
+<span class="lineNum">     741 </span>            :                 /* we found one, but it isn't big enough yet */
+<span class="lineNum">     742 </span><span class="lineCov">      82031 :                 leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     743 </span><span class="lineCov">      82031 :                 item_size = btrfs_item_size_nr(leaf, path-&gt;slots[0]);</span>
+<span class="lineNum">     744 </span><span class="lineCov">     164060 :                 if ((item_size / csum_size) &gt;=</span>
+<span class="lineNum">     745 </span><span class="lineCov">      82030 :                     MAX_CSUM_ITEMS(root, csum_size)) {</span>
+<span class="lineNum">     746 </span>            :                         /* already at max size, make a new one */
+<span class="lineNum">     747 </span>            :                         goto insert;
+<span class="lineNum">     748 </span>            :                 }
+<span class="lineNum">     749 </span>            :         } else {
+<span class="lineNum">     750 </span><span class="lineCov">      11724 :                 int slot = path-&gt;slots[0] + 1;</span>
+<span class="lineNum">     751 </span>            :                 /* we didn't find a csum item, insert one */
+<span class="lineNum">     752 </span><span class="lineCov">      11724 :                 nritems = btrfs_header_nritems(path-&gt;nodes[0]);</span>
+<span class="lineNum">     753 </span><span class="lineCov">      11724 :                 if (!nritems || (path-&gt;slots[0] &gt;= nritems - 1)) {</span>
+<span class="lineNum">     754 </span><span class="lineCov">       7149 :                         ret = btrfs_next_leaf(root, path);</span>
+<span class="lineNum">     755 </span><span class="lineCov">       7148 :                         if (ret == 1)</span>
+<span class="lineNum">     756 </span>            :                                 found_next = 1;
+<span class="lineNum">     757 </span><span class="lineCov">       7148 :                         if (ret != 0)</span>
+<span class="lineNum">     758 </span>            :                                 goto insert;
+<span class="lineNum">     759 </span><span class="lineCov">         95 :                         slot = path-&gt;slots[0];</span>
+<span class="lineNum">     760 </span>            :                 }
+<span class="lineNum">     761 </span><span class="lineCov">       4670 :                 btrfs_item_key_to_cpu(path-&gt;nodes[0], &amp;found_key, slot);</span>
+<span class="lineNum">     762 </span><span class="lineCov">       9340 :                 if (found_key.objectid != BTRFS_EXTENT_CSUM_OBJECTID ||</span>
+<span class="lineNum">     763 </span><span class="lineCov">       4670 :                     found_key.type != BTRFS_EXTENT_CSUM_KEY) {</span>
+<span class="lineNum">     764 </span>            :                         found_next = 1;
+<span class="lineNum">     765 </span>            :                         goto insert;
+<span class="lineNum">     766 </span>            :                 }
+<span class="lineNum">     767 </span><span class="lineCov">       4670 :                 next_offset = found_key.offset;</span>
+<span class="lineNum">     768 </span>            :                 found_next = 1;
+<span class="lineNum">     769 </span><span class="lineCov">       4670 :                 goto insert;</span>
+<span class="lineNum">     770 </span>            :         }
+<span class="lineNum">     771 </span>            : 
+<span class="lineNum">     772 </span>            :         /*
+<span class="lineNum">     773 </span>            :          * at this point, we know the tree has an item, but it isn't big
+<span class="lineNum">     774 </span>            :          * enough yet to put our csum in.  Grow it
+<span class="lineNum">     775 </span>            :          */
+<span class="lineNum">     776 </span><span class="lineCov">      82029 :         btrfs_release_path(path);</span>
+<span class="lineNum">     777 </span><span class="lineCov">      82027 :         ret = btrfs_search_slot(trans, root, &amp;file_key, path,</span>
+<span class="lineNum">     778 </span>            :                                 csum_size, 1);
+<span class="lineNum">     779 </span><span class="lineCov">      82031 :         if (ret &lt; 0)</span>
+<span class="lineNum">     780 </span>            :                 goto fail_unlock;
+<span class="lineNum">     781 </span>            : 
+<span class="lineNum">     782 </span><span class="lineCov">      82031 :         if (ret &gt; 0) {</span>
+<span class="lineNum">     783 </span><span class="lineCov">      82031 :                 if (path-&gt;slots[0] == 0)</span>
+<span class="lineNum">     784 </span>            :                         goto insert;
+<span class="lineNum">     785 </span><span class="lineCov">      82005 :                 path-&gt;slots[0]--;</span>
+<span class="lineNum">     786 </span>            :         }
+<span class="lineNum">     787 </span>            : 
+<span class="lineNum">     788 </span><span class="lineCov">      82005 :         leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     789 </span><span class="lineCov">      82005 :         btrfs_item_key_to_cpu(leaf, &amp;found_key, path-&gt;slots[0]);</span>
+<span class="lineNum">     790 </span><span class="lineCov">     164010 :         csum_offset = (bytenr - found_key.offset) &gt;&gt;</span>
+<span class="lineNum">     791 </span><span class="lineCov">      82005 :                         root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     792 </span>            : 
+<span class="lineNum">     793 </span><span class="lineCov">     164010 :         if (btrfs_key_type(&amp;found_key) != BTRFS_EXTENT_CSUM_KEY ||</span>
+<span class="lineNum">     794 </span><span class="lineCov">     164010 :             found_key.objectid != BTRFS_EXTENT_CSUM_OBJECTID ||</span>
+<span class="lineNum">     795 </span><span class="lineCov">      82005 :             csum_offset &gt;= MAX_CSUM_ITEMS(root, csum_size)) {</span>
+<span class="lineNum">     796 </span>            :                 goto insert;
+<span class="lineNum">     797 </span>            :         }
+<span class="lineNum">     798 </span>            : 
+<span class="lineNum">     799 </span><span class="lineCov">     164010 :         if (csum_offset == btrfs_item_size_nr(leaf, path-&gt;slots[0]) /</span>
+<span class="lineNum">     800 </span>            :             csum_size) {
+<span class="lineNum">     801 </span>            :                 int extend_nr;
+<span class="lineNum">     802 </span>            :                 u64 tmp;
+<span class="lineNum">     803 </span>            :                 u32 diff;
+<span class="lineNum">     804 </span>            :                 u32 free_space;
+<span class="lineNum">     805 </span>            : 
+<span class="lineNum">     806 </span><span class="lineCov">     164010 :                 if (btrfs_leaf_free_space(root, leaf) &lt;</span>
+<span class="lineNum">     807 </span><span class="lineCov">      82005 :                                  sizeof(struct btrfs_item) + csum_size * 2)</span>
+<span class="lineNum">     808 </span>            :                         goto insert;
+<span class="lineNum">     809 </span>            : 
+<span class="lineNum">     810 </span><span class="lineCov">      81370 :                 free_space = btrfs_leaf_free_space(root, leaf) -</span>
+<span class="lineNum">     811 </span>            :                                          sizeof(struct btrfs_item) - csum_size;
+<span class="lineNum">     812 </span><span class="lineCov">      81370 :                 tmp = sums-&gt;len - total_bytes;</span>
+<span class="lineNum">     813 </span><span class="lineCov">      81370 :                 tmp &gt;&gt;= root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     814 </span><span class="lineCov">      81370 :                 WARN_ON(tmp &lt; 1);</span>
+<span class="lineNum">     815 </span>            : 
+<span class="lineNum">     816 </span><span class="lineCov">      81370 :                 extend_nr = max_t(int, 1, (int)tmp);</span>
+<span class="lineNum">     817 </span><span class="lineCov">      81370 :                 diff = (csum_offset + extend_nr) * csum_size;</span>
+<span class="lineNum">     818 </span><span class="lineCov">      81370 :                 diff = min(diff, MAX_CSUM_ITEMS(root, csum_size) * csum_size);</span>
+<span class="lineNum">     819 </span>            : 
+<span class="lineNum">     820 </span><span class="lineCov">     162740 :                 diff = diff - btrfs_item_size_nr(leaf, path-&gt;slots[0]);</span>
+<span class="lineNum">     821 </span><span class="lineCov">      81370 :                 diff = min(free_space, diff);</span>
+<span class="lineNum">     822 </span><span class="lineCov">      81370 :                 diff /= csum_size;</span>
+<span class="lineNum">     823 </span><span class="lineCov">      81370 :                 diff *= csum_size;</span>
+<span class="lineNum">     824 </span>            : 
+<span class="lineNum">     825 </span><span class="lineCov">      81370 :                 btrfs_extend_item(root, path, diff);</span>
+<span class="lineNum">     826 </span>            :                 ret = 0;
+<span class="lineNum">     827 </span><span class="lineCov">      81368 :                 goto csum;</span>
+<span class="lineNum">     828 </span>            :         }
+<span class="lineNum">     829 </span>            : 
+<span class="lineNum">     830 </span>            : insert:
+<span class="lineNum">     831 </span><span class="lineCov">      12385 :         btrfs_release_path(path);</span>
+<span class="lineNum">     832 </span>            :         csum_offset = 0;
+<span class="lineNum">     833 </span><span class="lineCov">      12383 :         if (found_next) {</span>
+<span class="lineNum">     834 </span>            :                 u64 tmp;
+<span class="lineNum">     835 </span>            : 
+<span class="lineNum">     836 </span><span class="lineCov">      11721 :                 tmp = sums-&gt;len - total_bytes;</span>
+<span class="lineNum">     837 </span><span class="lineCov">      11721 :                 tmp &gt;&gt;= root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     838 </span><span class="lineCov">      11721 :                 tmp = min(tmp, (next_offset - file_key.offset) &gt;&gt;</span>
+<span class="lineNum">     839 </span>            :                                          root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits);
+<span class="lineNum">     840 </span>            : 
+<span class="lineNum">     841 </span><span class="lineCov">      11721 :                 tmp = max((u64)1, tmp);</span>
+<span class="lineNum">     842 </span><span class="lineCov">      11721 :                 tmp = min(tmp, (u64)MAX_CSUM_ITEMS(root, csum_size));</span>
+<span class="lineNum">     843 </span><span class="lineCov">      11721 :                 ins_size = csum_size * tmp;</span>
+<span class="lineNum">     844 </span>            :         } else {
+<span class="lineNum">     845 </span><span class="lineCov">        662 :                 ins_size = csum_size;</span>
+<span class="lineNum">     846 </span>            :         }
+<span class="lineNum">     847 </span><span class="lineCov">      12383 :         path-&gt;leave_spinning = 1;</span>
+<span class="lineNum">     848 </span>            :         ret = btrfs_insert_empty_item(trans, root, path, &amp;file_key,
+<span class="lineNum">     849 </span>            :                                       ins_size);
+<span class="lineNum">     850 </span><span class="lineCov">      12386 :         path-&gt;leave_spinning = 0;</span>
+<span class="lineNum">     851 </span><span class="lineCov">      12386 :         if (ret &lt; 0)</span>
+<span class="lineNum">     852 </span>            :                 goto fail_unlock;
+<span class="lineNum">     853 </span><span class="lineCov">      12386 :         if (WARN_ON(ret != 0))</span>
+<span class="lineNum">     854 </span>            :                 goto fail_unlock;
+<span class="lineNum">     855 </span><span class="lineCov">      12386 :         leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     856 </span>            : csum:
+<span class="lineNum">     857 </span><span class="lineCov">     187507 :         item = btrfs_item_ptr(leaf, path-&gt;slots[0], struct btrfs_csum_item);</span>
+<span class="lineNum">     858 </span><span class="lineCov">      93753 :         item_end = (struct btrfs_csum_item *)((unsigned char *)item +</span>
+<span class="lineNum">     859 </span><span class="lineCov">      93753 :                                       btrfs_item_size_nr(leaf, path-&gt;slots[0]));</span>
+<span class="lineNum">     860 </span><span class="lineCov">      93753 :         item = (struct btrfs_csum_item *)((unsigned char *)item +</span>
+<span class="lineNum">     861 </span>            :                                           csum_offset * csum_size);
+<span class="lineNum">     862 </span>            : found:
+<span class="lineNum">     863 </span><span class="lineCov">     189674 :         ins_size = (u32)(sums-&gt;len - total_bytes) &gt;&gt;</span>
+<span class="lineNum">     864 </span><span class="lineCov">      94837 :                    root-&gt;fs_info-&gt;sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">     865 </span><span class="lineCov">      94837 :         ins_size *= csum_size;</span>
+<span class="lineNum">     866 </span><span class="lineCov">      94837 :         ins_size = min_t(u32, (unsigned long)item_end - (unsigned long)item,</span>
+<span class="lineNum">     867 </span>            :                               ins_size);
+<span class="lineNum">     868 </span><span class="lineCov">      94837 :         write_extent_buffer(leaf, sums-&gt;sums + index, (unsigned long)item,</span>
+<span class="lineNum">     869 </span>            :                             ins_size);
+<span class="lineNum">     870 </span>            : 
+<span class="lineNum">     871 </span><span class="lineCov">      94837 :         ins_size /= csum_size;</span>
+<span class="lineNum">     872 </span><span class="lineCov">      94837 :         total_bytes += ins_size * root-&gt;sectorsize;</span>
+<span class="lineNum">     873 </span><span class="lineCov">      94837 :         index += ins_size;</span>
+<span class="lineNum">     874 </span>            : 
+<span class="lineNum">     875 </span><span class="lineCov">      94837 :         btrfs_mark_buffer_dirty(path-&gt;nodes[0]);</span>
+<span class="lineNum">     876 </span><span class="lineCov">      94840 :         if (total_bytes &lt; sums-&gt;len) {</span>
+<span class="lineNum">     877 </span><span class="lineCov">       1162 :                 btrfs_release_path(path);</span>
+<span class="lineNum">     878 </span><span class="lineCov">       1162 :                 cond_resched();</span>
+<span class="lineNum">     879 </span><span class="lineCov">       1162 :                 goto again;</span>
+<span class="lineNum">     880 </span>            :         }
+<span class="lineNum">     881 </span>            : out:
+<span class="lineNum">     882 </span><span class="lineCov">      93678 :         btrfs_free_path(path);</span>
+<span class="lineNum">     883 </span><span class="lineCov">      93677 :         return ret;</span>
+<span class="lineNum">     884 </span>            : 
+<span class="lineNum">     885 </span>            : fail_unlock:
+<span class="lineNum">     886 </span>            :         goto out;
+<span class="lineNum">     887 </span>            : }
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span><span class="lineCov">      30816 : void btrfs_extent_item_to_extent_map(struct inode *inode,</span>
+<span class="lineNum">     890 </span>            :                                      const struct btrfs_path *path,
+<span class="lineNum">     891 </span>            :                                      struct btrfs_file_extent_item *fi,
+<span class="lineNum">     892 </span>            :                                      const bool new_inline,
+<span class="lineNum">     893 </span>            :                                      struct extent_map *em)
+<span class="lineNum">     894 </span>            : {
+<span class="lineNum">     895 </span><span class="lineCov">      30816 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     896 </span><span class="lineCov">      30816 :         struct extent_buffer *leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">     897 </span><span class="lineCov">      30816 :         const int slot = path-&gt;slots[0];</span>
+<span class="lineNum">     898 </span>            :         struct btrfs_key key;
+<span class="lineNum">     899 </span>            :         u64 extent_start, extent_end;
+<span class="lineNum">     900 </span>            :         u64 bytenr;
+<span class="lineNum">     901 </span>            :         u8 type = btrfs_file_extent_type(leaf, fi);
+<span class="lineNum">     902 </span><span class="lineCov">      30816 :         int compress_type = btrfs_file_extent_compression(leaf, fi);</span>
+<span class="lineNum">     903 </span>            : 
+<span class="lineNum">     904 </span><span class="lineCov">      30816 :         em-&gt;bdev = root-&gt;fs_info-&gt;fs_devices-&gt;latest_bdev;</span>
+<span class="lineNum">     905 </span><span class="lineCov">      30816 :         btrfs_item_key_to_cpu(leaf, &amp;key, slot);</span>
+<span class="lineNum">     906 </span><span class="lineCov">      30816 :         extent_start = key.offset;</span>
+<span class="lineNum">     907 </span>            : 
+<span class="lineNum">     908 </span><span class="lineCov">      30816 :         if (type == BTRFS_FILE_EXTENT_REG ||</span>
+<span class="lineNum">     909 </span>            :             type == BTRFS_FILE_EXTENT_PREALLOC) {
+<span class="lineNum">     910 </span><span class="lineCov">      30319 :                 extent_end = extent_start +</span>
+<span class="lineNum">     911 </span>            :                         btrfs_file_extent_num_bytes(leaf, fi);
+<span class="lineNum">     912 </span><span class="lineCov">        497 :         } else if (type == BTRFS_FILE_EXTENT_INLINE) {</span>
+<span class="lineNum">     913 </span>            :                 size_t size;
+<span class="lineNum">     914 </span><span class="lineCov">        497 :                 size = btrfs_file_extent_inline_len(leaf, slot, fi);</span>
+<span class="lineNum">     915 </span><span class="lineCov">        497 :                 extent_end = ALIGN(extent_start + size, root-&gt;sectorsize);</span>
+<span class="lineNum">     916 </span>            :         }
+<span class="lineNum">     917 </span>            : 
+<span class="lineNum">     918 </span><span class="lineCov">      30816 :         em-&gt;ram_bytes = btrfs_file_extent_ram_bytes(leaf, fi);</span>
+<span class="lineNum">     919 </span><span class="lineCov">      30816 :         if (type == BTRFS_FILE_EXTENT_REG ||</span>
+<span class="lineNum">     920 </span>            :             type == BTRFS_FILE_EXTENT_PREALLOC) {
+<span class="lineNum">     921 </span><span class="lineCov">      30319 :                 em-&gt;start = extent_start;</span>
+<span class="lineNum">     922 </span><span class="lineCov">      30319 :                 em-&gt;len = extent_end - extent_start;</span>
+<span class="lineNum">     923 </span><span class="lineCov">      30319 :                 em-&gt;orig_start = extent_start -</span>
+<span class="lineNum">     924 </span>            :                         btrfs_file_extent_offset(leaf, fi);
+<span class="lineNum">     925 </span><span class="lineCov">      30319 :                 em-&gt;orig_block_len = btrfs_file_extent_disk_num_bytes(leaf, fi);</span>
+<span class="lineNum">     926 </span>            :                 bytenr = btrfs_file_extent_disk_bytenr(leaf, fi);
+<span class="lineNum">     927 </span><span class="lineCov">      30319 :                 if (bytenr == 0) {</span>
+<span class="lineNum">     928 </span><span class="lineCov">        942 :                         em-&gt;block_start = EXTENT_MAP_HOLE;</span>
+<span class="lineNum">     929 </span><span class="lineCov">      31758 :                         return;</span>
+<span class="lineNum">     930 </span>            :                 }
+<span class="lineNum">     931 </span><span class="lineCov">      29377 :                 if (compress_type != BTRFS_COMPRESS_NONE) {</span>
+<span class="lineNum">     932 </span>            :                         set_bit(EXTENT_FLAG_COMPRESSED, &amp;em-&gt;flags);
+<span class="lineNum">     933 </span><span class="lineCov">         42 :                         em-&gt;compress_type = compress_type;</span>
+<span class="lineNum">     934 </span><span class="lineCov">         42 :                         em-&gt;block_start = bytenr;</span>
+<span class="lineNum">     935 </span><span class="lineCov">         42 :                         em-&gt;block_len = em-&gt;orig_block_len;</span>
+<span class="lineNum">     936 </span>            :                 } else {
+<span class="lineNum">     937 </span><span class="lineCov">      29335 :                         bytenr += btrfs_file_extent_offset(leaf, fi);</span>
+<span class="lineNum">     938 </span><span class="lineCov">      29335 :                         em-&gt;block_start = bytenr;</span>
+<span class="lineNum">     939 </span><span class="lineCov">      29335 :                         em-&gt;block_len = em-&gt;len;</span>
+<span class="lineNum">     940 </span><span class="lineCov">      29335 :                         if (type == BTRFS_FILE_EXTENT_PREALLOC)</span>
+<span class="lineNum">     941 </span>            :                                 set_bit(EXTENT_FLAG_PREALLOC, &amp;em-&gt;flags);
+<span class="lineNum">     942 </span>            :                 }
+<span class="lineNum">     943 </span><span class="lineCov">        497 :         } else if (type == BTRFS_FILE_EXTENT_INLINE) {</span>
+<span class="lineNum">     944 </span><span class="lineCov">        497 :                 em-&gt;block_start = EXTENT_MAP_INLINE;</span>
+<span class="lineNum">     945 </span><span class="lineCov">        497 :                 em-&gt;start = extent_start;</span>
+<span class="lineNum">     946 </span><span class="lineCov">        497 :                 em-&gt;len = extent_end - extent_start;</span>
+<span class="lineNum">     947 </span>            :                 /*
+<span class="lineNum">     948 </span>            :                  * Initialize orig_start and block_len with the same values
+<span class="lineNum">     949 </span>            :                  * as in inode.c:btrfs_get_extent().
+<span class="lineNum">     950 </span>            :                  */
+<span class="lineNum">     951 </span><span class="lineCov">        497 :                 em-&gt;orig_start = EXTENT_MAP_HOLE;</span>
+<span class="lineNum">     952 </span><span class="lineCov">        497 :                 em-&gt;block_len = (u64)-1;</span>
+<span class="lineNum">     953 </span><span class="lineCov">        497 :                 if (!new_inline &amp;&amp; compress_type != BTRFS_COMPRESS_NONE) {</span>
+<span class="lineNum">     954 </span>            :                         set_bit(EXTENT_FLAG_COMPRESSED, &amp;em-&gt;flags);
+<span class="lineNum">     955 </span><span class="lineNoCov">          0 :                         em-&gt;compress_type = compress_type;</span>
+<span class="lineNum">     956 </span>            :                 }
+<span class="lineNum">     957 </span>            :         } else {
+<span class="lineNum">     958 </span><span class="lineNoCov">          0 :                 btrfs_err(root-&gt;fs_info,</span>
+<span class="lineNum">     959 </span>            :                           &quot;unknown file extent item type %d, inode %llu, offset %llu, root %llu&quot;,
+<span class="lineNum">     960 </span>            :                           type, btrfs_ino(inode), extent_start,
+<span class="lineNum">     961 </span>            :                           root-&gt;root_key.objectid);
+<span class="lineNum">     962 </span>            :         }
+<span class="lineNum">     963 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

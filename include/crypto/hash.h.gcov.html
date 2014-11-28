@@ -1,0 +1,429 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/crypto/hash.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/crypto</a> - hash.h<span style="font-size: 80%;"> (source / <a href="hash.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryLo">50.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Hash: Hash algorithms under the crypto API
+<span class="lineNum">       3 </span>            :  * 
+<span class="lineNum">       4 </span>            :  * Copyright (c) 2008 Herbert Xu &lt;herbert@gondor.apana.org.au&gt;
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  * This program is free software; you can redistribute it and/or modify it
+<span class="lineNum">       7 </span>            :  * under the terms of the GNU General Public License as published by the Free
+<span class="lineNum">       8 </span>            :  * Software Foundation; either version 2 of the License, or (at your option) 
+<span class="lineNum">       9 </span>            :  * any later version.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  */
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : #ifndef _CRYPTO_HASH_H
+<span class="lineNum">      14 </span>            : #define _CRYPTO_HASH_H
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : #include &lt;linux/crypto.h&gt;
+<span class="lineNum">      17 </span>            : 
+<span class="lineNum">      18 </span>            : struct crypto_ahash;
+<span class="lineNum">      19 </span>            : 
+<span class="lineNum">      20 </span>            : struct hash_alg_common {
+<span class="lineNum">      21 </span>            :         unsigned int digestsize;
+<span class="lineNum">      22 </span>            :         unsigned int statesize;
+<span class="lineNum">      23 </span>            : 
+<span class="lineNum">      24 </span>            :         struct crypto_alg base;
+<span class="lineNum">      25 </span>            : };
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : struct ahash_request {
+<span class="lineNum">      28 </span>            :         struct crypto_async_request base;
+<span class="lineNum">      29 </span>            : 
+<span class="lineNum">      30 </span>            :         unsigned int nbytes;
+<span class="lineNum">      31 </span>            :         struct scatterlist *src;
+<span class="lineNum">      32 </span>            :         u8 *result;
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            :         /* This field may only be used by the ahash API code. */
+<span class="lineNum">      35 </span>            :         void *priv;
+<span class="lineNum">      36 </span>            : 
+<span class="lineNum">      37 </span>            :         void *__ctx[] CRYPTO_MINALIGN_ATTR;
+<span class="lineNum">      38 </span>            : };
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : struct ahash_alg {
+<span class="lineNum">      41 </span>            :         int (*init)(struct ahash_request *req);
+<span class="lineNum">      42 </span>            :         int (*update)(struct ahash_request *req);
+<span class="lineNum">      43 </span>            :         int (*final)(struct ahash_request *req);
+<span class="lineNum">      44 </span>            :         int (*finup)(struct ahash_request *req);
+<span class="lineNum">      45 </span>            :         int (*digest)(struct ahash_request *req);
+<span class="lineNum">      46 </span>            :         int (*export)(struct ahash_request *req, void *out);
+<span class="lineNum">      47 </span>            :         int (*import)(struct ahash_request *req, const void *in);
+<span class="lineNum">      48 </span>            :         int (*setkey)(struct crypto_ahash *tfm, const u8 *key,
+<span class="lineNum">      49 </span>            :                       unsigned int keylen);
+<span class="lineNum">      50 </span>            : 
+<span class="lineNum">      51 </span>            :         struct hash_alg_common halg;
+<span class="lineNum">      52 </span>            : };
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : struct shash_desc {
+<span class="lineNum">      55 </span>            :         struct crypto_shash *tfm;
+<span class="lineNum">      56 </span>            :         u32 flags;
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :         void *__ctx[] CRYPTO_MINALIGN_ATTR;
+<span class="lineNum">      59 </span>            : };
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : struct shash_alg {
+<span class="lineNum">      62 </span>            :         int (*init)(struct shash_desc *desc);
+<span class="lineNum">      63 </span>            :         int (*update)(struct shash_desc *desc, const u8 *data,
+<span class="lineNum">      64 </span>            :                       unsigned int len);
+<span class="lineNum">      65 </span>            :         int (*final)(struct shash_desc *desc, u8 *out);
+<span class="lineNum">      66 </span>            :         int (*finup)(struct shash_desc *desc, const u8 *data,
+<span class="lineNum">      67 </span>            :                      unsigned int len, u8 *out);
+<span class="lineNum">      68 </span>            :         int (*digest)(struct shash_desc *desc, const u8 *data,
+<span class="lineNum">      69 </span>            :                       unsigned int len, u8 *out);
+<span class="lineNum">      70 </span>            :         int (*export)(struct shash_desc *desc, void *out);
+<span class="lineNum">      71 </span>            :         int (*import)(struct shash_desc *desc, const void *in);
+<span class="lineNum">      72 </span>            :         int (*setkey)(struct crypto_shash *tfm, const u8 *key,
+<span class="lineNum">      73 </span>            :                       unsigned int keylen);
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :         unsigned int descsize;
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            :         /* These fields must match hash_alg_common. */
+<span class="lineNum">      78 </span>            :         unsigned int digestsize
+<span class="lineNum">      79 </span>            :                 __attribute__ ((aligned(__alignof__(struct hash_alg_common))));
+<span class="lineNum">      80 </span>            :         unsigned int statesize;
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            :         struct crypto_alg base;
+<span class="lineNum">      83 </span>            : };
+<span class="lineNum">      84 </span>            : 
+<span class="lineNum">      85 </span>            : struct crypto_ahash {
+<span class="lineNum">      86 </span>            :         int (*init)(struct ahash_request *req);
+<span class="lineNum">      87 </span>            :         int (*update)(struct ahash_request *req);
+<span class="lineNum">      88 </span>            :         int (*final)(struct ahash_request *req);
+<span class="lineNum">      89 </span>            :         int (*finup)(struct ahash_request *req);
+<span class="lineNum">      90 </span>            :         int (*digest)(struct ahash_request *req);
+<span class="lineNum">      91 </span>            :         int (*export)(struct ahash_request *req, void *out);
+<span class="lineNum">      92 </span>            :         int (*import)(struct ahash_request *req, const void *in);
+<span class="lineNum">      93 </span>            :         int (*setkey)(struct crypto_ahash *tfm, const u8 *key,
+<span class="lineNum">      94 </span>            :                       unsigned int keylen);
+<span class="lineNum">      95 </span>            : 
+<span class="lineNum">      96 </span>            :         unsigned int reqsize;
+<span class="lineNum">      97 </span>            :         struct crypto_tfm base;
+<span class="lineNum">      98 </span>            : };
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            : struct crypto_shash {
+<span class="lineNum">     101 </span>            :         unsigned int descsize;
+<span class="lineNum">     102 </span>            :         struct crypto_tfm base;
+<span class="lineNum">     103 </span>            : };
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : static inline struct crypto_ahash *__crypto_ahash_cast(struct crypto_tfm *tfm)
+<span class="lineNum">     106 </span>            : {
+<span class="lineNum">     107 </span>            :         return container_of(tfm, struct crypto_ahash, base);
+<span class="lineNum">     108 </span>            : }
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : struct crypto_ahash *crypto_alloc_ahash(const char *alg_name, u32 type,
+<span class="lineNum">     111 </span>            :                                         u32 mask);
+<span class="lineNum">     112 </span>            : 
+<span class="lineNum">     113 </span>            : static inline struct crypto_tfm *crypto_ahash_tfm(struct crypto_ahash *tfm)
+<span class="lineNum">     114 </span>            : {
+<span class="lineNum">     115 </span>            :         return &amp;tfm-&gt;base;
+<span class="lineNum">     116 </span>            : }
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            : static inline void crypto_free_ahash(struct crypto_ahash *tfm)
+<span class="lineNum">     119 </span>            : {
+<span class="lineNum">     120 </span>            :         crypto_destroy_tfm(tfm, crypto_ahash_tfm(tfm));
+<span class="lineNum">     121 </span>            : }
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : static inline unsigned int crypto_ahash_alignmask(
+<span class="lineNum">     124 </span>            :         struct crypto_ahash *tfm)
+<span class="lineNum">     125 </span>            : {
+<span class="lineNum">     126 </span>            :         return crypto_tfm_alg_alignmask(crypto_ahash_tfm(tfm));
+<span class="lineNum">     127 </span>            : }
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : static inline struct hash_alg_common *__crypto_hash_alg_common(
+<span class="lineNum">     130 </span>            :         struct crypto_alg *alg)
+<span class="lineNum">     131 </span>            : {
+<span class="lineNum">     132 </span>            :         return container_of(alg, struct hash_alg_common, base);
+<span class="lineNum">     133 </span>            : }
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            : static inline struct hash_alg_common *crypto_hash_alg_common(
+<span class="lineNum">     136 </span>            :         struct crypto_ahash *tfm)
+<span class="lineNum">     137 </span>            : {
+<span class="lineNum">     138 </span>            :         return __crypto_hash_alg_common(crypto_ahash_tfm(tfm)-&gt;__crt_alg);
+<span class="lineNum">     139 </span>            : }
+<span class="lineNum">     140 </span>            : 
+<span class="lineNum">     141 </span>            : static inline unsigned int crypto_ahash_digestsize(struct crypto_ahash *tfm)
+<span class="lineNum">     142 </span>            : {
+<span class="lineNum">     143 </span>            :         return crypto_hash_alg_common(tfm)-&gt;digestsize;
+<span class="lineNum">     144 </span>            : }
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            : static inline unsigned int crypto_ahash_statesize(struct crypto_ahash *tfm)
+<span class="lineNum">     147 </span>            : {
+<span class="lineNum">     148 </span>            :         return crypto_hash_alg_common(tfm)-&gt;statesize;
+<span class="lineNum">     149 </span>            : }
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            : static inline u32 crypto_ahash_get_flags(struct crypto_ahash *tfm)
+<span class="lineNum">     152 </span>            : {
+<span class="lineNum">     153 </span>            :         return crypto_tfm_get_flags(crypto_ahash_tfm(tfm));
+<span class="lineNum">     154 </span>            : }
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span>            : static inline void crypto_ahash_set_flags(struct crypto_ahash *tfm, u32 flags)
+<span class="lineNum">     157 </span>            : {
+<span class="lineNum">     158 </span>            :         crypto_tfm_set_flags(crypto_ahash_tfm(tfm), flags);
+<span class="lineNum">     159 </span>            : }
+<span class="lineNum">     160 </span>            : 
+<span class="lineNum">     161 </span>            : static inline void crypto_ahash_clear_flags(struct crypto_ahash *tfm, u32 flags)
+<span class="lineNum">     162 </span>            : {
+<span class="lineNum">     163 </span>            :         crypto_tfm_clear_flags(crypto_ahash_tfm(tfm), flags);
+<span class="lineNum">     164 </span>            : }
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span>            : static inline struct crypto_ahash *crypto_ahash_reqtfm(
+<span class="lineNum">     167 </span>            :         struct ahash_request *req)
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span>            :         return __crypto_ahash_cast(req-&gt;base.tfm);
+<span class="lineNum">     170 </span>            : }
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            : static inline unsigned int crypto_ahash_reqsize(struct crypto_ahash *tfm)
+<span class="lineNum">     173 </span>            : {
+<span class="lineNum">     174 </span>            :         return tfm-&gt;reqsize;
+<span class="lineNum">     175 </span>            : }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : static inline void *ahash_request_ctx(struct ahash_request *req)
+<span class="lineNum">     178 </span>            : {
+<span class="lineNum">     179 </span>            :         return req-&gt;__ctx;
+<span class="lineNum">     180 </span>            : }
+<span class="lineNum">     181 </span>            : 
+<span class="lineNum">     182 </span>            : int crypto_ahash_setkey(struct crypto_ahash *tfm, const u8 *key,
+<span class="lineNum">     183 </span>            :                         unsigned int keylen);
+<span class="lineNum">     184 </span>            : int crypto_ahash_finup(struct ahash_request *req);
+<span class="lineNum">     185 </span>            : int crypto_ahash_final(struct ahash_request *req);
+<span class="lineNum">     186 </span>            : int crypto_ahash_digest(struct ahash_request *req);
+<span class="lineNum">     187 </span>            : 
+<span class="lineNum">     188 </span>            : static inline int crypto_ahash_export(struct ahash_request *req, void *out)
+<span class="lineNum">     189 </span>            : {
+<span class="lineNum">     190 </span>            :         return crypto_ahash_reqtfm(req)-&gt;export(req, out);
+<span class="lineNum">     191 </span>            : }
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : static inline int crypto_ahash_import(struct ahash_request *req, const void *in)
+<span class="lineNum">     194 </span>            : {
+<span class="lineNum">     195 </span>            :         return crypto_ahash_reqtfm(req)-&gt;import(req, in);
+<span class="lineNum">     196 </span>            : }
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span>            : static inline int crypto_ahash_init(struct ahash_request *req)
+<span class="lineNum">     199 </span>            : {
+<span class="lineNum">     200 </span>            :         return crypto_ahash_reqtfm(req)-&gt;init(req);
+<span class="lineNum">     201 </span>            : }
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span>            : static inline int crypto_ahash_update(struct ahash_request *req)
+<span class="lineNum">     204 </span>            : {
+<span class="lineNum">     205 </span>            :         return crypto_ahash_reqtfm(req)-&gt;update(req);
+<span class="lineNum">     206 </span>            : }
+<span class="lineNum">     207 </span>            : 
+<span class="lineNum">     208 </span>            : static inline void ahash_request_set_tfm(struct ahash_request *req,
+<span class="lineNum">     209 </span>            :                                          struct crypto_ahash *tfm)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            :         req-&gt;base.tfm = crypto_ahash_tfm(tfm);
+<span class="lineNum">     212 </span>            : }
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span>            : static inline struct ahash_request *ahash_request_alloc(
+<span class="lineNum">     215 </span>            :         struct crypto_ahash *tfm, gfp_t gfp)
+<span class="lineNum">     216 </span>            : {
+<span class="lineNum">     217 </span>            :         struct ahash_request *req;
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span>            :         req = kmalloc(sizeof(struct ahash_request) +
+<span class="lineNum">     220 </span>            :                       crypto_ahash_reqsize(tfm), gfp);
+<span class="lineNum">     221 </span>            : 
+<span class="lineNum">     222 </span>            :         if (likely(req))
+<span class="lineNum">     223 </span>            :                 ahash_request_set_tfm(req, tfm);
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span>            :         return req;
+<span class="lineNum">     226 </span>            : }
+<span class="lineNum">     227 </span>            : 
+<span class="lineNum">     228 </span>            : static inline void ahash_request_free(struct ahash_request *req)
+<span class="lineNum">     229 </span>            : {
+<span class="lineNum">     230 </span>            :         kzfree(req);
+<span class="lineNum">     231 </span>            : }
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            : static inline struct ahash_request *ahash_request_cast(
+<span class="lineNum">     234 </span>            :         struct crypto_async_request *req)
+<span class="lineNum">     235 </span>            : {
+<span class="lineNum">     236 </span>            :         return container_of(req, struct ahash_request, base);
+<span class="lineNum">     237 </span>            : }
+<span class="lineNum">     238 </span>            : 
+<span class="lineNum">     239 </span>            : static inline void ahash_request_set_callback(struct ahash_request *req,
+<span class="lineNum">     240 </span>            :                                               u32 flags,
+<span class="lineNum">     241 </span>            :                                               crypto_completion_t compl,
+<span class="lineNum">     242 </span>            :                                               void *data)
+<span class="lineNum">     243 </span>            : {
+<span class="lineNum">     244 </span>            :         req-&gt;base.complete = compl;
+<span class="lineNum">     245 </span>            :         req-&gt;base.data = data;
+<span class="lineNum">     246 </span>            :         req-&gt;base.flags = flags;
+<span class="lineNum">     247 </span>            : }
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span>            : static inline void ahash_request_set_crypt(struct ahash_request *req,
+<span class="lineNum">     250 </span>            :                                            struct scatterlist *src, u8 *result,
+<span class="lineNum">     251 </span>            :                                            unsigned int nbytes)
+<span class="lineNum">     252 </span>            : {
+<span class="lineNum">     253 </span>            :         req-&gt;src = src;
+<span class="lineNum">     254 </span>            :         req-&gt;nbytes = nbytes;
+<span class="lineNum">     255 </span>            :         req-&gt;result = result;
+<span class="lineNum">     256 </span>            : }
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            : struct crypto_shash *crypto_alloc_shash(const char *alg_name, u32 type,
+<span class="lineNum">     259 </span>            :                                         u32 mask);
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            : static inline struct crypto_tfm *crypto_shash_tfm(struct crypto_shash *tfm)
+<span class="lineNum">     262 </span>            : {
+<span class="lineNum">     263 </span>            :         return &amp;tfm-&gt;base;
+<span class="lineNum">     264 </span>            : }
+<span class="lineNum">     265 </span>            : 
+<span class="lineNum">     266 </span>            : static inline void crypto_free_shash(struct crypto_shash *tfm)
+<span class="lineNum">     267 </span>            : {
+<span class="lineNum">     268 </span><span class="lineNoCov">          0 :         crypto_destroy_tfm(tfm, crypto_shash_tfm(tfm));</span>
+<span class="lineNum">     269 </span>            : }
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span>            : static inline unsigned int crypto_shash_alignmask(
+<span class="lineNum">     272 </span>            :         struct crypto_shash *tfm)
+<span class="lineNum">     273 </span>            : {
+<span class="lineNum">     274 </span>            :         return crypto_tfm_alg_alignmask(crypto_shash_tfm(tfm));
+<span class="lineNum">     275 </span>            : }
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : static inline unsigned int crypto_shash_blocksize(struct crypto_shash *tfm)
+<span class="lineNum">     278 </span>            : {
+<span class="lineNum">     279 </span>            :         return crypto_tfm_alg_blocksize(crypto_shash_tfm(tfm));
+<span class="lineNum">     280 </span>            : }
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span>            : static inline struct shash_alg *__crypto_shash_alg(struct crypto_alg *alg)
+<span class="lineNum">     283 </span>            : {
+<span class="lineNum">     284 </span>            :         return container_of(alg, struct shash_alg, base);
+<span class="lineNum">     285 </span>            : }
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span>            : static inline struct shash_alg *crypto_shash_alg(struct crypto_shash *tfm)
+<span class="lineNum">     288 </span>            : {
+<span class="lineNum">     289 </span>            :         return __crypto_shash_alg(crypto_shash_tfm(tfm)-&gt;__crt_alg);
+<span class="lineNum">     290 </span>            : }
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span>            : static inline unsigned int crypto_shash_digestsize(struct crypto_shash *tfm)
+<span class="lineNum">     293 </span>            : {
+<span class="lineNum">     294 </span>            :         return crypto_shash_alg(tfm)-&gt;digestsize;
+<span class="lineNum">     295 </span>            : }
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span>            : static inline unsigned int crypto_shash_statesize(struct crypto_shash *tfm)
+<span class="lineNum">     298 </span>            : {
+<span class="lineNum">     299 </span>            :         return crypto_shash_alg(tfm)-&gt;statesize;
+<span class="lineNum">     300 </span>            : }
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            : static inline u32 crypto_shash_get_flags(struct crypto_shash *tfm)
+<span class="lineNum">     303 </span>            : {
+<span class="lineNum">     304 </span>            :         return crypto_tfm_get_flags(crypto_shash_tfm(tfm));
+<span class="lineNum">     305 </span>            : }
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span>            : static inline void crypto_shash_set_flags(struct crypto_shash *tfm, u32 flags)
+<span class="lineNum">     308 </span>            : {
+<span class="lineNum">     309 </span>            :         crypto_tfm_set_flags(crypto_shash_tfm(tfm), flags);
+<span class="lineNum">     310 </span>            : }
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span>            : static inline void crypto_shash_clear_flags(struct crypto_shash *tfm, u32 flags)
+<span class="lineNum">     313 </span>            : {
+<span class="lineNum">     314 </span>            :         crypto_tfm_clear_flags(crypto_shash_tfm(tfm), flags);
+<span class="lineNum">     315 </span>            : }
+<span class="lineNum">     316 </span>            : 
+<span class="lineNum">     317 </span>            : static inline unsigned int crypto_shash_descsize(struct crypto_shash *tfm)
+<span class="lineNum">     318 </span>            : {
+<span class="lineNum">     319 </span><span class="lineCov">    5966186 :         return tfm-&gt;descsize;</span>
+<span class="lineNum">     320 </span>            : }
+<span class="lineNum">     321 </span>            : 
+<span class="lineNum">     322 </span>            : static inline void *shash_desc_ctx(struct shash_desc *desc)
+<span class="lineNum">     323 </span>            : {
+<span class="lineNum">     324 </span>            :         return desc-&gt;__ctx;
+<span class="lineNum">     325 </span>            : }
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span>            : int crypto_shash_setkey(struct crypto_shash *tfm, const u8 *key,
+<span class="lineNum">     328 </span>            :                         unsigned int keylen);
+<span class="lineNum">     329 </span>            : int crypto_shash_digest(struct shash_desc *desc, const u8 *data,
+<span class="lineNum">     330 </span>            :                         unsigned int len, u8 *out);
+<span class="lineNum">     331 </span>            : 
+<span class="lineNum">     332 </span>            : static inline int crypto_shash_export(struct shash_desc *desc, void *out)
+<span class="lineNum">     333 </span>            : {
+<span class="lineNum">     334 </span>            :         return crypto_shash_alg(desc-&gt;tfm)-&gt;export(desc, out);
+<span class="lineNum">     335 </span>            : }
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            : static inline int crypto_shash_import(struct shash_desc *desc, const void *in)
+<span class="lineNum">     338 </span>            : {
+<span class="lineNum">     339 </span>            :         return crypto_shash_alg(desc-&gt;tfm)-&gt;import(desc, in);
+<span class="lineNum">     340 </span>            : }
+<span class="lineNum">     341 </span>            : 
+<span class="lineNum">     342 </span>            : static inline int crypto_shash_init(struct shash_desc *desc)
+<span class="lineNum">     343 </span>            : {
+<span class="lineNum">     344 </span>            :         return crypto_shash_alg(desc-&gt;tfm)-&gt;init(desc);
+<span class="lineNum">     345 </span>            : }
+<span class="lineNum">     346 </span>            : 
+<span class="lineNum">     347 </span>            : int crypto_shash_update(struct shash_desc *desc, const u8 *data,
+<span class="lineNum">     348 </span>            :                         unsigned int len);
+<span class="lineNum">     349 </span>            : int crypto_shash_final(struct shash_desc *desc, u8 *out);
+<span class="lineNum">     350 </span>            : int crypto_shash_finup(struct shash_desc *desc, const u8 *data,
+<span class="lineNum">     351 </span>            :                        unsigned int len, u8 *out);
+<span class="lineNum">     352 </span>            : 
+<span class="lineNum">     353 </span>            : #endif  /* _CRYPTO_HASH_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

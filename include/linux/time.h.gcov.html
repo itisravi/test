@@ -1,0 +1,291 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/time.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - time.h<span style="font-size: 80%;"> (source / <a href="time.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_TIME_H</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_TIME_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : # include &lt;linux/cache.h&gt;
+<span class="lineNum">       5 </span>            : # include &lt;linux/seqlock.h&gt;
+<span class="lineNum">       6 </span>            : # include &lt;linux/math64.h&gt;
+<span class="lineNum">       7 </span>            : # include &lt;linux/time64.h&gt;
+<span class="lineNum">       8 </span>            : 
+<span class="lineNum">       9 </span>            : extern struct timezone sys_tz;
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #define TIME_T_MAX      (time_t)((1UL &lt;&lt; ((sizeof(time_t) &lt;&lt; 3) - 1)) - 1)
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : static inline int timespec_equal(const struct timespec *a,
+<span class="lineNum">      14 </span>            :                                  const struct timespec *b)
+<span class="lineNum">      15 </span>            : {
+<span class="lineNum">      16 </span><span class="lineCov">     278710 :         return (a-&gt;tv_sec == b-&gt;tv_sec) &amp;&amp; (a-&gt;tv_nsec == b-&gt;tv_nsec);</span>
+<span class="lineNum">      17 </span>            : }
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : /*
+<span class="lineNum">      20 </span>            :  * lhs &lt; rhs:  return &lt;0
+<span class="lineNum">      21 </span>            :  * lhs == rhs: return 0
+<span class="lineNum">      22 </span>            :  * lhs &gt; rhs:  return &gt;0
+<span class="lineNum">      23 </span>            :  */
+<span class="lineNum">      24 </span>            : static inline int timespec_compare(const struct timespec *lhs, const struct timespec *rhs)
+<span class="lineNum">      25 </span>            : {
+<span class="lineNum">      26 </span>            :         if (lhs-&gt;tv_sec &lt; rhs-&gt;tv_sec)
+<span class="lineNum">      27 </span>            :                 return -1;
+<span class="lineNum">      28 </span>            :         if (lhs-&gt;tv_sec &gt; rhs-&gt;tv_sec)
+<span class="lineNum">      29 </span>            :                 return 1;
+<span class="lineNum">      30 </span>            :         return lhs-&gt;tv_nsec - rhs-&gt;tv_nsec;
+<span class="lineNum">      31 </span>            : }
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            : static inline int timeval_compare(const struct timeval *lhs, const struct timeval *rhs)
+<span class="lineNum">      34 </span>            : {
+<span class="lineNum">      35 </span>            :         if (lhs-&gt;tv_sec &lt; rhs-&gt;tv_sec)
+<span class="lineNum">      36 </span>            :                 return -1;
+<span class="lineNum">      37 </span>            :         if (lhs-&gt;tv_sec &gt; rhs-&gt;tv_sec)
+<span class="lineNum">      38 </span>            :                 return 1;
+<span class="lineNum">      39 </span>            :         return lhs-&gt;tv_usec - rhs-&gt;tv_usec;
+<span class="lineNum">      40 </span>            : }
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : extern unsigned long mktime(const unsigned int year, const unsigned int mon,
+<span class="lineNum">      43 </span>            :                             const unsigned int day, const unsigned int hour,
+<span class="lineNum">      44 </span>            :                             const unsigned int min, const unsigned int sec);
+<span class="lineNum">      45 </span>            : 
+<span class="lineNum">      46 </span>            : extern void set_normalized_timespec(struct timespec *ts, time_t sec, s64 nsec);
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : /*
+<span class="lineNum">      49 </span>            :  * timespec_add_safe assumes both values are positive and checks
+<span class="lineNum">      50 </span>            :  * for overflow. It will return TIME_T_MAX if the reutrn would be
+<span class="lineNum">      51 </span>            :  * smaller then either of the arguments.
+<span class="lineNum">      52 </span>            :  */
+<span class="lineNum">      53 </span>            : extern struct timespec timespec_add_safe(const struct timespec lhs,
+<span class="lineNum">      54 </span>            :                                          const struct timespec rhs);
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : static inline struct timespec timespec_add(struct timespec lhs,
+<span class="lineNum">      58 </span>            :                                                 struct timespec rhs)
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span>            :         struct timespec ts_delta;
+<span class="lineNum">      61 </span>            :         set_normalized_timespec(&amp;ts_delta, lhs.tv_sec + rhs.tv_sec,
+<span class="lineNum">      62 </span>            :                                 lhs.tv_nsec + rhs.tv_nsec);
+<span class="lineNum">      63 </span>            :         return ts_delta;
+<span class="lineNum">      64 </span>            : }
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : /*
+<span class="lineNum">      67 </span>            :  * sub = lhs - rhs, in normalized form
+<span class="lineNum">      68 </span>            :  */
+<span class="lineNum">      69 </span>            : static inline struct timespec timespec_sub(struct timespec lhs,
+<span class="lineNum">      70 </span>            :                                                 struct timespec rhs)
+<span class="lineNum">      71 </span>            : {
+<span class="lineNum">      72 </span>            :         struct timespec ts_delta;
+<span class="lineNum">      73 </span>            :         set_normalized_timespec(&amp;ts_delta, lhs.tv_sec - rhs.tv_sec,
+<span class="lineNum">      74 </span>            :                                 lhs.tv_nsec - rhs.tv_nsec);
+<span class="lineNum">      75 </span>            :         return ts_delta;
+<span class="lineNum">      76 </span>            : }
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : /*
+<span class="lineNum">      79 </span>            :  * Returns true if the timespec is norm, false if denorm:
+<span class="lineNum">      80 </span>            :  */
+<span class="lineNum">      81 </span>            : static inline bool timespec_valid(const struct timespec *ts)
+<span class="lineNum">      82 </span>            : {
+<span class="lineNum">      83 </span>            :         /* Dates before 1970 are bogus */
+<span class="lineNum">      84 </span>            :         if (ts-&gt;tv_sec &lt; 0)
+<span class="lineNum">      85 </span>            :                 return false;
+<span class="lineNum">      86 </span>            :         /* Can't have more nanoseconds then a second */
+<span class="lineNum">      87 </span>            :         if ((unsigned long)ts-&gt;tv_nsec &gt;= NSEC_PER_SEC)
+<span class="lineNum">      88 </span>            :                 return false;
+<span class="lineNum">      89 </span>            :         return true;
+<span class="lineNum">      90 </span>            : }
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            : static inline bool timespec_valid_strict(const struct timespec *ts)
+<span class="lineNum">      93 </span>            : {
+<span class="lineNum">      94 </span>            :         if (!timespec_valid(ts))
+<span class="lineNum">      95 </span>            :                 return false;
+<span class="lineNum">      96 </span>            :         /* Disallow values that could overflow ktime_t */
+<span class="lineNum">      97 </span>            :         if ((unsigned long long)ts-&gt;tv_sec &gt;= KTIME_SEC_MAX)
+<span class="lineNum">      98 </span>            :                 return false;
+<span class="lineNum">      99 </span>            :         return true;
+<span class="lineNum">     100 </span>            : }
+<span class="lineNum">     101 </span>            : 
+<span class="lineNum">     102 </span>            : extern struct timespec timespec_trunc(struct timespec t, unsigned gran);
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : #define CURRENT_TIME            (current_kernel_time())
+<span class="lineNum">     105 </span>            : #define CURRENT_TIME_SEC        ((struct timespec) { get_seconds(), 0 })
+<span class="lineNum">     106 </span>            : 
+<span class="lineNum">     107 </span>            : /* Some architectures do not supply their own clocksource.
+<span class="lineNum">     108 </span>            :  * This is mainly the case in architectures that get their
+<span class="lineNum">     109 </span>            :  * inter-tick times by reading the counter on their interval
+<span class="lineNum">     110 </span>            :  * timer. Since these timers wrap every tick, they're not really
+<span class="lineNum">     111 </span>            :  * useful as clocksources. Wrapping them to act like one is possible
+<span class="lineNum">     112 </span>            :  * but not very efficient. So we provide a callout these arches
+<span class="lineNum">     113 </span>            :  * can implement for use with the jiffies clocksource to provide
+<span class="lineNum">     114 </span>            :  * finer then tick granular time.
+<span class="lineNum">     115 </span>            :  */
+<span class="lineNum">     116 </span>            : #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+<span class="lineNum">     117 </span>            : extern u32 (*arch_gettimeoffset)(void);
+<span class="lineNum">     118 </span>            : #endif
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : struct itimerval;
+<span class="lineNum">     121 </span>            : extern int do_setitimer(int which, struct itimerval *value,
+<span class="lineNum">     122 </span>            :                         struct itimerval *ovalue);
+<span class="lineNum">     123 </span>            : extern int do_getitimer(int which, struct itimerval *value);
+<span class="lineNum">     124 </span>            : 
+<span class="lineNum">     125 </span>            : extern unsigned int alarm_setitimer(unsigned int seconds);
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            : extern long do_utimes(int dfd, const char __user *filename, struct timespec *times, int flags);
+<span class="lineNum">     128 </span>            : 
+<span class="lineNum">     129 </span>            : struct tms;
+<span class="lineNum">     130 </span>            : extern void do_sys_times(struct tms *);
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span>            : /*
+<span class="lineNum">     133 </span>            :  * Similar to the struct tm in userspace &lt;time.h&gt;, but it needs to be here so
+<span class="lineNum">     134 </span>            :  * that the kernel source is self contained.
+<span class="lineNum">     135 </span>            :  */
+<span class="lineNum">     136 </span>            : struct tm {
+<span class="lineNum">     137 </span>            :         /*
+<span class="lineNum">     138 </span>            :          * the number of seconds after the minute, normally in the range
+<span class="lineNum">     139 </span>            :          * 0 to 59, but can be up to 60 to allow for leap seconds
+<span class="lineNum">     140 </span>            :          */
+<span class="lineNum">     141 </span>            :         int tm_sec;
+<span class="lineNum">     142 </span>            :         /* the number of minutes after the hour, in the range 0 to 59*/
+<span class="lineNum">     143 </span>            :         int tm_min;
+<span class="lineNum">     144 </span>            :         /* the number of hours past midnight, in the range 0 to 23 */
+<span class="lineNum">     145 </span>            :         int tm_hour;
+<span class="lineNum">     146 </span>            :         /* the day of the month, in the range 1 to 31 */
+<span class="lineNum">     147 </span>            :         int tm_mday;
+<span class="lineNum">     148 </span>            :         /* the number of months since January, in the range 0 to 11 */
+<span class="lineNum">     149 </span>            :         int tm_mon;
+<span class="lineNum">     150 </span>            :         /* the number of years since 1900 */
+<span class="lineNum">     151 </span>            :         long tm_year;
+<span class="lineNum">     152 </span>            :         /* the number of days since Sunday, in the range 0 to 6 */
+<span class="lineNum">     153 </span>            :         int tm_wday;
+<span class="lineNum">     154 </span>            :         /* the number of days since January 1, in the range 0 to 365 */
+<span class="lineNum">     155 </span>            :         int tm_yday;
+<span class="lineNum">     156 </span>            : };
+<span class="lineNum">     157 </span>            : 
+<span class="lineNum">     158 </span>            : void time_to_tm(time_t totalsecs, int offset, struct tm *result);
+<span class="lineNum">     159 </span>            : 
+<span class="lineNum">     160 </span>            : /**
+<span class="lineNum">     161 </span>            :  * timespec_to_ns - Convert timespec to nanoseconds
+<span class="lineNum">     162 </span>            :  * @ts:         pointer to the timespec variable to be converted
+<span class="lineNum">     163 </span>            :  *
+<span class="lineNum">     164 </span>            :  * Returns the scalar nanosecond representation of the timespec
+<span class="lineNum">     165 </span>            :  * parameter.
+<span class="lineNum">     166 </span>            :  */
+<span class="lineNum">     167 </span>            : static inline s64 timespec_to_ns(const struct timespec *ts)
+<span class="lineNum">     168 </span>            : {
+<span class="lineNum">     169 </span>            :         return ((s64) ts-&gt;tv_sec * NSEC_PER_SEC) + ts-&gt;tv_nsec;
+<span class="lineNum">     170 </span>            : }
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            : /**
+<span class="lineNum">     173 </span>            :  * timeval_to_ns - Convert timeval to nanoseconds
+<span class="lineNum">     174 </span>            :  * @ts:         pointer to the timeval variable to be converted
+<span class="lineNum">     175 </span>            :  *
+<span class="lineNum">     176 </span>            :  * Returns the scalar nanosecond representation of the timeval
+<span class="lineNum">     177 </span>            :  * parameter.
+<span class="lineNum">     178 </span>            :  */
+<span class="lineNum">     179 </span>            : static inline s64 timeval_to_ns(const struct timeval *tv)
+<span class="lineNum">     180 </span>            : {
+<span class="lineNum">     181 </span>            :         return ((s64) tv-&gt;tv_sec * NSEC_PER_SEC) +
+<span class="lineNum">     182 </span>            :                 tv-&gt;tv_usec * NSEC_PER_USEC;
+<span class="lineNum">     183 </span>            : }
+<span class="lineNum">     184 </span>            : 
+<span class="lineNum">     185 </span>            : /**
+<span class="lineNum">     186 </span>            :  * ns_to_timespec - Convert nanoseconds to timespec
+<span class="lineNum">     187 </span>            :  * @nsec:       the nanoseconds value to be converted
+<span class="lineNum">     188 </span>            :  *
+<span class="lineNum">     189 </span>            :  * Returns the timespec representation of the nsec parameter.
+<span class="lineNum">     190 </span>            :  */
+<span class="lineNum">     191 </span>            : extern struct timespec ns_to_timespec(const s64 nsec);
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : /**
+<span class="lineNum">     194 </span>            :  * ns_to_timeval - Convert nanoseconds to timeval
+<span class="lineNum">     195 </span>            :  * @nsec:       the nanoseconds value to be converted
+<span class="lineNum">     196 </span>            :  *
+<span class="lineNum">     197 </span>            :  * Returns the timeval representation of the nsec parameter.
+<span class="lineNum">     198 </span>            :  */
+<span class="lineNum">     199 </span>            : extern struct timeval ns_to_timeval(const s64 nsec);
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            : /**
+<span class="lineNum">     202 </span>            :  * timespec_add_ns - Adds nanoseconds to a timespec
+<span class="lineNum">     203 </span>            :  * @a:          pointer to timespec to be incremented
+<span class="lineNum">     204 </span>            :  * @ns:         unsigned nanoseconds value to be added
+<span class="lineNum">     205 </span>            :  *
+<span class="lineNum">     206 </span>            :  * This must always be inlined because its used from the x86-64 vdso,
+<span class="lineNum">     207 </span>            :  * which cannot call other kernel functions.
+<span class="lineNum">     208 </span>            :  */
+<span class="lineNum">     209 </span>            : static __always_inline void timespec_add_ns(struct timespec *a, u64 ns)
+<span class="lineNum">     210 </span>            : {
+<span class="lineNum">     211 </span>            :         a-&gt;tv_sec += __iter_div_u64_rem(a-&gt;tv_nsec + ns, NSEC_PER_SEC, &amp;ns);
+<span class="lineNum">     212 </span>            :         a-&gt;tv_nsec = ns;
+<span class="lineNum">     213 </span>            : }
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

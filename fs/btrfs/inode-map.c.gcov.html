@@ -1,0 +1,642 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/inode-map.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - inode-map.c<span style="font-size: 80%;"> (source / <a href="inode-map.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">59</td>
+            <td class="headerCovTableEntry">222</td>
+            <td class="headerCovTableEntryLo">26.6 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">13</td>
+            <td class="headerCovTableEntryLo">53.8 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2007 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;linux/delay.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/kthread.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/pagemap.h&gt;
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;disk-io.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;free-space-cache.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;inode-map.h&quot;
+<a name="27"><span class="lineNum">      27 </span>            : #include &quot;transaction.h&quot;</a>
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span><span class="lineNoCov">          0 : static int caching_kthread(void *data)</span>
+<span class="lineNum">      30 </span>            : {
+<span class="lineNum">      31 </span>            :         struct btrfs_root *root = data;
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 :         struct btrfs_fs_info *fs_info = root-&gt;fs_info;</span>
+<span class="lineNum">      33 </span><span class="lineNoCov">          0 :         struct btrfs_free_space_ctl *ctl = root-&gt;free_ino_ctl;</span>
+<span class="lineNum">      34 </span>            :         struct btrfs_key key;
+<span class="lineNum">      35 </span>            :         struct btrfs_path *path;
+<span class="lineNum">      36 </span><span class="lineNoCov">          0 :         struct extent_buffer *leaf;</span>
+<span class="lineNum">      37 </span>            :         u64 last = (u64)-1;
+<span class="lineNum">      38 </span>            :         int slot;
+<span class="lineNum">      39 </span>            :         int ret;
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span><span class="lineNoCov">          0 :         if (!btrfs_test_opt(root, INODE_MAP_CACHE))</span>
+<span class="lineNum">      42 </span>            :                 return 0;
+<span class="lineNum">      43 </span>            : 
+<span class="lineNum">      44 </span><span class="lineNoCov">          0 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">      45 </span><span class="lineNoCov">          0 :         if (!path)</span>
+<span class="lineNum">      46 </span>            :                 return -ENOMEM;
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            :         /* Since the commit root is read-only, we can safely skip locking. */
+<span class="lineNum">      49 </span><span class="lineNoCov">          0 :         path-&gt;skip_locking = 1;</span>
+<span class="lineNum">      50 </span><span class="lineNoCov">          0 :         path-&gt;search_commit_root = 1;</span>
+<span class="lineNum">      51 </span><span class="lineNoCov">          0 :         path-&gt;reada = 2;</span>
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span><span class="lineNoCov">          0 :         key.objectid = BTRFS_FIRST_FREE_OBJECTID;</span>
+<span class="lineNum">      54 </span><span class="lineNoCov">          0 :         key.offset = 0;</span>
+<span class="lineNum">      55 </span><span class="lineNoCov">          0 :         key.type = BTRFS_INODE_ITEM_KEY;</span>
+<span class="lineNum">      56 </span>            : again:
+<span class="lineNum">      57 </span>            :         /* need to make sure the commit_root doesn't disappear */
+<span class="lineNum">      58 </span><span class="lineNoCov">          0 :         down_read(&amp;fs_info-&gt;commit_root_sem);</span>
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span><span class="lineNoCov">          0 :         ret = btrfs_search_slot(NULL, root, &amp;key, path, 0, 0);</span>
+<span class="lineNum">      61 </span><span class="lineNoCov">          0 :         if (ret &lt; 0)</span>
+<span class="lineNum">      62 </span>            :                 goto out;
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            :         while (1) {
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 :                 if (btrfs_fs_closing(fs_info))</span>
+<span class="lineNum">      66 </span>            :                         goto out;
+<span class="lineNum">      67 </span>            : 
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :                 leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :                 slot = path-&gt;slots[0];</span>
+<span class="lineNum">      70 </span><span class="lineNoCov">          0 :                 if (slot &gt;= btrfs_header_nritems(leaf)) {</span>
+<span class="lineNum">      71 </span><span class="lineNoCov">          0 :                         ret = btrfs_next_leaf(root, path);</span>
+<span class="lineNum">      72 </span><span class="lineNoCov">          0 :                         if (ret &lt; 0)</span>
+<span class="lineNum">      73 </span>            :                                 goto out;
+<span class="lineNum">      74 </span><span class="lineNoCov">          0 :                         else if (ret &gt; 0)</span>
+<span class="lineNum">      75 </span>            :                                 break;
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span><span class="lineNoCov">          0 :                         if (need_resched() ||</span>
+<span class="lineNum">      78 </span><span class="lineNoCov">          0 :                             btrfs_transaction_in_commit(fs_info)) {</span>
+<span class="lineNum">      79 </span><span class="lineNoCov">          0 :                                 leaf = path-&gt;nodes[0];</span>
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span><span class="lineNoCov">          0 :                                 if (WARN_ON(btrfs_header_nritems(leaf) == 0))</span>
+<span class="lineNum">      82 </span>            :                                         break;
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            :                                 /*
+<span class="lineNum">      85 </span>            :                                  * Save the key so we can advances forward
+<span class="lineNum">      86 </span>            :                                  * in the next search.
+<span class="lineNum">      87 </span>            :                                  */
+<span class="lineNum">      88 </span><span class="lineNoCov">          0 :                                 btrfs_item_key_to_cpu(leaf, &amp;key, 0);</span>
+<span class="lineNum">      89 </span><span class="lineNoCov">          0 :                                 btrfs_release_path(path);</span>
+<span class="lineNum">      90 </span><span class="lineNoCov">          0 :                                 root-&gt;cache_progress = last;</span>
+<span class="lineNum">      91 </span><span class="lineNoCov">          0 :                                 up_read(&amp;fs_info-&gt;commit_root_sem);</span>
+<span class="lineNum">      92 </span><span class="lineNoCov">          0 :                                 schedule_timeout(1);</span>
+<span class="lineNum">      93 </span><span class="lineNoCov">          0 :                                 goto again;</span>
+<span class="lineNum">      94 </span>            :                         } else
+<span class="lineNum">      95 </span><span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">      96 </span>            :                 }
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span><span class="lineNoCov">          0 :                 btrfs_item_key_to_cpu(leaf, &amp;key, slot);</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineNoCov">          0 :                 if (key.type != BTRFS_INODE_ITEM_KEY)</span>
+<span class="lineNum">     101 </span>            :                         goto next;
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span><span class="lineNoCov">          0 :                 if (key.objectid &gt;= root-&gt;highest_objectid)</span>
+<span class="lineNum">     104 </span>            :                         break;
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span><span class="lineNoCov">          0 :                 if (last != (u64)-1 &amp;&amp; last + 1 != key.objectid) {</span>
+<span class="lineNum">     107 </span><span class="lineNoCov">          0 :                         __btrfs_add_free_space(ctl, last + 1,</span>
+<span class="lineNum">     108 </span><span class="lineNoCov">          0 :                                                key.objectid - last - 1);</span>
+<span class="lineNum">     109 </span><span class="lineNoCov">          0 :                         wake_up(&amp;root-&gt;cache_wait);</span>
+<span class="lineNum">     110 </span>            :                 }
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span><span class="lineNoCov">          0 :                 last = key.objectid;</span>
+<span class="lineNum">     113 </span>            : next:
+<span class="lineNum">     114 </span><span class="lineNoCov">          0 :                 path-&gt;slots[0]++;</span>
+<span class="lineNum">     115 </span>            :         }
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span><span class="lineNoCov">          0 :         if (last &lt; root-&gt;highest_objectid - 1) {</span>
+<span class="lineNum">     118 </span><span class="lineNoCov">          0 :                 __btrfs_add_free_space(ctl, last + 1,</span>
+<span class="lineNum">     119 </span><span class="lineNoCov">          0 :                                        root-&gt;highest_objectid - last - 1);</span>
+<span class="lineNum">     120 </span>            :         }
+<span class="lineNum">     121 </span>            : 
+<span class="lineNum">     122 </span>            :         spin_lock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     123 </span><span class="lineNoCov">          0 :         root-&gt;cached = BTRFS_CACHE_FINISHED;</span>
+<span class="lineNum">     124 </span>            :         spin_unlock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span><span class="lineNoCov">          0 :         root-&gt;cache_progress = (u64)-1;</span>
+<span class="lineNum">     127 </span><span class="lineNoCov">          0 :         btrfs_unpin_free_ino(root);</span>
+<span class="lineNum">     128 </span>            : out:
+<span class="lineNum">     129 </span><span class="lineNoCov">          0 :         wake_up(&amp;root-&gt;cache_wait);</span>
+<span class="lineNum">     130 </span><span class="lineNoCov">          0 :         up_read(&amp;fs_info-&gt;commit_root_sem);</span>
+<span class="lineNum">     131 </span>            : 
+<span class="lineNum">     132 </span><span class="lineNoCov">          0 :         btrfs_free_path(path);</span>
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span><span class="lineNoCov">          0 :         return ret;</span>
+<a name="135"><span class="lineNum">     135 </span>            : }</a>
+<span class="lineNum">     136 </span>            : 
+<span class="lineNum">     137 </span><span class="lineNoCov">          0 : static void start_caching(struct btrfs_root *root)</span>
+<span class="lineNum">     138 </span>            : {
+<span class="lineNum">     139 </span><span class="lineNoCov">          0 :         struct btrfs_free_space_ctl *ctl = root-&gt;free_ino_ctl;</span>
+<span class="lineNum">     140 </span>            :         struct task_struct *tsk;
+<span class="lineNum">     141 </span>            :         int ret;
+<span class="lineNum">     142 </span>            :         u64 objectid;
+<span class="lineNum">     143 </span>            : 
+<span class="lineNum">     144 </span><span class="lineNoCov">          0 :         if (!btrfs_test_opt(root, INODE_MAP_CACHE))</span>
+<span class="lineNum">     145 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            :         spin_lock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     148 </span><span class="lineNoCov">          0 :         if (root-&gt;cached != BTRFS_CACHE_NO) {</span>
+<span class="lineNum">     149 </span>            :                 spin_unlock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     150 </span>            :                 return;
+<span class="lineNum">     151 </span>            :         }
+<span class="lineNum">     152 </span>            : 
+<span class="lineNum">     153 </span><span class="lineNoCov">          0 :         root-&gt;cached = BTRFS_CACHE_STARTED;</span>
+<span class="lineNum">     154 </span>            :         spin_unlock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     155 </span>            : 
+<span class="lineNum">     156 </span><span class="lineNoCov">          0 :         ret = load_free_ino_cache(root-&gt;fs_info, root);</span>
+<span class="lineNum">     157 </span><span class="lineNoCov">          0 :         if (ret == 1) {</span>
+<span class="lineNum">     158 </span>            :                 spin_lock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     159 </span><span class="lineNoCov">          0 :                 root-&gt;cached = BTRFS_CACHE_FINISHED;</span>
+<span class="lineNum">     160 </span>            :                 spin_unlock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     161 </span>            :                 return;
+<span class="lineNum">     162 </span>            :         }
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span>            :         /*
+<span class="lineNum">     165 </span>            :          * It can be quite time-consuming to fill the cache by searching
+<span class="lineNum">     166 </span>            :          * through the extent tree, and this can keep ino allocation path
+<span class="lineNum">     167 </span>            :          * waiting. Therefore at start we quickly find out the highest
+<span class="lineNum">     168 </span>            :          * inode number and we know we can use inode numbers which fall in
+<span class="lineNum">     169 </span>            :          * [highest_ino + 1, BTRFS_LAST_FREE_OBJECTID].
+<span class="lineNum">     170 </span>            :          */
+<span class="lineNum">     171 </span><span class="lineNoCov">          0 :         ret = btrfs_find_free_objectid(root, &amp;objectid);</span>
+<span class="lineNum">     172 </span><span class="lineNoCov">          0 :         if (!ret &amp;&amp; objectid &lt;= BTRFS_LAST_FREE_OBJECTID) {</span>
+<span class="lineNum">     173 </span><span class="lineNoCov">          0 :                 __btrfs_add_free_space(ctl, objectid,</span>
+<span class="lineNum">     174 </span>            :                                        BTRFS_LAST_FREE_OBJECTID - objectid + 1);
+<span class="lineNum">     175 </span>            :         }
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span><span class="lineNoCov">          0 :         tsk = kthread_run(caching_kthread, root, &quot;btrfs-ino-cache-%llu&quot;,</span>
+<span class="lineNum">     178 </span>            :                           root-&gt;root_key.objectid);
+<span class="lineNum">     179 </span><span class="lineNoCov">          0 :         if (IS_ERR(tsk)) {</span>
+<span class="lineNum">     180 </span><span class="lineNoCov">          0 :                 btrfs_warn(root-&gt;fs_info, &quot;failed to start inode caching task&quot;);</span>
+<span class="lineNum">     181 </span><span class="lineNoCov">          0 :                 btrfs_clear_and_info(root, CHANGE_INODE_CACHE,</span>
+<span class="lineNum">     182 </span>            :                                 &quot;disabling inode map caching&quot;);
+<span class="lineNum">     183 </span>            :         }
+<a name="184"><span class="lineNum">     184 </span>            : }</a>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span><span class="lineCov">      20423 : int btrfs_find_free_ino(struct btrfs_root *root, u64 *objectid)</span>
+<span class="lineNum">     187 </span>            : {
+<span class="lineNum">     188 </span><span class="lineCov">      20423 :         if (!btrfs_test_opt(root, INODE_MAP_CACHE))</span>
+<span class="lineNum">     189 </span><span class="lineCov">      20423 :                 return btrfs_find_free_objectid(root, objectid);</span>
+<span class="lineNum">     190 </span>            : 
+<span class="lineNum">     191 </span>            : again:
+<span class="lineNum">     192 </span><span class="lineNoCov">          0 :         *objectid = btrfs_find_ino_for_alloc(root);</span>
+<span class="lineNum">     193 </span>            : 
+<span class="lineNum">     194 </span><span class="lineNoCov">          0 :         if (*objectid != 0)</span>
+<span class="lineNum">     195 </span>            :                 return 0;
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineNoCov">          0 :         start_caching(root);</span>
+<span class="lineNum">     198 </span>            : 
+<span class="lineNum">     199 </span><span class="lineNoCov">          0 :         wait_event(root-&gt;cache_wait,</span>
+<span class="lineNum">     200 </span>            :                    root-&gt;cached == BTRFS_CACHE_FINISHED ||
+<span class="lineNum">     201 </span>            :                    root-&gt;free_ino_ctl-&gt;free_space &gt; 0);
+<span class="lineNum">     202 </span>            : 
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         if (root-&gt;cached == BTRFS_CACHE_FINISHED &amp;&amp;</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :             root-&gt;free_ino_ctl-&gt;free_space == 0)</span>
+<span class="lineNum">     205 </span>            :                 return -ENOSPC;
+<span class="lineNum">     206 </span>            :         else
+<span class="lineNum">     207 </span>            :                 goto again;
+<a name="208"><span class="lineNum">     208 </span>            : }</a>
+<span class="lineNum">     209 </span>            : 
+<span class="lineNum">     210 </span><span class="lineCov">       6866 : void btrfs_return_ino(struct btrfs_root *root, u64 objectid)</span>
+<span class="lineNum">     211 </span>            : {
+<span class="lineNum">     212 </span><span class="lineCov">       6866 :         struct btrfs_free_space_ctl *pinned = root-&gt;free_ino_pinned;</span>
+<span class="lineNum">     213 </span>            : 
+<span class="lineNum">     214 </span><span class="lineCov">       6866 :         if (!btrfs_test_opt(root, INODE_MAP_CACHE))</span>
+<span class="lineNum">     215 </span><span class="lineCov">       6866 :                 return;</span>
+<span class="lineNum">     216 </span>            : again:
+<span class="lineNum">     217 </span><span class="lineNoCov">          0 :         if (root-&gt;cached == BTRFS_CACHE_FINISHED) {</span>
+<span class="lineNum">     218 </span><span class="lineNoCov">          0 :                 __btrfs_add_free_space(pinned, objectid, 1);</span>
+<span class="lineNum">     219 </span>            :         } else {
+<span class="lineNum">     220 </span><span class="lineNoCov">          0 :                 down_write(&amp;root-&gt;fs_info-&gt;commit_root_sem);</span>
+<span class="lineNum">     221 </span>            :                 spin_lock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     222 </span><span class="lineNoCov">          0 :                 if (root-&gt;cached == BTRFS_CACHE_FINISHED) {</span>
+<span class="lineNum">     223 </span>            :                         spin_unlock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :                         up_write(&amp;root-&gt;fs_info-&gt;commit_root_sem);</span>
+<span class="lineNum">     225 </span><span class="lineNoCov">          0 :                         goto again;</span>
+<span class="lineNum">     226 </span>            :                 }
+<span class="lineNum">     227 </span>            :                 spin_unlock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     228 </span>            : 
+<span class="lineNum">     229 </span><span class="lineNoCov">          0 :                 start_caching(root);</span>
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span><span class="lineNoCov">          0 :                 __btrfs_add_free_space(pinned, objectid, 1);</span>
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span><span class="lineNoCov">          0 :                 up_write(&amp;root-&gt;fs_info-&gt;commit_root_sem);</span>
+<span class="lineNum">     234 </span>            :         }
+<span class="lineNum">     235 </span>            : }
+<span class="lineNum">     236 </span>            : 
+<span class="lineNum">     237 </span>            : /*
+<span class="lineNum">     238 </span>            :  * When a transaction is committed, we'll move those inode numbers which
+<span class="lineNum">     239 </span>            :  * are smaller than root-&gt;cache_progress from pinned tree to free_ino tree,
+<span class="lineNum">     240 </span>            :  * and others will just be dropped, because the commit root we were
+<span class="lineNum">     241 </span>            :  * searching has changed.
+<span class="lineNum">     242 </span>            :  *
+<a name="243"><span class="lineNum">     243 </span>            :  * Must be called with root-&gt;fs_info-&gt;commit_root_sem held</a>
+<span class="lineNum">     244 </span>            :  */
+<span class="lineNum">     245 </span><span class="lineCov">       1888 : void btrfs_unpin_free_ino(struct btrfs_root *root)</span>
+<span class="lineNum">     246 </span>            : {
+<span class="lineNum">     247 </span><span class="lineCov">       1888 :         struct btrfs_free_space_ctl *ctl = root-&gt;free_ino_ctl;</span>
+<span class="lineNum">     248 </span><span class="lineCov">       1888 :         struct rb_root *rbroot = &amp;root-&gt;free_ino_pinned-&gt;free_space_offset;</span>
+<span class="lineNum">     249 </span>            :         struct btrfs_free_space *info;
+<span class="lineNum">     250 </span>            :         struct rb_node *n;
+<span class="lineNum">     251 </span>            :         u64 count;
+<span class="lineNum">     252 </span>            : 
+<span class="lineNum">     253 </span><span class="lineCov">       1888 :         if (!btrfs_test_opt(root, INODE_MAP_CACHE))</span>
+<span class="lineNum">     254 </span><span class="lineCov">       1888 :                 return;</span>
+<span class="lineNum">     255 </span>            : 
+<span class="lineNum">     256 </span>            :         while (1) {
+<span class="lineNum">     257 </span><span class="lineNoCov">          0 :                 n = rb_first(rbroot);</span>
+<span class="lineNum">     258 </span><span class="lineNoCov">          0 :                 if (!n)</span>
+<span class="lineNum">     259 </span>            :                         break;
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :                 info = rb_entry(n, struct btrfs_free_space, offset_index);
+<span class="lineNum">     262 </span><span class="lineNoCov">          0 :                 BUG_ON(info-&gt;bitmap); /* Logic error */</span>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span><span class="lineNoCov">          0 :                 if (info-&gt;offset &gt; root-&gt;cache_progress)</span>
+<span class="lineNum">     265 </span>            :                         goto free;
+<span class="lineNum">     266 </span><span class="lineNoCov">          0 :                 else if (info-&gt;offset + info-&gt;bytes &gt; root-&gt;cache_progress)</span>
+<span class="lineNum">     267 </span><span class="lineNoCov">          0 :                         count = root-&gt;cache_progress - info-&gt;offset + 1;</span>
+<span class="lineNum">     268 </span>            :                 else
+<span class="lineNum">     269 </span>            :                         count = info-&gt;bytes;
+<span class="lineNum">     270 </span>            : 
+<span class="lineNum">     271 </span><span class="lineNoCov">          0 :                 __btrfs_add_free_space(ctl, info-&gt;offset, count);</span>
+<span class="lineNum">     272 </span>            : free:
+<span class="lineNum">     273 </span><span class="lineNoCov">          0 :                 rb_erase(&amp;info-&gt;offset_index, rbroot);</span>
+<span class="lineNum">     274 </span><span class="lineNoCov">          0 :                 kfree(info);</span>
+<span class="lineNum">     275 </span><span class="lineNoCov">          0 :         }</span>
+<span class="lineNum">     276 </span>            : }
+<span class="lineNum">     277 </span>            : 
+<span class="lineNum">     278 </span>            : #define INIT_THRESHOLD  (((1024 * 32) / 2) / sizeof(struct btrfs_free_space))
+<span class="lineNum">     279 </span>            : #define INODES_PER_BITMAP (PAGE_CACHE_SIZE * 8)
+<span class="lineNum">     280 </span>            : 
+<span class="lineNum">     281 </span>            : /*
+<span class="lineNum">     282 </span>            :  * The goal is to keep the memory used by the free_ino tree won't
+<a name="283"><span class="lineNum">     283 </span>            :  * exceed the memory if we use bitmaps only.</a>
+<span class="lineNum">     284 </span>            :  */
+<span class="lineNum">     285 </span><span class="lineNoCov">          0 : static void recalculate_thresholds(struct btrfs_free_space_ctl *ctl)</span>
+<span class="lineNum">     286 </span>            : {
+<span class="lineNum">     287 </span>            :         struct btrfs_free_space *info;
+<span class="lineNum">     288 </span>            :         struct rb_node *n;
+<span class="lineNum">     289 </span>            :         int max_ino;
+<span class="lineNum">     290 </span>            :         int max_bitmaps;
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span><span class="lineNoCov">          0 :         n = rb_last(&amp;ctl-&gt;free_space_offset);</span>
+<span class="lineNum">     293 </span><span class="lineNoCov">          0 :         if (!n) {</span>
+<span class="lineNum">     294 </span><span class="lineNoCov">          0 :                 ctl-&gt;extents_thresh = INIT_THRESHOLD;</span>
+<span class="lineNum">     295 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     296 </span>            :         }
+<span class="lineNum">     297 </span>            :         info = rb_entry(n, struct btrfs_free_space, offset_index);
+<span class="lineNum">     298 </span>            : 
+<span class="lineNum">     299 </span>            :         /*
+<span class="lineNum">     300 </span>            :          * Find the maximum inode number in the filesystem. Note we
+<span class="lineNum">     301 </span>            :          * ignore the fact that this can be a bitmap, because we are
+<span class="lineNum">     302 </span>            :          * not doing precise calculation.
+<span class="lineNum">     303 </span>            :          */
+<span class="lineNum">     304 </span><span class="lineNoCov">          0 :         max_ino = info-&gt;bytes - 1;</span>
+<span class="lineNum">     305 </span>            : 
+<span class="lineNum">     306 </span><span class="lineNoCov">          0 :         max_bitmaps = ALIGN(max_ino, INODES_PER_BITMAP) / INODES_PER_BITMAP;</span>
+<span class="lineNum">     307 </span><span class="lineNoCov">          0 :         if (max_bitmaps &lt;= ctl-&gt;total_bitmaps) {</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                 ctl-&gt;extents_thresh = 0;</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :                 return;</span>
+<span class="lineNum">     310 </span>            :         }
+<span class="lineNum">     311 </span>            : 
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :         ctl-&gt;extents_thresh = (max_bitmaps - ctl-&gt;total_bitmaps) *</span>
+<span class="lineNum">     313 </span><span class="lineNoCov">          0 :                                 PAGE_CACHE_SIZE / sizeof(*info);</span>
+<span class="lineNum">     314 </span>            : }
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span>            : /*
+<span class="lineNum">     317 </span>            :  * We don't fall back to bitmap, if we are below the extents threshold
+<a name="318"><span class="lineNum">     318 </span>            :  * or this chunk of inode numbers is a big one.</a>
+<span class="lineNum">     319 </span>            :  */
+<span class="lineNum">     320 </span><span class="lineNoCov">          0 : static bool use_bitmap(struct btrfs_free_space_ctl *ctl,</span>
+<span class="lineNum">     321 </span>            :                        struct btrfs_free_space *info)
+<span class="lineNum">     322 </span>            : {
+<span class="lineNum">     323 </span><span class="lineNoCov">          0 :         if (ctl-&gt;free_extents &lt; ctl-&gt;extents_thresh ||</span>
+<span class="lineNum">     324 </span><span class="lineNoCov">          0 :             info-&gt;bytes &gt; INODES_PER_BITMAP / 10)</span>
+<span class="lineNum">     325 </span>            :                 return false;
+<span class="lineNum">     326 </span>            : 
+<span class="lineNum">     327 </span><span class="lineNoCov">          0 :         return true;</span>
+<span class="lineNum">     328 </span>            : }
+<span class="lineNum">     329 </span>            : 
+<span class="lineNum">     330 </span>            : static struct btrfs_free_space_op free_ino_op = {
+<span class="lineNum">     331 </span>            :         .recalc_thresholds      = recalculate_thresholds,
+<span class="lineNum">     332 </span>            :         .use_bitmap             = use_bitmap,
+<a name="333"><span class="lineNum">     333 </span>            : };</a>
+<span class="lineNum">     334 </span>            : 
+<span class="lineNum">     335 </span><span class="lineNoCov">          0 : static void pinned_recalc_thresholds(struct btrfs_free_space_ctl *ctl)</span>
+<span class="lineNum">     336 </span>            : {
+<a name="337"><span class="lineNum">     337 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     338 </span>            : 
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 : static bool pinned_use_bitmap(struct btrfs_free_space_ctl *ctl,</span>
+<span class="lineNum">     340 </span>            :                               struct btrfs_free_space *info)
+<span class="lineNum">     341 </span>            : {
+<span class="lineNum">     342 </span>            :         /*
+<span class="lineNum">     343 </span>            :          * We always use extents for two reasons:
+<span class="lineNum">     344 </span>            :          *
+<span class="lineNum">     345 </span>            :          * - The pinned tree is only used during the process of caching
+<span class="lineNum">     346 </span>            :          *   work.
+<span class="lineNum">     347 </span>            :          * - Make code simpler. See btrfs_unpin_free_ino().
+<span class="lineNum">     348 </span>            :          */
+<span class="lineNum">     349 </span><span class="lineNoCov">          0 :         return false;</span>
+<span class="lineNum">     350 </span>            : }
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span>            : static struct btrfs_free_space_op pinned_free_ino_op = {
+<span class="lineNum">     353 </span>            :         .recalc_thresholds      = pinned_recalc_thresholds,
+<span class="lineNum">     354 </span>            :         .use_bitmap             = pinned_use_bitmap,
+<a name="355"><span class="lineNum">     355 </span>            : };</a>
+<span class="lineNum">     356 </span>            : 
+<span class="lineNum">     357 </span><span class="lineCov">        688 : void btrfs_init_free_ino_ctl(struct btrfs_root *root)</span>
+<span class="lineNum">     358 </span>            : {
+<span class="lineNum">     359 </span><span class="lineCov">        688 :         struct btrfs_free_space_ctl *ctl = root-&gt;free_ino_ctl;</span>
+<span class="lineNum">     360 </span><span class="lineCov">        688 :         struct btrfs_free_space_ctl *pinned = root-&gt;free_ino_pinned;</span>
+<span class="lineNum">     361 </span>            : 
+<span class="lineNum">     362 </span><span class="lineCov">        688 :         spin_lock_init(&amp;ctl-&gt;tree_lock);</span>
+<span class="lineNum">     363 </span><span class="lineCov">        688 :         ctl-&gt;unit = 1;</span>
+<span class="lineNum">     364 </span><span class="lineCov">        688 :         ctl-&gt;start = 0;</span>
+<span class="lineNum">     365 </span><span class="lineCov">        688 :         ctl-&gt;private = NULL;</span>
+<span class="lineNum">     366 </span><span class="lineCov">        688 :         ctl-&gt;op = &amp;free_ino_op;</span>
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            :         /*
+<span class="lineNum">     369 </span>            :          * Initially we allow to use 16K of ram to cache chunks of
+<span class="lineNum">     370 </span>            :          * inode numbers before we resort to bitmaps. This is somewhat
+<span class="lineNum">     371 </span>            :          * arbitrary, but it will be adjusted in runtime.
+<span class="lineNum">     372 </span>            :          */
+<span class="lineNum">     373 </span><span class="lineCov">        688 :         ctl-&gt;extents_thresh = INIT_THRESHOLD;</span>
+<span class="lineNum">     374 </span>            : 
+<span class="lineNum">     375 </span><span class="lineCov">        688 :         spin_lock_init(&amp;pinned-&gt;tree_lock);</span>
+<span class="lineNum">     376 </span><span class="lineCov">        688 :         pinned-&gt;unit = 1;</span>
+<span class="lineNum">     377 </span><span class="lineCov">        688 :         pinned-&gt;start = 0;</span>
+<span class="lineNum">     378 </span><span class="lineCov">        688 :         pinned-&gt;private = NULL;</span>
+<span class="lineNum">     379 </span><span class="lineCov">        688 :         pinned-&gt;extents_thresh = 0;</span>
+<span class="lineNum">     380 </span><span class="lineCov">        688 :         pinned-&gt;op = &amp;pinned_free_ino_op;</span>
+<a name="381"><span class="lineNum">     381 </span><span class="lineCov">        688 : }</span></a>
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineCov">       2548 : int btrfs_save_ino_cache(struct btrfs_root *root,</span>
+<span class="lineNum">     384 </span>            :                          struct btrfs_trans_handle *trans)
+<span class="lineNum">     385 </span>            : {
+<span class="lineNum">     386 </span><span class="lineCov">       2548 :         struct btrfs_free_space_ctl *ctl = root-&gt;free_ino_ctl;</span>
+<span class="lineNum">     387 </span>            :         struct btrfs_path *path;
+<span class="lineNum">     388 </span><span class="lineNoCov">          0 :         struct inode *inode;</span>
+<span class="lineNum">     389 </span>            :         struct btrfs_block_rsv *rsv;
+<span class="lineNum">     390 </span>            :         u64 num_bytes;
+<span class="lineNum">     391 </span><span class="lineCov">       2548 :         u64 alloc_hint = 0;</span>
+<span class="lineNum">     392 </span>            :         int ret;
+<span class="lineNum">     393 </span>            :         int prealloc;
+<span class="lineNum">     394 </span>            :         bool retry = false;
+<span class="lineNum">     395 </span>            : 
+<span class="lineNum">     396 </span>            :         /* only fs tree and subvol/snap needs ino cache */
+<span class="lineNum">     397 </span><span class="lineCov">       2548 :         if (root-&gt;root_key.objectid != BTRFS_FS_TREE_OBJECTID &amp;&amp;</span>
+<span class="lineNum">     398 </span>            :             (root-&gt;root_key.objectid &lt; BTRFS_FIRST_FREE_OBJECTID ||
+<span class="lineNum">     399 </span>            :              root-&gt;root_key.objectid &gt; BTRFS_LAST_FREE_OBJECTID))
+<span class="lineNum">     400 </span>            :                 return 0;
+<span class="lineNum">     401 </span>            : 
+<span class="lineNum">     402 </span>            :         /* Don't save inode cache if we are deleting this root */
+<span class="lineNum">     403 </span><span class="lineCov">       2424 :         if (btrfs_root_refs(&amp;root-&gt;root_item) == 0)</span>
+<span class="lineNum">     404 </span>            :                 return 0;
+<span class="lineNum">     405 </span>            : 
+<span class="lineNum">     406 </span><span class="lineCov">       1620 :         if (!btrfs_test_opt(root, INODE_MAP_CACHE))</span>
+<span class="lineNum">     407 </span>            :                 return 0;
+<span class="lineNum">     408 </span>            : 
+<span class="lineNum">     409 </span><span class="lineNoCov">          0 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">     410 </span><span class="lineNoCov">          0 :         if (!path)</span>
+<span class="lineNum">     411 </span>            :                 return -ENOMEM;
+<span class="lineNum">     412 </span>            : 
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :         rsv = trans-&gt;block_rsv;</span>
+<span class="lineNum">     414 </span><span class="lineNoCov">          0 :         trans-&gt;block_rsv = &amp;root-&gt;fs_info-&gt;trans_block_rsv;</span>
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineNoCov">          0 :         num_bytes = trans-&gt;bytes_reserved;</span>
+<span class="lineNum">     417 </span>            :         /*
+<span class="lineNum">     418 </span>            :          * 1 item for inode item insertion if need
+<span class="lineNum">     419 </span>            :          * 4 items for inode item update (in the worst case)
+<span class="lineNum">     420 </span>            :          * 1 items for slack space if we need do truncation
+<span class="lineNum">     421 </span>            :          * 1 item for free space object
+<span class="lineNum">     422 </span>            :          * 3 items for pre-allocation
+<span class="lineNum">     423 </span>            :          */
+<span class="lineNum">     424 </span><span class="lineNoCov">          0 :         trans-&gt;bytes_reserved = btrfs_calc_trans_metadata_size(root, 10);</span>
+<span class="lineNum">     425 </span><span class="lineNoCov">          0 :         ret = btrfs_block_rsv_add(root, trans-&gt;block_rsv,</span>
+<span class="lineNum">     426 </span>            :                                   trans-&gt;bytes_reserved,
+<span class="lineNum">     427 </span>            :                                   BTRFS_RESERVE_NO_FLUSH);
+<span class="lineNum">     428 </span><span class="lineNoCov">          0 :         if (ret)</span>
+<span class="lineNum">     429 </span>            :                 goto out;
+<span class="lineNum">     430 </span><span class="lineNoCov">          0 :         trace_btrfs_space_reservation(root-&gt;fs_info, &quot;ino_cache&quot;,</span>
+<span class="lineNum">     431 </span>            :                                       trans-&gt;transid, trans-&gt;bytes_reserved, 1);
+<span class="lineNum">     432 </span>            : again:
+<span class="lineNum">     433 </span><span class="lineNoCov">          0 :         inode = lookup_free_ino_inode(root, path);</span>
+<span class="lineNum">     434 </span><span class="lineNoCov">          0 :         if (IS_ERR(inode) &amp;&amp; (PTR_ERR(inode) != -ENOENT || retry)) {</span>
+<span class="lineNum">     435 </span><span class="lineNoCov">          0 :                 ret = PTR_ERR(inode);</span>
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :                 goto out_release;</span>
+<span class="lineNum">     437 </span>            :         }
+<span class="lineNum">     438 </span>            : 
+<span class="lineNum">     439 </span><span class="lineNoCov">          0 :         if (IS_ERR(inode)) {</span>
+<span class="lineNum">     440 </span><span class="lineNoCov">          0 :                 BUG_ON(retry); /* Logic error */</span>
+<span class="lineNum">     441 </span>            :                 retry = true;
+<span class="lineNum">     442 </span>            : 
+<span class="lineNum">     443 </span><span class="lineNoCov">          0 :                 ret = create_free_ino_inode(root, trans, path);</span>
+<span class="lineNum">     444 </span><span class="lineNoCov">          0 :                 if (ret)</span>
+<span class="lineNum">     445 </span>            :                         goto out_release;
+<span class="lineNum">     446 </span>            :                 goto again;
+<span class="lineNum">     447 </span>            :         }
+<span class="lineNum">     448 </span>            : 
+<span class="lineNum">     449 </span><span class="lineNoCov">          0 :         BTRFS_I(inode)-&gt;generation = 0;</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :         ret = btrfs_update_inode(trans, root, inode);</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :         if (ret) {</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :                 btrfs_abort_transaction(trans, root, ret);</span>
+<span class="lineNum">     453 </span><span class="lineNoCov">          0 :                 goto out_put;</span>
+<span class="lineNum">     454 </span>            :         }
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :         if (i_size_read(inode) &gt; 0) {</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                 ret = btrfs_truncate_free_space_cache(root, trans, inode);</span>
+<span class="lineNum">     458 </span><span class="lineNoCov">          0 :                 if (ret) {</span>
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :                         if (ret != -ENOSPC)</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                                 btrfs_abort_transaction(trans, root, ret);</span>
+<span class="lineNum">     461 </span>            :                         goto out_put;
+<span class="lineNum">     462 </span>            :                 }
+<span class="lineNum">     463 </span>            :         }
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span>            :         spin_lock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     466 </span><span class="lineNoCov">          0 :         if (root-&gt;cached != BTRFS_CACHE_FINISHED) {</span>
+<span class="lineNum">     467 </span>            :                 ret = -1;
+<span class="lineNum">     468 </span>            :                 spin_unlock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     469 </span>            :                 goto out_put;
+<span class="lineNum">     470 </span>            :         }
+<span class="lineNum">     471 </span>            :         spin_unlock(&amp;root-&gt;cache_lock);
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span>            :         spin_lock(&amp;ctl-&gt;tree_lock);
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :         prealloc = sizeof(struct btrfs_free_space) * ctl-&gt;free_extents;</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :         prealloc = ALIGN(prealloc, PAGE_CACHE_SIZE);</span>
+<span class="lineNum">     476 </span><span class="lineNoCov">          0 :         prealloc += ctl-&gt;total_bitmaps * PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     477 </span>            :         spin_unlock(&amp;ctl-&gt;tree_lock);
+<span class="lineNum">     478 </span>            : 
+<span class="lineNum">     479 </span>            :         /* Just to make sure we have enough space */
+<span class="lineNum">     480 </span><span class="lineNoCov">          0 :         prealloc += 8 * PAGE_CACHE_SIZE;</span>
+<span class="lineNum">     481 </span>            : 
+<span class="lineNum">     482 </span><span class="lineNoCov">          0 :         ret = btrfs_delalloc_reserve_space(inode, prealloc);</span>
+<span class="lineNum">     483 </span><span class="lineNoCov">          0 :         if (ret)</span>
+<span class="lineNum">     484 </span>            :                 goto out_put;
+<span class="lineNum">     485 </span>            : 
+<span class="lineNum">     486 </span><span class="lineNoCov">          0 :         ret = btrfs_prealloc_file_range_trans(inode, trans, 0, 0, prealloc,</span>
+<span class="lineNum">     487 </span>            :                                               prealloc, prealloc, &amp;alloc_hint);
+<span class="lineNum">     488 </span><span class="lineNoCov">          0 :         if (ret) {</span>
+<span class="lineNum">     489 </span><span class="lineNoCov">          0 :                 btrfs_delalloc_release_space(inode, prealloc);</span>
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :                 goto out_put;</span>
+<span class="lineNum">     491 </span>            :         }
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :         btrfs_free_reserved_data_space(inode, prealloc);</span>
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :         ret = btrfs_write_out_ino_cache(root, trans, path, inode);</span>
+<span class="lineNum">     495 </span>            : out_put:
+<span class="lineNum">     496 </span><span class="lineNoCov">          0 :         iput(inode);</span>
+<span class="lineNum">     497 </span>            : out_release:
+<span class="lineNum">     498 </span><span class="lineNoCov">          0 :         trace_btrfs_space_reservation(root-&gt;fs_info, &quot;ino_cache&quot;,</span>
+<span class="lineNum">     499 </span>            :                                       trans-&gt;transid, trans-&gt;bytes_reserved, 0);
+<span class="lineNum">     500 </span><span class="lineNoCov">          0 :         btrfs_block_rsv_release(root, trans-&gt;block_rsv, trans-&gt;bytes_reserved);</span>
+<span class="lineNum">     501 </span>            : out:
+<span class="lineNum">     502 </span><span class="lineNoCov">          0 :         trans-&gt;block_rsv = rsv;</span>
+<span class="lineNum">     503 </span><span class="lineNoCov">          0 :         trans-&gt;bytes_reserved = num_bytes;</span>
+<span class="lineNum">     504 </span>            : 
+<span class="lineNum">     505 </span><span class="lineNoCov">          0 :         btrfs_free_path(path);</span>
+<span class="lineNum">     506 </span><span class="lineNoCov">          0 :         return ret;</span>
+<a name="507"><span class="lineNum">     507 </span>            : }</a>
+<span class="lineNum">     508 </span>            : 
+<span class="lineNum">     509 </span><span class="lineCov">        238 : static int btrfs_find_highest_objectid(struct btrfs_root *root, u64 *objectid)</span>
+<span class="lineNum">     510 </span>            : {
+<span class="lineNum">     511 </span>            :         struct btrfs_path *path;
+<span class="lineNum">     512 </span>            :         int ret;
+<span class="lineNum">     513 </span>            :         struct extent_buffer *l;
+<span class="lineNum">     514 </span>            :         struct btrfs_key search_key;
+<span class="lineNum">     515 </span>            :         struct btrfs_key found_key;
+<span class="lineNum">     516 </span>            :         int slot;
+<span class="lineNum">     517 </span>            : 
+<span class="lineNum">     518 </span><span class="lineCov">        238 :         path = btrfs_alloc_path();</span>
+<span class="lineNum">     519 </span><span class="lineCov">        238 :         if (!path)</span>
+<span class="lineNum">     520 </span>            :                 return -ENOMEM;
+<span class="lineNum">     521 </span>            : 
+<span class="lineNum">     522 </span><span class="lineCov">        238 :         search_key.objectid = BTRFS_LAST_FREE_OBJECTID;</span>
+<span class="lineNum">     523 </span><span class="lineCov">        238 :         search_key.type = -1;</span>
+<span class="lineNum">     524 </span><span class="lineCov">        238 :         search_key.offset = (u64)-1;</span>
+<span class="lineNum">     525 </span><span class="lineCov">        238 :         ret = btrfs_search_slot(NULL, root, &amp;search_key, path, 0, 0);</span>
+<span class="lineNum">     526 </span><span class="lineCov">        238 :         if (ret &lt; 0)</span>
+<span class="lineNum">     527 </span>            :                 goto error;
+<span class="lineNum">     528 </span><span class="lineCov">        238 :         BUG_ON(ret == 0); /* Corruption */</span>
+<span class="lineNum">     529 </span><span class="lineCov">        238 :         if (path-&gt;slots[0] &gt; 0) {</span>
+<span class="lineNum">     530 </span><span class="lineCov">        238 :                 slot = path-&gt;slots[0] - 1;</span>
+<span class="lineNum">     531 </span><span class="lineCov">        238 :                 l = path-&gt;nodes[0];</span>
+<span class="lineNum">     532 </span><span class="lineCov">        238 :                 btrfs_item_key_to_cpu(l, &amp;found_key, slot);</span>
+<span class="lineNum">     533 </span><span class="lineCov">        238 :                 *objectid = max_t(u64, found_key.objectid,</span>
+<span class="lineNum">     534 </span>            :                                   BTRFS_FIRST_FREE_OBJECTID - 1);
+<span class="lineNum">     535 </span>            :         } else {
+<span class="lineNum">     536 </span><span class="lineNoCov">          0 :                 *objectid = BTRFS_FIRST_FREE_OBJECTID - 1;</span>
+<span class="lineNum">     537 </span>            :         }
+<span class="lineNum">     538 </span>            :         ret = 0;
+<span class="lineNum">     539 </span>            : error:
+<span class="lineNum">     540 </span><span class="lineCov">        238 :         btrfs_free_path(path);</span>
+<span class="lineNum">     541 </span><span class="lineCov">        238 :         return ret;</span>
+<a name="542"><span class="lineNum">     542 </span>            : }</a>
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span><span class="lineCov">      20869 : int btrfs_find_free_objectid(struct btrfs_root *root, u64 *objectid)</span>
+<span class="lineNum">     545 </span>            : {
+<span class="lineNum">     546 </span>            :         int ret;
+<span class="lineNum">     547 </span><span class="lineCov">      20869 :         mutex_lock(&amp;root-&gt;objectid_mutex);</span>
+<span class="lineNum">     548 </span>            : 
+<span class="lineNum">     549 </span><span class="lineCov">      20869 :         if (unlikely(root-&gt;highest_objectid &lt; BTRFS_FIRST_FREE_OBJECTID)) {</span>
+<span class="lineNum">     550 </span><span class="lineCov">        238 :                 ret = btrfs_find_highest_objectid(root,</span>
+<span class="lineNum">     551 </span>            :                                                   &amp;root-&gt;highest_objectid);
+<span class="lineNum">     552 </span><span class="lineCov">        238 :                 if (ret)</span>
+<span class="lineNum">     553 </span>            :                         goto out;
+<span class="lineNum">     554 </span>            :         }
+<span class="lineNum">     555 </span>            : 
+<span class="lineNum">     556 </span><span class="lineCov">      20869 :         if (unlikely(root-&gt;highest_objectid &gt;= BTRFS_LAST_FREE_OBJECTID)) {</span>
+<span class="lineNum">     557 </span>            :                 ret = -ENOSPC;
+<span class="lineNum">     558 </span>            :                 goto out;
+<span class="lineNum">     559 </span>            :         }
+<span class="lineNum">     560 </span>            : 
+<span class="lineNum">     561 </span><span class="lineCov">      20869 :         *objectid = ++root-&gt;highest_objectid;</span>
+<span class="lineNum">     562 </span>            :         ret = 0;
+<span class="lineNum">     563 </span>            : out:
+<span class="lineNum">     564 </span><span class="lineCov">      20869 :         mutex_unlock(&amp;root-&gt;objectid_mutex);</span>
+<span class="lineNum">     565 </span><span class="lineCov">      20869 :         return ret;</span>
+<span class="lineNum">     566 </span>            : }
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

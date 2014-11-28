@@ -1,0 +1,280 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/ordered-data.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - ordered-data.h<span style="font-size: 80%;"> (source / <a href="ordered-data.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2007 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #ifndef __BTRFS_ORDERED_DATA__
+<span class="lineNum">      20 </span>            : #define __BTRFS_ORDERED_DATA__
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : /* one of these per inode */
+<span class="lineNum">      23 </span>            : struct btrfs_ordered_inode_tree {
+<span class="lineNum">      24 </span>            :         spinlock_t lock;
+<span class="lineNum">      25 </span>            :         struct rb_root tree;
+<span class="lineNum">      26 </span>            :         struct rb_node *last;
+<span class="lineNum">      27 </span>            : };
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : struct btrfs_ordered_sum {
+<span class="lineNum">      30 </span>            :         /* bytenr is the start of this extent on disk */
+<span class="lineNum">      31 </span>            :         u64 bytenr;
+<span class="lineNum">      32 </span>            : 
+<span class="lineNum">      33 </span>            :         /*
+<span class="lineNum">      34 </span>            :          * this is the length in bytes covered by the sums array below.
+<span class="lineNum">      35 </span>            :          */
+<span class="lineNum">      36 </span>            :         int len;
+<span class="lineNum">      37 </span>            :         struct list_head list;
+<span class="lineNum">      38 </span>            :         /* last field is a variable length array of csums */
+<span class="lineNum">      39 </span>            :         u32 sums[];
+<span class="lineNum">      40 </span>            : };
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : /*
+<span class="lineNum">      43 </span>            :  * bits for the flags field:
+<span class="lineNum">      44 </span>            :  *
+<span class="lineNum">      45 </span>            :  * BTRFS_ORDERED_IO_DONE is set when all of the blocks are written.
+<span class="lineNum">      46 </span>            :  * It is used to make sure metadata is inserted into the tree only once
+<span class="lineNum">      47 </span>            :  * per extent.
+<span class="lineNum">      48 </span>            :  *
+<span class="lineNum">      49 </span>            :  * BTRFS_ORDERED_COMPLETE is set when the extent is removed from the
+<span class="lineNum">      50 </span>            :  * rbtree, just before waking any waiters.  It is used to indicate the
+<span class="lineNum">      51 </span>            :  * IO is done and any metadata is inserted into the tree.
+<span class="lineNum">      52 </span>            :  */
+<span class="lineNum">      53 </span>            : #define BTRFS_ORDERED_IO_DONE 0 /* set when all the pages are written */
+<span class="lineNum">      54 </span>            : 
+<span class="lineNum">      55 </span>            : #define BTRFS_ORDERED_COMPLETE 1 /* set when removed from the tree */
+<span class="lineNum">      56 </span>            : 
+<span class="lineNum">      57 </span>            : #define BTRFS_ORDERED_NOCOW 2 /* set when we want to write in place */
+<span class="lineNum">      58 </span>            : 
+<span class="lineNum">      59 </span>            : #define BTRFS_ORDERED_COMPRESSED 3 /* writing a zlib compressed extent */
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : #define BTRFS_ORDERED_PREALLOC 4 /* set when writing to prealloced extent */
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : #define BTRFS_ORDERED_DIRECT 5 /* set when we're doing DIO with this extent */
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span>            : #define BTRFS_ORDERED_IOERR 6 /* We had an io error when writing this out */
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            : #define BTRFS_ORDERED_UPDATED_ISIZE 7 /* indicates whether this ordered extent
+<span class="lineNum">      68 </span>            :                                        * has done its due diligence in updating
+<span class="lineNum">      69 </span>            :                                        * the isize. */
+<span class="lineNum">      70 </span>            : #define BTRFS_ORDERED_LOGGED_CSUM 8 /* We've logged the csums on this ordered
+<span class="lineNum">      71 </span>            :                                        ordered extent */
+<span class="lineNum">      72 </span>            : #define BTRFS_ORDERED_TRUNCATED 9 /* Set when we have to truncate an extent */
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            : struct btrfs_ordered_extent {
+<span class="lineNum">      75 </span>            :         /* logical offset in the file */
+<span class="lineNum">      76 </span>            :         u64 file_offset;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            :         /* disk byte number */
+<span class="lineNum">      79 </span>            :         u64 start;
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            :         /* ram length of the extent in bytes */
+<span class="lineNum">      82 </span>            :         u64 len;
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            :         /* extent length on disk */
+<span class="lineNum">      85 </span>            :         u64 disk_len;
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            :         /* number of bytes that still need writing */
+<span class="lineNum">      88 </span>            :         u64 bytes_left;
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :         /* number of bytes that still need csumming */
+<span class="lineNum">      91 </span>            :         u64 csum_bytes_left;
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            :         /*
+<span class="lineNum">      94 </span>            :          * the end of the ordered extent which is behind it but
+<span class="lineNum">      95 </span>            :          * didn't update disk_i_size. Please see the comment of
+<span class="lineNum">      96 </span>            :          * btrfs_ordered_update_i_size();
+<span class="lineNum">      97 </span>            :          */
+<span class="lineNum">      98 </span>            :         u64 outstanding_isize;
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            :         /*
+<span class="lineNum">     101 </span>            :          * If we get truncated we need to adjust the file extent we enter for
+<span class="lineNum">     102 </span>            :          * this ordered extent so that we do not expose stale data.
+<span class="lineNum">     103 </span>            :          */
+<span class="lineNum">     104 </span>            :         u64 truncated_len;
+<span class="lineNum">     105 </span>            : 
+<span class="lineNum">     106 </span>            :         /* flags (described above) */
+<span class="lineNum">     107 </span>            :         unsigned long flags;
+<span class="lineNum">     108 </span>            : 
+<span class="lineNum">     109 </span>            :         /* compression algorithm */
+<span class="lineNum">     110 </span>            :         int compress_type;
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            :         /* reference count */
+<span class="lineNum">     113 </span>            :         atomic_t refs;
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            :         /* the inode we belong to */
+<span class="lineNum">     116 </span>            :         struct inode *inode;
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            :         /* list of checksums for insertion when the extent io is done */
+<span class="lineNum">     119 </span>            :         struct list_head list;
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :         /* If we need to wait on this to be done */
+<span class="lineNum">     122 </span>            :         struct list_head log_list;
+<span class="lineNum">     123 </span>            : 
+<span class="lineNum">     124 </span>            :         /* used to wait for the BTRFS_ORDERED_COMPLETE bit */
+<span class="lineNum">     125 </span>            :         wait_queue_head_t wait;
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            :         /* our friendly rbtree entry */
+<span class="lineNum">     128 </span>            :         struct rb_node rb_node;
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :         /* a per root list of all the pending ordered extents */
+<span class="lineNum">     131 </span>            :         struct list_head root_extent_list;
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span>            :         struct btrfs_work work;
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            :         struct completion completion;
+<span class="lineNum">     136 </span>            :         struct btrfs_work flush_work;
+<span class="lineNum">     137 </span>            :         struct list_head work_list;
+<span class="lineNum">     138 </span>            : };
+<span class="lineNum">     139 </span>            : 
+<span class="lineNum">     140 </span>            : /*
+<span class="lineNum">     141 </span>            :  * calculates the total size you need to allocate for an ordered sum
+<span class="lineNum">     142 </span>            :  * structure spanning 'bytes' in the file
+<span class="lineNum">     143 </span>            :  */
+<span class="lineNum">     144 </span>            : static inline int btrfs_ordered_sum_size(struct btrfs_root *root,
+<span class="lineNum">     145 </span>            :                                          unsigned long bytes)
+<span class="lineNum">     146 </span>            : {
+<span class="lineNum">     147 </span><span class="lineCov">     406532 :         int num_sectors = (int)DIV_ROUND_UP(bytes, root-&gt;sectorsize);</span>
+<span class="lineNum">     148 </span><span class="lineCov">     406532 :         return sizeof(struct btrfs_ordered_sum) + num_sectors * sizeof(u32);</span>
+<span class="lineNum">     149 </span>            : }
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            : static inline void
+<span class="lineNum">     152 </span>            : btrfs_ordered_inode_tree_init(struct btrfs_ordered_inode_tree *t)
+<span class="lineNum">     153 </span>            : {
+<span class="lineNum">     154 </span><span class="lineCov">      25707 :         spin_lock_init(&amp;t-&gt;lock);</span>
+<span class="lineNum">     155 </span><span class="lineCov">      25707 :         t-&gt;tree = RB_ROOT;</span>
+<span class="lineNum">     156 </span><span class="lineCov">      25707 :         t-&gt;last = NULL;</span>
+<span class="lineNum">     157 </span>            : }
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span>            : void btrfs_put_ordered_extent(struct btrfs_ordered_extent *entry);
+<span class="lineNum">     160 </span>            : void btrfs_remove_ordered_extent(struct inode *inode,
+<span class="lineNum">     161 </span>            :                                 struct btrfs_ordered_extent *entry);
+<span class="lineNum">     162 </span>            : int btrfs_dec_test_ordered_pending(struct inode *inode,
+<span class="lineNum">     163 </span>            :                                    struct btrfs_ordered_extent **cached,
+<span class="lineNum">     164 </span>            :                                    u64 file_offset, u64 io_size, int uptodate);
+<span class="lineNum">     165 </span>            : int btrfs_dec_test_first_ordered_pending(struct inode *inode,
+<span class="lineNum">     166 </span>            :                                    struct btrfs_ordered_extent **cached,
+<span class="lineNum">     167 </span>            :                                    u64 *file_offset, u64 io_size,
+<span class="lineNum">     168 </span>            :                                    int uptodate);
+<span class="lineNum">     169 </span>            : int btrfs_add_ordered_extent(struct inode *inode, u64 file_offset,
+<span class="lineNum">     170 </span>            :                              u64 start, u64 len, u64 disk_len, int type);
+<span class="lineNum">     171 </span>            : int btrfs_add_ordered_extent_dio(struct inode *inode, u64 file_offset,
+<span class="lineNum">     172 </span>            :                                  u64 start, u64 len, u64 disk_len, int type);
+<span class="lineNum">     173 </span>            : int btrfs_add_ordered_extent_compress(struct inode *inode, u64 file_offset,
+<span class="lineNum">     174 </span>            :                                       u64 start, u64 len, u64 disk_len,
+<span class="lineNum">     175 </span>            :                                       int type, int compress_type);
+<span class="lineNum">     176 </span>            : void btrfs_add_ordered_sum(struct inode *inode,
+<span class="lineNum">     177 </span>            :                            struct btrfs_ordered_extent *entry,
+<span class="lineNum">     178 </span>            :                            struct btrfs_ordered_sum *sum);
+<span class="lineNum">     179 </span>            : struct btrfs_ordered_extent *btrfs_lookup_ordered_extent(struct inode *inode,
+<span class="lineNum">     180 </span>            :                                                          u64 file_offset);
+<span class="lineNum">     181 </span>            : void btrfs_start_ordered_extent(struct inode *inode,
+<span class="lineNum">     182 </span>            :                                 struct btrfs_ordered_extent *entry, int wait);
+<span class="lineNum">     183 </span>            : int btrfs_wait_ordered_range(struct inode *inode, u64 start, u64 len);
+<span class="lineNum">     184 </span>            : struct btrfs_ordered_extent *
+<span class="lineNum">     185 </span>            : btrfs_lookup_first_ordered_extent(struct inode * inode, u64 file_offset);
+<span class="lineNum">     186 </span>            : struct btrfs_ordered_extent *btrfs_lookup_ordered_range(struct inode *inode,
+<span class="lineNum">     187 </span>            :                                                         u64 file_offset,
+<span class="lineNum">     188 </span>            :                                                         u64 len);
+<span class="lineNum">     189 </span>            : int btrfs_ordered_update_i_size(struct inode *inode, u64 offset,
+<span class="lineNum">     190 </span>            :                                 struct btrfs_ordered_extent *ordered);
+<span class="lineNum">     191 </span>            : int btrfs_find_ordered_sum(struct inode *inode, u64 offset, u64 disk_bytenr,
+<span class="lineNum">     192 </span>            :                            u32 *sum, int len);
+<span class="lineNum">     193 </span>            : int btrfs_wait_ordered_extents(struct btrfs_root *root, int nr);
+<span class="lineNum">     194 </span>            : void btrfs_wait_ordered_roots(struct btrfs_fs_info *fs_info, int nr);
+<span class="lineNum">     195 </span>            : void btrfs_get_logged_extents(struct inode *inode,
+<span class="lineNum">     196 </span>            :                               struct list_head *logged_list);
+<span class="lineNum">     197 </span>            : void btrfs_put_logged_extents(struct list_head *logged_list);
+<span class="lineNum">     198 </span>            : void btrfs_submit_logged_extents(struct list_head *logged_list,
+<span class="lineNum">     199 </span>            :                                  struct btrfs_root *log);
+<span class="lineNum">     200 </span>            : void btrfs_wait_logged_extents(struct btrfs_root *log, u64 transid);
+<span class="lineNum">     201 </span>            : void btrfs_free_logged_extents(struct btrfs_root *log, u64 transid);
+<span class="lineNum">     202 </span>            : int __init ordered_data_init(void);
+<span class="lineNum">     203 </span>            : void ordered_data_exit(void);
+<span class="lineNum">     204 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

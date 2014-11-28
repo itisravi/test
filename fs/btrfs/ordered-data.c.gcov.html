@@ -1,0 +1,1129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/ordered-data.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - ordered-data.c<span style="font-size: 80%;"> (source / <a href="ordered-data.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">339</td>
+            <td class="headerCovTableEntry">386</td>
+            <td class="headerCovTableEntryMed">87.8 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">26</td>
+            <td class="headerCovTableEntry">30</td>
+            <td class="headerCovTableEntryMed">86.7 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2007 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;linux/slab.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/blkdev.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/writeback.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;linux/pagevec.h&gt;
+<span class="lineNum">      23 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;transaction.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;btrfs_inode.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;extent_io.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;disk-io.h&quot;
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : static struct kmem_cache *btrfs_ordered_extent_cache;
+<span class="lineNum">      30 </span>            : 
+<a name="31"><span class="lineNum">      31 </span>            : static u64 entry_end(struct btrfs_ordered_extent *entry)</a>
+<span class="lineNum">      32 </span>            : {
+<span class="lineNum">      33 </span><span class="lineCov">     257359 :         if (entry-&gt;file_offset + entry-&gt;len &lt; entry-&gt;file_offset)</span>
+<span class="lineNum">      34 </span>            :                 return (u64)-1;
+<span class="lineNum">      35 </span>            :         return entry-&gt;file_offset + entry-&gt;len;
+<span class="lineNum">      36 </span>            : }
+<span class="lineNum">      37 </span>            : 
+<span class="lineNum">      38 </span>            : /* returns NULL if the insertion worked, or it returns the node it did find
+<span class="lineNum">      39 </span>            :  * in the tree
+<span class="lineNum">      40 </span>            :  */
+<span class="lineNum">      41 </span><span class="lineCov">      51501 : static struct rb_node *tree_insert(struct rb_root *root, u64 file_offset,</span>
+<span class="lineNum">      42 </span>            :                                    struct rb_node *node)
+<span class="lineNum">      43 </span>            : {
+<span class="lineNum">      44 </span><span class="lineCov">      51501 :         struct rb_node **p = &amp;root-&gt;rb_node;</span>
+<span class="lineNum">      45 </span>            :         struct rb_node *parent = NULL;
+<span class="lineNum">      46 </span><span class="lineCov">      70981 :         struct btrfs_ordered_extent *entry;</span>
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span><span class="lineCov">     175100 :         while (*p) {</span>
+<span class="lineNum">      49 </span>            :                 parent = *p;
+<span class="lineNum">      50 </span>            :                 entry = rb_entry(parent, struct btrfs_ordered_extent, rb_node);
+<span class="lineNum">      51 </span>            : 
+<span class="lineNum">      52 </span><span class="lineCov">      72097 :                 if (file_offset &lt; entry-&gt;file_offset)</span>
+<span class="lineNum">      53 </span><span class="lineCov">       1116 :                         p = &amp;(*p)-&gt;rb_left;</span>
+<span class="lineNum">      54 </span><span class="lineCov">      70981 :                 else if (file_offset &gt;= entry_end(entry))</span>
+<span class="lineNum">      55 </span><span class="lineCov">      70982 :                         p = &amp;(*p)-&gt;rb_right;</span>
+<span class="lineNum">      56 </span>            :                 else
+<span class="lineNum">      57 </span>            :                         return parent;
+<span class="lineNum">      58 </span>            :         }
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            :         rb_link_node(node, parent, p);
+<span class="lineNum">      61 </span><span class="lineCov">      51502 :         rb_insert_color(node, root);</span>
+<span class="lineNum">      62 </span><span class="lineCov">      51500 :         return NULL;</span>
+<a name="63"><span class="lineNum">      63 </span>            : }</a>
+<span class="lineNum">      64 </span>            : 
+<span class="lineNum">      65 </span><span class="lineNoCov">          0 : static void ordered_data_tree_panic(struct inode *inode, int errno,</span>
+<span class="lineNum">      66 </span>            :                                                u64 offset)
+<span class="lineNum">      67 </span>            : {
+<span class="lineNum">      68 </span><span class="lineNoCov">          0 :         struct btrfs_fs_info *fs_info = btrfs_sb(inode-&gt;i_sb);</span>
+<span class="lineNum">      69 </span><span class="lineNoCov">          0 :         btrfs_panic(fs_info, errno, &quot;Inconsistency in ordered tree at offset &quot;</span>
+<span class="lineNum">      70 </span>            :                     &quot;%llu&quot;, offset);
+<span class="lineNum">      71 </span>            : }
+<span class="lineNum">      72 </span>            : 
+<span class="lineNum">      73 </span>            : /*
+<span class="lineNum">      74 </span>            :  * look for a given offset in the tree, and if it can't be found return the
+<span class="lineNum">      75 </span>            :  * first lesser offset
+<span class="lineNum">      76 </span>            :  */
+<span class="lineNum">      77 </span><span class="lineCov">    2178179 : static struct rb_node *__tree_search(struct rb_root *root, u64 file_offset,</span>
+<span class="lineNum">      78 </span>            :                                      struct rb_node **prev_ret)
+<span class="lineNum">      79 </span>            : {
+<span class="lineNum">      80 </span><span class="lineCov">    2178179 :         struct rb_node *n = root-&gt;rb_node;</span>
+<span class="lineNum">      81 </span>            :         struct rb_node *prev = NULL;
+<span class="lineNum">      82 </span>            :         struct rb_node *test;
+<span class="lineNum">      83 </span><span class="lineCov">     124452 :         struct btrfs_ordered_extent *entry;</span>
+<span class="lineNum">      84 </span><span class="lineCov">      10174 :         struct btrfs_ordered_extent *prev_entry = NULL;</span>
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span><span class="lineCov">    4446273 :         while (n) {</span>
+<span class="lineNum">      87 </span><span class="lineCov">     152192 :                 entry = rb_entry(n, struct btrfs_ordered_extent, rb_node);</span>
+<span class="lineNum">      88 </span>            :                 prev = n;
+<span class="lineNum">      89 </span>            :                 prev_entry = entry;
+<span class="lineNum">      90 </span>            : 
+<span class="lineNum">      91 </span><span class="lineCov">     152192 :                 if (file_offset &lt; entry-&gt;file_offset)</span>
+<span class="lineNum">      92 </span><span class="lineCov">      27740 :                         n = n-&gt;rb_left;</span>
+<span class="lineNum">      93 </span><span class="lineCov">     124452 :                 else if (file_offset &gt;= entry_end(entry))</span>
+<span class="lineNum">      94 </span><span class="lineCov">      62175 :                         n = n-&gt;rb_right;</span>
+<span class="lineNum">      95 </span>            :                 else
+<span class="lineNum">      96 </span>            :                         return n;
+<span class="lineNum">      97 </span>            :         }
+<span class="lineNum">      98 </span><span class="lineCov">    2115902 :         if (!prev_ret)</span>
+<span class="lineNum">      99 </span>            :                 return NULL;
+<span class="lineNum">     100 </span>            : 
+<span class="lineNum">     101 </span><span class="lineCov">    2120983 :         while (prev &amp;&amp; file_offset &gt;= entry_end(prev_entry)) {</span>
+<span class="lineNum">     102 </span><span class="lineCov">       5008 :                 test = rb_next(prev);</span>
+<span class="lineNum">     103 </span><span class="lineCov">       5008 :                 if (!test)</span>
+<span class="lineNum">     104 </span>            :                         break;
+<span class="lineNum">     105 </span><span class="lineCov">          2 :                 prev_entry = rb_entry(test, struct btrfs_ordered_extent,</span>
+<span class="lineNum">     106 </span>            :                                       rb_node);
+<span class="lineNum">     107 </span><span class="lineCov">          2 :                 if (file_offset &lt; entry_end(prev_entry))</span>
+<span class="lineNum">     108 </span>            :                         break;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            :                 prev = test;
+<span class="lineNum">     111 </span>            :         }
+<span class="lineNum">     112 </span><span class="lineCov">    2115905 :         if (prev)</span>
+<span class="lineNum">     113 </span><span class="lineCov">       5079 :                 prev_entry = rb_entry(prev, struct btrfs_ordered_extent,</span>
+<span class="lineNum">     114 </span>            :                                       rb_node);
+<span class="lineNum">     115 </span><span class="lineCov">    2121014 :         while (prev &amp;&amp; file_offset &lt; entry_end(prev_entry)) {</span>
+<span class="lineNum">     116 </span><span class="lineCov">         71 :                 test = rb_prev(prev);</span>
+<span class="lineNum">     117 </span><span class="lineCov">         71 :                 if (!test)</span>
+<span class="lineNum">     118 </span>            :                         break;
+<span class="lineNum">     119 </span><span class="lineCov">         15 :                 prev_entry = rb_entry(test, struct btrfs_ordered_extent,</span>
+<span class="lineNum">     120 </span>            :                                       rb_node);
+<span class="lineNum">     121 </span>            :                 prev = test;
+<span class="lineNum">     122 </span>            :         }
+<span class="lineNum">     123 </span><span class="lineCov">    2115905 :         *prev_ret = prev;</span>
+<span class="lineNum">     124 </span><span class="lineCov">    2115905 :         return NULL;</span>
+<span class="lineNum">     125 </span>            : }
+<span class="lineNum">     126 </span>            : 
+<span class="lineNum">     127 </span>            : /*
+<span class="lineNum">     128 </span>            :  * helper to check if a given offset is inside a given entry
+<span class="lineNum">     129 </span>            :  */
+<a name="130"><span class="lineNum">     130 </span>            : static int offset_in_entry(struct btrfs_ordered_extent *entry, u64 file_offset)</a>
+<span class="lineNum">     131 </span>            : {
+<span class="lineNum">     132 </span><span class="lineCov">    5626158 :         if (file_offset &lt; entry-&gt;file_offset ||</span>
+<span class="lineNum">     133 </span><span class="lineCov">    2811806 :             entry-&gt;file_offset + entry-&gt;len &lt;= file_offset)</span>
+<span class="lineNum">     134 </span>            :                 return 0;
+<span class="lineNum">     135 </span>            :         return 1;
+<span class="lineNum">     136 </span>            : }
+<span class="lineNum">     137 </span>            : 
+<span class="lineNum">     138 </span>            : static int range_overlaps(struct btrfs_ordered_extent *entry, u64 file_offset,
+<a name="139"><span class="lineNum">     139 </span>            :                           u64 len)</a>
+<span class="lineNum">     140 </span>            : {
+<span class="lineNum">     141 </span><span class="lineCov">       4418 :         if (file_offset + len &lt;= entry-&gt;file_offset ||</span>
+<span class="lineNum">     142 </span><span class="lineCov">       2203 :             entry-&gt;file_offset + entry-&gt;len &lt;= file_offset)</span>
+<span class="lineNum">     143 </span>            :                 return 0;
+<span class="lineNum">     144 </span>            :         return 1;
+<span class="lineNum">     145 </span>            : }
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            : /*
+<span class="lineNum">     148 </span>            :  * look find the first ordered struct that has this offset, otherwise
+<span class="lineNum">     149 </span>            :  * the first one less than this offset
+<span class="lineNum">     150 </span>            :  */
+<span class="lineNum">     151 </span><span class="lineCov">    3540964 : static inline struct rb_node *tree_search(struct btrfs_ordered_inode_tree *tree,</span>
+<span class="lineNum">     152 </span>            :                                           u64 file_offset)
+<span class="lineNum">     153 </span>            : {
+<span class="lineNum">     154 </span><span class="lineCov">    3540964 :         struct rb_root *root = &amp;tree-&gt;tree;</span>
+<span class="lineNum">     155 </span><span class="lineCov">    3540964 :         struct rb_node *prev = NULL;</span>
+<span class="lineNum">     156 </span>            :         struct rb_node *ret;
+<span class="lineNum">     157 </span><span class="lineCov">    1389046 :         struct btrfs_ordered_extent *entry;</span>
+<span class="lineNum">     158 </span>            : 
+<span class="lineNum">     159 </span><span class="lineCov">    3540964 :         if (tree-&gt;last) {</span>
+<span class="lineNum">     160 </span>            :                 entry = rb_entry(tree-&gt;last, struct btrfs_ordered_extent,
+<span class="lineNum">     161 </span>            :                                  rb_node);
+<span class="lineNum">     162 </span><span class="lineCov">    1389046 :                 if (offset_in_entry(entry, file_offset))</span>
+<span class="lineNum">     163 </span>            :                         return tree-&gt;last;
+<span class="lineNum">     164 </span>            :         }
+<span class="lineNum">     165 </span><span class="lineCov">    2178117 :         ret = __tree_search(root, file_offset, &amp;prev);</span>
+<span class="lineNum">     166 </span><span class="lineCov">    2178175 :         if (!ret)</span>
+<span class="lineNum">     167 </span><span class="lineCov">    2115908 :                 ret = prev;</span>
+<span class="lineNum">     168 </span><span class="lineCov">    2178175 :         if (ret)</span>
+<span class="lineNum">     169 </span><span class="lineCov">      67358 :                 tree-&gt;last = ret;</span>
+<span class="lineNum">     170 </span><span class="lineCov">    2178175 :         return ret;</span>
+<span class="lineNum">     171 </span>            : }
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span>            : /* allocate and add a new ordered_extent into the per-inode tree.
+<span class="lineNum">     174 </span>            :  * file_offset is the logical offset in the file
+<span class="lineNum">     175 </span>            :  *
+<span class="lineNum">     176 </span>            :  * start is the disk block number of an extent already reserved in the
+<span class="lineNum">     177 </span>            :  * extent allocation tree
+<span class="lineNum">     178 </span>            :  *
+<span class="lineNum">     179 </span>            :  * len is the length of the extent
+<span class="lineNum">     180 </span>            :  *
+<span class="lineNum">     181 </span>            :  * The tree is given a single reference on the ordered extent that was
+<a name="182"><span class="lineNum">     182 </span>            :  * inserted.</a>
+<span class="lineNum">     183 </span>            :  */
+<span class="lineNum">     184 </span><span class="lineCov">      51494 : static int __btrfs_add_ordered_extent(struct inode *inode, u64 file_offset,</span>
+<span class="lineNum">     185 </span>            :                                       u64 start, u64 len, u64 disk_len,
+<span class="lineNum">     186 </span>            :                                       int type, int dio, int compress_type)
+<span class="lineNum">     187 </span>            : {
+<span class="lineNum">     188 </span><span class="lineCov">      51494 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     189 </span>            :         struct btrfs_ordered_inode_tree *tree;
+<span class="lineNum">     190 </span>            :         struct rb_node *node;
+<span class="lineNum">     191 </span>            :         struct btrfs_ordered_extent *entry;
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            :         tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;
+<span class="lineNum">     194 </span><span class="lineCov">      51494 :         entry = kmem_cache_zalloc(btrfs_ordered_extent_cache, GFP_NOFS);</span>
+<span class="lineNum">     195 </span><span class="lineCov">      51497 :         if (!entry)</span>
+<span class="lineNum">     196 </span>            :                 return -ENOMEM;
+<span class="lineNum">     197 </span>            : 
+<span class="lineNum">     198 </span><span class="lineCov">      51498 :         entry-&gt;file_offset = file_offset;</span>
+<span class="lineNum">     199 </span><span class="lineCov">      51498 :         entry-&gt;start = start;</span>
+<span class="lineNum">     200 </span><span class="lineCov">      51498 :         entry-&gt;len = len;</span>
+<span class="lineNum">     201 </span><span class="lineCov">      51498 :         if (!(BTRFS_I(inode)-&gt;flags &amp; BTRFS_INODE_NODATASUM) &amp;&amp;</span>
+<span class="lineNum">     202 </span>            :             !(type == BTRFS_ORDERED_NOCOW))
+<span class="lineNum">     203 </span><span class="lineCov">      47440 :                 entry-&gt;csum_bytes_left = disk_len;</span>
+<span class="lineNum">     204 </span><span class="lineCov">      51498 :         entry-&gt;disk_len = disk_len;</span>
+<span class="lineNum">     205 </span><span class="lineCov">      51498 :         entry-&gt;bytes_left = len;</span>
+<span class="lineNum">     206 </span><span class="lineCov">      51498 :         entry-&gt;inode = igrab(inode);</span>
+<span class="lineNum">     207 </span><span class="lineCov">      51505 :         entry-&gt;compress_type = compress_type;</span>
+<span class="lineNum">     208 </span><span class="lineCov">      51505 :         entry-&gt;truncated_len = (u64)-1;</span>
+<span class="lineNum">     209 </span><span class="lineCov">      51505 :         if (type != BTRFS_ORDERED_IO_DONE &amp;&amp; type != BTRFS_ORDERED_COMPLETE)</span>
+<span class="lineNum">     210 </span><span class="lineCov">       5860 :                 set_bit(type, &amp;entry-&gt;flags);</span>
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span><span class="lineCov">      51503 :         if (dio)</span>
+<span class="lineNum">     213 </span>            :                 set_bit(BTRFS_ORDERED_DIRECT, &amp;entry-&gt;flags);
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :         /* one ref for the tree */
+<span class="lineNum">     216 </span>            :         atomic_set(&amp;entry-&gt;refs, 1);
+<span class="lineNum">     217 </span><span class="lineCov">      51503 :         init_waitqueue_head(&amp;entry-&gt;wait);</span>
+<span class="lineNum">     218 </span><span class="lineCov">      51500 :         INIT_LIST_HEAD(&amp;entry-&gt;list);</span>
+<span class="lineNum">     219 </span><span class="lineCov">      51500 :         INIT_LIST_HEAD(&amp;entry-&gt;root_extent_list);</span>
+<span class="lineNum">     220 </span><span class="lineCov">      51500 :         INIT_LIST_HEAD(&amp;entry-&gt;work_list);</span>
+<span class="lineNum">     221 </span>            :         init_completion(&amp;entry-&gt;completion);
+<span class="lineNum">     222 </span><span class="lineCov">      51498 :         INIT_LIST_HEAD(&amp;entry-&gt;log_list);</span>
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineCov">      51498 :         trace_btrfs_ordered_extent_add(inode, entry);</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            :         spin_lock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     227 </span><span class="lineCov">      51501 :         node = tree_insert(&amp;tree-&gt;tree, file_offset,</span>
+<span class="lineNum">     228 </span>            :                            &amp;entry-&gt;rb_node);
+<span class="lineNum">     229 </span><span class="lineCov">      51499 :         if (node)</span>
+<span class="lineNum">     230 </span><span class="lineNoCov">          0 :                 ordered_data_tree_panic(inode, -EEXIST, file_offset);</span>
+<span class="lineNum">     231 </span>            :         spin_unlock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            :         spin_lock(&amp;root-&gt;ordered_extent_lock);
+<span class="lineNum">     234 </span><span class="lineCov">      51503 :         list_add_tail(&amp;entry-&gt;root_extent_list,</span>
+<span class="lineNum">     235 </span>            :                       &amp;root-&gt;ordered_extents);
+<span class="lineNum">     236 </span><span class="lineCov">      51503 :         root-&gt;nr_ordered_extents++;</span>
+<span class="lineNum">     237 </span><span class="lineCov">      51503 :         if (root-&gt;nr_ordered_extents == 1) {</span>
+<span class="lineNum">     238 </span><span class="lineCov">      30682 :                 spin_lock(&amp;root-&gt;fs_info-&gt;ordered_root_lock);</span>
+<span class="lineNum">     239 </span><span class="lineCov">      61370 :                 BUG_ON(!list_empty(&amp;root-&gt;ordered_root));</span>
+<span class="lineNum">     240 </span><span class="lineCov">      30685 :                 list_add_tail(&amp;root-&gt;ordered_root,</span>
+<span class="lineNum">     241 </span><span class="lineCov">      30685 :                               &amp;root-&gt;fs_info-&gt;ordered_roots);</span>
+<span class="lineNum">     242 </span><span class="lineCov">      30685 :                 spin_unlock(&amp;root-&gt;fs_info-&gt;ordered_root_lock);</span>
+<span class="lineNum">     243 </span>            :         }
+<span class="lineNum">     244 </span>            :         spin_unlock(&amp;root-&gt;ordered_extent_lock);
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineCov">      51504 :         return 0;</span>
+<a name="247"><span class="lineNum">     247 </span>            : }</a>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineCov">      26091 : int btrfs_add_ordered_extent(struct inode *inode, u64 file_offset,</span>
+<span class="lineNum">     250 </span>            :                              u64 start, u64 len, u64 disk_len, int type)
+<span class="lineNum">     251 </span>            : {
+<span class="lineNum">     252 </span><span class="lineCov">      26091 :         return __btrfs_add_ordered_extent(inode, file_offset, start, len,</span>
+<span class="lineNum">     253 </span>            :                                           disk_len, type, 0,
+<span class="lineNum">     254 </span>            :                                           BTRFS_COMPRESS_NONE);
+<a name="255"><span class="lineNum">     255 </span>            : }</a>
+<span class="lineNum">     256 </span>            : 
+<span class="lineNum">     257 </span><span class="lineCov">      25252 : int btrfs_add_ordered_extent_dio(struct inode *inode, u64 file_offset,</span>
+<span class="lineNum">     258 </span>            :                                  u64 start, u64 len, u64 disk_len, int type)
+<span class="lineNum">     259 </span>            : {
+<span class="lineNum">     260 </span><span class="lineCov">      25252 :         return __btrfs_add_ordered_extent(inode, file_offset, start, len,</span>
+<span class="lineNum">     261 </span>            :                                           disk_len, type, 1,
+<span class="lineNum">     262 </span>            :                                           BTRFS_COMPRESS_NONE);
+<a name="263"><span class="lineNum">     263 </span>            : }</a>
+<span class="lineNum">     264 </span>            : 
+<span class="lineNum">     265 </span><span class="lineCov">        153 : int btrfs_add_ordered_extent_compress(struct inode *inode, u64 file_offset,</span>
+<span class="lineNum">     266 </span>            :                                       u64 start, u64 len, u64 disk_len,
+<span class="lineNum">     267 </span>            :                                       int type, int compress_type)
+<span class="lineNum">     268 </span>            : {
+<span class="lineNum">     269 </span><span class="lineCov">        153 :         return __btrfs_add_ordered_extent(inode, file_offset, start, len,</span>
+<span class="lineNum">     270 </span>            :                                           disk_len, type, 0,
+<span class="lineNum">     271 </span>            :                                           compress_type);
+<span class="lineNum">     272 </span>            : }
+<span class="lineNum">     273 </span>            : 
+<span class="lineNum">     274 </span>            : /*
+<span class="lineNum">     275 </span>            :  * Add a struct btrfs_ordered_sum into the list of checksums to be inserted
+<span class="lineNum">     276 </span>            :  * when an ordered extent is finished.  If the list covers more than one
+<a name="277"><span class="lineNum">     277 </span>            :  * ordered extent, it is split across multiples.</a>
+<span class="lineNum">     278 </span>            :  */
+<span class="lineNum">     279 </span><span class="lineCov">      90839 : void btrfs_add_ordered_sum(struct inode *inode,</span>
+<span class="lineNum">     280 </span>            :                            struct btrfs_ordered_extent *entry,
+<span class="lineNum">     281 </span>            :                            struct btrfs_ordered_sum *sum)
+<span class="lineNum">     282 </span>            : {
+<span class="lineNum">     283 </span>            :         struct btrfs_ordered_inode_tree *tree;
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span>            :         tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;
+<span class="lineNum">     286 </span>            :         spin_lock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     287 </span><span class="lineCov">      90884 :         list_add_tail(&amp;sum-&gt;list, &amp;entry-&gt;list);</span>
+<span class="lineNum">     288 </span><span class="lineCov">      90883 :         WARN_ON(entry-&gt;csum_bytes_left &lt; sum-&gt;len);</span>
+<span class="lineNum">     289 </span><span class="lineCov">      90882 :         entry-&gt;csum_bytes_left -= sum-&gt;len;</span>
+<span class="lineNum">     290 </span><span class="lineCov">      90882 :         if (entry-&gt;csum_bytes_left == 0)</span>
+<span class="lineNum">     291 </span><span class="lineCov">      47444 :                 wake_up(&amp;entry-&gt;wait);</span>
+<span class="lineNum">     292 </span>            :         spin_unlock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     293 </span><span class="lineCov">      90876 : }</span>
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            : /*
+<span class="lineNum">     296 </span>            :  * this is used to account for finished IO across a given range
+<span class="lineNum">     297 </span>            :  * of the file.  The IO may span ordered extents.  If
+<span class="lineNum">     298 </span>            :  * a given ordered_extent is completely done, 1 is returned, otherwise
+<span class="lineNum">     299 </span>            :  * 0.
+<span class="lineNum">     300 </span>            :  *
+<span class="lineNum">     301 </span>            :  * test_and_set_bit on a flag in the struct btrfs_ordered_extent is used
+<span class="lineNum">     302 </span>            :  * to make sure this function only returns 1 once for a given ordered extent.
+<span class="lineNum">     303 </span>            :  *
+<span class="lineNum">     304 </span>            :  * file_offset is updated to one byte past the range that is recorded as
+<span class="lineNum">     305 </span>            :  * complete.  This allows you to walk forward in the file.
+<span class="lineNum">     306 </span>            :  */
+<span class="lineNum">     307 </span><span class="lineCov">      25260 : int btrfs_dec_test_first_ordered_pending(struct inode *inode,</span>
+<span class="lineNum">     308 </span>            :                                    struct btrfs_ordered_extent **cached,
+<span class="lineNum">     309 </span>            :                                    u64 *file_offset, u64 io_size, int uptodate)
+<span class="lineNum">     310 </span>            : {
+<span class="lineNum">     311 </span>            :         struct btrfs_ordered_inode_tree *tree;
+<span class="lineNum">     312 </span>            :         struct rb_node *node;
+<span class="lineNum">     313 </span><span class="lineCov">      25260 :         struct btrfs_ordered_extent *entry = NULL;</span>
+<span class="lineNum">     314 </span>            :         int ret;
+<span class="lineNum">     315 </span>            :         unsigned long flags;
+<span class="lineNum">     316 </span>            :         u64 dec_end;
+<span class="lineNum">     317 </span>            :         u64 dec_start;
+<span class="lineNum">     318 </span>            :         u64 to_dec;
+<span class="lineNum">     319 </span>            : 
+<span class="lineNum">     320 </span><span class="lineCov">      25260 :         tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;</span>
+<span class="lineNum">     321 </span><span class="lineCov">      25260 :         spin_lock_irqsave(&amp;tree-&gt;lock, flags);</span>
+<span class="lineNum">     322 </span><span class="lineCov">      25260 :         node = tree_search(tree, *file_offset);</span>
+<span class="lineNum">     323 </span><span class="lineCov">      25260 :         if (!node) {</span>
+<span class="lineNum">     324 </span>            :                 ret = 1;
+<span class="lineNum">     325 </span>            :                 goto out;
+<span class="lineNum">     326 </span>            :         }
+<span class="lineNum">     327 </span>            : 
+<span class="lineNum">     328 </span><span class="lineCov">      25260 :         entry = rb_entry(node, struct btrfs_ordered_extent, rb_node);</span>
+<span class="lineNum">     329 </span><span class="lineCov">      50520 :         if (!offset_in_entry(entry, *file_offset)) {</span>
+<span class="lineNum">     330 </span>            :                 ret = 1;
+<span class="lineNum">     331 </span>            :                 goto out;
+<span class="lineNum">     332 </span>            :         }
+<span class="lineNum">     333 </span>            : 
+<span class="lineNum">     334 </span><span class="lineCov">      25260 :         dec_start = max(*file_offset, entry-&gt;file_offset);</span>
+<span class="lineNum">     335 </span><span class="lineCov">      25260 :         dec_end = min(*file_offset + io_size, entry-&gt;file_offset +</span>
+<span class="lineNum">     336 </span>            :                       entry-&gt;len);
+<span class="lineNum">     337 </span><span class="lineCov">      25260 :         *file_offset = dec_end;</span>
+<span class="lineNum">     338 </span><span class="lineCov">      25260 :         if (dec_start &gt; dec_end) {</span>
+<span class="lineNum">     339 </span><span class="lineNoCov">          0 :                 btrfs_crit(BTRFS_I(inode)-&gt;root-&gt;fs_info,</span>
+<span class="lineNum">     340 </span>            :                         &quot;bad ordering dec_start %llu end %llu&quot;, dec_start, dec_end);
+<span class="lineNum">     341 </span>            :         }
+<span class="lineNum">     342 </span><span class="lineCov">      25258 :         to_dec = dec_end - dec_start;</span>
+<span class="lineNum">     343 </span><span class="lineCov">      25258 :         if (to_dec &gt; entry-&gt;bytes_left) {</span>
+<span class="lineNum">     344 </span><span class="lineNoCov">          0 :                 btrfs_crit(BTRFS_I(inode)-&gt;root-&gt;fs_info,</span>
+<span class="lineNum">     345 </span>            :                         &quot;bad ordered accounting left %llu size %llu&quot;,
+<span class="lineNum">     346 </span>            :                         entry-&gt;bytes_left, to_dec);
+<span class="lineNum">     347 </span>            :         }
+<span class="lineNum">     348 </span><span class="lineCov">      25258 :         entry-&gt;bytes_left -= to_dec;</span>
+<span class="lineNum">     349 </span><span class="lineCov">      25258 :         if (!uptodate)</span>
+<span class="lineNum">     350 </span>            :                 set_bit(BTRFS_ORDERED_IOERR, &amp;entry-&gt;flags);
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineCov">      25258 :         if (entry-&gt;bytes_left == 0) {</span>
+<span class="lineNum">     353 </span><span class="lineCov">      25259 :                 ret = test_and_set_bit(BTRFS_ORDERED_IO_DONE, &amp;entry-&gt;flags);</span>
+<span class="lineNum">     354 </span><span class="lineCov">      25260 :                 if (waitqueue_active(&amp;entry-&gt;wait))</span>
+<span class="lineNum">     355 </span><span class="lineNoCov">          0 :                         wake_up(&amp;entry-&gt;wait);</span>
+<span class="lineNum">     356 </span>            :         } else {
+<span class="lineNum">     357 </span>            :                 ret = 1;
+<span class="lineNum">     358 </span>            :         }
+<span class="lineNum">     359 </span>            : out:
+<span class="lineNum">     360 </span><span class="lineCov">      25259 :         if (!ret &amp;&amp; cached &amp;&amp; entry) {</span>
+<span class="lineNum">     361 </span><span class="lineCov">      25259 :                 *cached = entry;</span>
+<span class="lineNum">     362 </span><span class="lineCov">      25259 :                 atomic_inc(&amp;entry-&gt;refs);</span>
+<span class="lineNum">     363 </span>            :         }
+<span class="lineNum">     364 </span>            :         spin_unlock_irqrestore(&amp;tree-&gt;lock, flags);
+<span class="lineNum">     365 </span><span class="lineCov">      25260 :         return ret == 0;</span>
+<span class="lineNum">     366 </span>            : }
+<span class="lineNum">     367 </span>            : 
+<span class="lineNum">     368 </span>            : /*
+<span class="lineNum">     369 </span>            :  * this is used to account for finished IO across a given range
+<span class="lineNum">     370 </span>            :  * of the file.  The IO should not span ordered extents.  If
+<span class="lineNum">     371 </span>            :  * a given ordered_extent is completely done, 1 is returned, otherwise
+<span class="lineNum">     372 </span>            :  * 0.
+<span class="lineNum">     373 </span>            :  *
+<span class="lineNum">     374 </span>            :  * test_and_set_bit on a flag in the struct btrfs_ordered_extent is used
+<span class="lineNum">     375 </span>            :  * to make sure this function only returns 1 once for a given ordered extent.
+<span class="lineNum">     376 </span>            :  */
+<span class="lineNum">     377 </span><span class="lineCov">    1309063 : int btrfs_dec_test_ordered_pending(struct inode *inode,</span>
+<span class="lineNum">     378 </span>            :                                    struct btrfs_ordered_extent **cached,
+<span class="lineNum">     379 </span>            :                                    u64 file_offset, u64 io_size, int uptodate)
+<span class="lineNum">     380 </span>            : {
+<span class="lineNum">     381 </span>            :         struct btrfs_ordered_inode_tree *tree;
+<span class="lineNum">     382 </span>            :         struct rb_node *node;
+<span class="lineNum">     383 </span><span class="lineCov">    1309068 :         struct btrfs_ordered_extent *entry = NULL;</span>
+<span class="lineNum">     384 </span>            :         unsigned long flags;
+<span class="lineNum">     385 </span>            :         int ret;
+<span class="lineNum">     386 </span>            : 
+<span class="lineNum">     387 </span><span class="lineCov">    1309063 :         tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;</span>
+<span class="lineNum">     388 </span><span class="lineCov">    1309063 :         spin_lock_irqsave(&amp;tree-&gt;lock, flags);</span>
+<span class="lineNum">     389 </span><span class="lineCov">    1309071 :         if (cached &amp;&amp; *cached) {</span>
+<span class="lineNum">     390 </span>            :                 entry = *cached;
+<span class="lineNum">     391 </span>            :                 goto have_entry;
+<span class="lineNum">     392 </span>            :         }
+<span class="lineNum">     393 </span>            : 
+<span class="lineNum">     394 </span><span class="lineCov">    1309068 :         node = tree_search(tree, file_offset);</span>
+<span class="lineNum">     395 </span><span class="lineCov">    1309065 :         if (!node) {</span>
+<span class="lineNum">     396 </span>            :                 ret = 1;
+<span class="lineNum">     397 </span>            :                 goto out;
+<span class="lineNum">     398 </span>            :         }
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span><span class="lineCov">    1309065 :         entry = rb_entry(node, struct btrfs_ordered_extent, rb_node);</span>
+<span class="lineNum">     401 </span>            : have_entry:
+<span class="lineNum">     402 </span><span class="lineCov">    1309068 :         if (!offset_in_entry(entry, file_offset)) {</span>
+<span class="lineNum">     403 </span>            :                 ret = 1;
+<span class="lineNum">     404 </span>            :                 goto out;
+<span class="lineNum">     405 </span>            :         }
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span><span class="lineCov">    1309068 :         if (io_size &gt; entry-&gt;bytes_left) {</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :                 btrfs_crit(BTRFS_I(inode)-&gt;root-&gt;fs_info,</span>
+<span class="lineNum">     409 </span>            :                            &quot;bad ordered accounting left %llu size %llu&quot;,
+<span class="lineNum">     410 </span>            :                        entry-&gt;bytes_left, io_size);
+<span class="lineNum">     411 </span>            :         }
+<span class="lineNum">     412 </span><span class="lineCov">    1309069 :         entry-&gt;bytes_left -= io_size;</span>
+<span class="lineNum">     413 </span><span class="lineCov">    1309069 :         if (!uptodate)</span>
+<span class="lineNum">     414 </span>            :                 set_bit(BTRFS_ORDERED_IOERR, &amp;entry-&gt;flags);
+<span class="lineNum">     415 </span>            : 
+<span class="lineNum">     416 </span><span class="lineCov">    1309069 :         if (entry-&gt;bytes_left == 0) {</span>
+<span class="lineNum">     417 </span><span class="lineCov">      26245 :                 ret = test_and_set_bit(BTRFS_ORDERED_IO_DONE, &amp;entry-&gt;flags);</span>
+<span class="lineNum">     418 </span><span class="lineCov">      26245 :                 if (waitqueue_active(&amp;entry-&gt;wait))</span>
+<span class="lineNum">     419 </span><span class="lineCov">        152 :                         wake_up(&amp;entry-&gt;wait);</span>
+<span class="lineNum">     420 </span>            :         } else {
+<span class="lineNum">     421 </span>            :                 ret = 1;
+<span class="lineNum">     422 </span>            :         }
+<span class="lineNum">     423 </span>            : out:
+<span class="lineNum">     424 </span><span class="lineCov">    1309069 :         if (!ret &amp;&amp; cached &amp;&amp; entry) {</span>
+<span class="lineNum">     425 </span><span class="lineCov">      26245 :                 *cached = entry;</span>
+<span class="lineNum">     426 </span><span class="lineCov">      26245 :                 atomic_inc(&amp;entry-&gt;refs);</span>
+<span class="lineNum">     427 </span>            :         }
+<span class="lineNum">     428 </span>            :         spin_unlock_irqrestore(&amp;tree-&gt;lock, flags);
+<span class="lineNum">     429 </span><span class="lineCov">    1309066 :         return ret == 0;</span>
+<span class="lineNum">     430 </span>            : }
+<a name="431"><span class="lineNum">     431 </span>            : </a>
+<span class="lineNum">     432 </span>            : /* Needs to either be called under a log transaction or the log_mutex */
+<span class="lineNum">     433 </span><span class="lineCov">       1824 : void btrfs_get_logged_extents(struct inode *inode,</span>
+<span class="lineNum">     434 </span>            :                               struct list_head *logged_list)
+<span class="lineNum">     435 </span>            : {
+<span class="lineNum">     436 </span>            :         struct btrfs_ordered_inode_tree *tree;
+<span class="lineNum">     437 </span>            :         struct btrfs_ordered_extent *ordered;
+<span class="lineNum">     438 </span>            :         struct rb_node *n;
+<span class="lineNum">     439 </span>            : 
+<span class="lineNum">     440 </span>            :         tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;
+<span class="lineNum">     441 </span>            :         spin_lock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     442 </span><span class="lineCov">       2999 :         for (n = rb_first(&amp;tree-&gt;tree); n; n = rb_next(n)) {</span>
+<span class="lineNum">     443 </span>            :                 ordered = rb_entry(n, struct btrfs_ordered_extent, rb_node);
+<span class="lineNum">     444 </span><span class="lineCov">       2350 :                 if (!list_empty(&amp;ordered-&gt;log_list))</span>
+<span class="lineNum">     445 </span><span class="lineNoCov">          0 :                         continue;</span>
+<span class="lineNum">     446 </span>            :                 list_add_tail(&amp;ordered-&gt;log_list, logged_list);
+<span class="lineNum">     447 </span><span class="lineCov">       1175 :                 atomic_inc(&amp;ordered-&gt;refs);</span>
+<span class="lineNum">     448 </span>            :         }
+<span class="lineNum">     449 </span>            :         spin_unlock_irq(&amp;tree-&gt;lock);
+<a name="450"><span class="lineNum">     450 </span><span class="lineCov">       1824 : }</span></a>
+<span class="lineNum">     451 </span>            : 
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 : void btrfs_put_logged_extents(struct list_head *logged_list)</span>
+<span class="lineNum">     453 </span>            : {
+<span class="lineNum">     454 </span>            :         struct btrfs_ordered_extent *ordered;
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :         while (!list_empty(logged_list)) {</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                 ordered = list_first_entry(logged_list,</span>
+<span class="lineNum">     458 </span>            :                                            struct btrfs_ordered_extent,
+<span class="lineNum">     459 </span>            :                                            log_list);
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                 list_del_init(&amp;ordered-&gt;log_list);</span>
+<span class="lineNum">     461 </span><span class="lineNoCov">          0 :                 btrfs_put_ordered_extent(ordered);</span>
+<span class="lineNum">     462 </span>            :         }
+<a name="463"><span class="lineNum">     463 </span><span class="lineNoCov">          0 : }</span></a>
+<span class="lineNum">     464 </span>            : 
+<span class="lineNum">     465 </span><span class="lineCov">       1824 : void btrfs_submit_logged_extents(struct list_head *logged_list,</span>
+<span class="lineNum">     466 </span>            :                                  struct btrfs_root *log)
+<span class="lineNum">     467 </span>            : {
+<span class="lineNum">     468 </span><span class="lineCov">       1824 :         int index = log-&gt;log_transid % 2;</span>
+<span class="lineNum">     469 </span>            : 
+<span class="lineNum">     470 </span><span class="lineCov">       1824 :         spin_lock_irq(&amp;log-&gt;log_extents_lock[index]);</span>
+<span class="lineNum">     471 </span><span class="lineCov">       1824 :         list_splice_tail(logged_list, &amp;log-&gt;logged_list[index]);</span>
+<span class="lineNum">     472 </span>            :         spin_unlock_irq(&amp;log-&gt;log_extents_lock[index]);
+<a name="473"><span class="lineNum">     473 </span><span class="lineCov">       1824 : }</span></a>
+<span class="lineNum">     474 </span>            : 
+<span class="lineNum">     475 </span><span class="lineCov">       1477 : void btrfs_wait_logged_extents(struct btrfs_root *log, u64 transid)</span>
+<span class="lineNum">     476 </span>            : {
+<span class="lineNum">     477 </span>            :         struct btrfs_ordered_extent *ordered;
+<span class="lineNum">     478 </span><span class="lineCov">       1477 :         int index = transid % 2;</span>
+<span class="lineNum">     479 </span>            : 
+<span class="lineNum">     480 </span><span class="lineCov">       1477 :         spin_lock_irq(&amp;log-&gt;log_extents_lock[index]);</span>
+<span class="lineNum">     481 </span><span class="lineCov">       5304 :         while (!list_empty(&amp;log-&gt;logged_list[index])) {</span>
+<span class="lineNum">     482 </span><span class="lineCov">       1175 :                 ordered = list_first_entry(&amp;log-&gt;logged_list[index],</span>
+<span class="lineNum">     483 </span>            :                                            struct btrfs_ordered_extent,
+<span class="lineNum">     484 </span>            :                                            log_list);
+<span class="lineNum">     485 </span><span class="lineCov">       1175 :                 list_del_init(&amp;ordered-&gt;log_list);</span>
+<span class="lineNum">     486 </span>            :                 spin_unlock_irq(&amp;log-&gt;log_extents_lock[index]);
+<span class="lineNum">     487 </span>            : 
+<span class="lineNum">     488 </span><span class="lineCov">       1175 :                 if (!test_bit(BTRFS_ORDERED_IO_DONE, &amp;ordered-&gt;flags) &amp;&amp;</span>
+<span class="lineNum">     489 </span>            :                     !test_bit(BTRFS_ORDERED_DIRECT, &amp;ordered-&gt;flags)) {
+<span class="lineNum">     490 </span><span class="lineNoCov">          0 :                         struct inode *inode = ordered-&gt;inode;</span>
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :                         u64 start = ordered-&gt;file_offset;</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :                         u64 end = ordered-&gt;file_offset + ordered-&gt;len - 1;</span>
+<span class="lineNum">     493 </span>            : 
+<span class="lineNum">     494 </span><span class="lineNoCov">          0 :                         WARN_ON(!inode);</span>
+<span class="lineNum">     495 </span><span class="lineNoCov">          0 :                         filemap_fdatawrite_range(inode-&gt;i_mapping, start, end);</span>
+<span class="lineNum">     496 </span>            :                 }
+<span class="lineNum">     497 </span><span class="lineCov">       1175 :                 wait_event(ordered-&gt;wait, test_bit(BTRFS_ORDERED_IO_DONE,</span>
+<span class="lineNum">     498 </span>            :                                                    &amp;ordered-&gt;flags));
+<span class="lineNum">     499 </span>            : 
+<span class="lineNum">     500 </span><span class="lineCov">       1175 :                 btrfs_put_ordered_extent(ordered);</span>
+<span class="lineNum">     501 </span>            :                 spin_lock_irq(&amp;log-&gt;log_extents_lock[index]);
+<span class="lineNum">     502 </span>            :         }
+<span class="lineNum">     503 </span>            :         spin_unlock_irq(&amp;log-&gt;log_extents_lock[index]);
+<a name="504"><span class="lineNum">     504 </span><span class="lineCov">       1477 : }</span></a>
+<span class="lineNum">     505 </span>            : 
+<span class="lineNum">     506 </span><span class="lineCov">        898 : void btrfs_free_logged_extents(struct btrfs_root *log, u64 transid)</span>
+<span class="lineNum">     507 </span>            : {
+<span class="lineNum">     508 </span>            :         struct btrfs_ordered_extent *ordered;
+<span class="lineNum">     509 </span><span class="lineCov">        898 :         int index = transid % 2;</span>
+<span class="lineNum">     510 </span>            : 
+<span class="lineNum">     511 </span><span class="lineCov">        898 :         spin_lock_irq(&amp;log-&gt;log_extents_lock[index]);</span>
+<span class="lineNum">     512 </span><span class="lineCov">       1796 :         while (!list_empty(&amp;log-&gt;logged_list[index])) {</span>
+<span class="lineNum">     513 </span><span class="lineNoCov">          0 :                 ordered = list_first_entry(&amp;log-&gt;logged_list[index],</span>
+<span class="lineNum">     514 </span>            :                                            struct btrfs_ordered_extent,
+<span class="lineNum">     515 </span>            :                                            log_list);
+<span class="lineNum">     516 </span><span class="lineNoCov">          0 :                 list_del_init(&amp;ordered-&gt;log_list);</span>
+<span class="lineNum">     517 </span>            :                 spin_unlock_irq(&amp;log-&gt;log_extents_lock[index]);
+<span class="lineNum">     518 </span><span class="lineNoCov">          0 :                 btrfs_put_ordered_extent(ordered);</span>
+<span class="lineNum">     519 </span>            :                 spin_lock_irq(&amp;log-&gt;log_extents_lock[index]);
+<span class="lineNum">     520 </span>            :         }
+<span class="lineNum">     521 </span>            :         spin_unlock_irq(&amp;log-&gt;log_extents_lock[index]);
+<span class="lineNum">     522 </span><span class="lineCov">        898 : }</span>
+<span class="lineNum">     523 </span>            : 
+<span class="lineNum">     524 </span>            : /*
+<span class="lineNum">     525 </span>            :  * used to drop a reference on an ordered extent.  This will free
+<a name="526"><span class="lineNum">     526 </span>            :  * the extent if the last reference is dropped</a>
+<span class="lineNum">     527 </span>            :  */
+<span class="lineNum">     528 </span><span class="lineCov">     198897 : void btrfs_put_ordered_extent(struct btrfs_ordered_extent *entry)</span>
+<span class="lineNum">     529 </span>            : {
+<span class="lineNum">     530 </span>            :         struct list_head *cur;
+<span class="lineNum">     531 </span>            :         struct btrfs_ordered_sum *sum;
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span><span class="lineCov">     198897 :         trace_btrfs_ordered_extent_put(entry-&gt;inode, entry);</span>
+<span class="lineNum">     534 </span>            : 
+<span class="lineNum">     535 </span><span class="lineCov">     397816 :         if (atomic_dec_and_test(&amp;entry-&gt;refs)) {</span>
+<span class="lineNum">     536 </span><span class="lineCov">      51505 :                 if (entry-&gt;inode)</span>
+<span class="lineNum">     537 </span><span class="lineCov">      51505 :                         btrfs_add_delayed_iput(entry-&gt;inode);</span>
+<span class="lineNum">     538 </span><span class="lineCov">     284776 :                 while (!list_empty(&amp;entry-&gt;list)) {</span>
+<span class="lineNum">     539 </span>            :                         cur = entry-&gt;list.next;
+<span class="lineNum">     540 </span><span class="lineCov">      90883 :                         sum = list_entry(cur, struct btrfs_ordered_sum, list);</span>
+<span class="lineNum">     541 </span><span class="lineCov">      90883 :                         list_del(&amp;sum-&gt;list);</span>
+<span class="lineNum">     542 </span><span class="lineCov">      90883 :                         kfree(sum);</span>
+<span class="lineNum">     543 </span>            :                 }
+<span class="lineNum">     544 </span><span class="lineCov">      51505 :                 kmem_cache_free(btrfs_ordered_extent_cache, entry);</span>
+<span class="lineNum">     545 </span>            :         }
+<span class="lineNum">     546 </span><span class="lineCov">     198925 : }</span>
+<span class="lineNum">     547 </span>            : 
+<span class="lineNum">     548 </span>            : /*
+<span class="lineNum">     549 </span>            :  * remove an ordered extent from the tree.  No references are dropped
+<a name="550"><span class="lineNum">     550 </span>            :  * and waiters are woken up.</a>
+<span class="lineNum">     551 </span>            :  */
+<span class="lineNum">     552 </span><span class="lineCov">      51505 : void btrfs_remove_ordered_extent(struct inode *inode,</span>
+<span class="lineNum">     553 </span>            :                                  struct btrfs_ordered_extent *entry)
+<span class="lineNum">     554 </span>            : {
+<span class="lineNum">     555 </span>            :         struct btrfs_ordered_inode_tree *tree;
+<span class="lineNum">     556 </span><span class="lineCov">      51505 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     557 </span>            :         struct rb_node *node;
+<span class="lineNum">     558 </span>            : 
+<span class="lineNum">     559 </span>            :         tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;
+<span class="lineNum">     560 </span>            :         spin_lock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     561 </span><span class="lineCov">      51505 :         node = &amp;entry-&gt;rb_node;</span>
+<span class="lineNum">     562 </span><span class="lineCov">      51505 :         rb_erase(node, &amp;tree-&gt;tree);</span>
+<span class="lineNum">     563 </span><span class="lineCov">      51505 :         if (tree-&gt;last == node)</span>
+<span class="lineNum">     564 </span><span class="lineCov">      41164 :                 tree-&gt;last = NULL;</span>
+<span class="lineNum">     565 </span>            :         set_bit(BTRFS_ORDERED_COMPLETE, &amp;entry-&gt;flags);
+<span class="lineNum">     566 </span>            :         spin_unlock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     567 </span>            : 
+<span class="lineNum">     568 </span>            :         spin_lock(&amp;root-&gt;ordered_extent_lock);
+<span class="lineNum">     569 </span><span class="lineCov">      51505 :         list_del_init(&amp;entry-&gt;root_extent_list);</span>
+<span class="lineNum">     570 </span><span class="lineCov">      51505 :         root-&gt;nr_ordered_extents--;</span>
+<span class="lineNum">     571 </span>            : 
+<span class="lineNum">     572 </span><span class="lineCov">      51505 :         trace_btrfs_ordered_extent_remove(inode, entry);</span>
+<span class="lineNum">     573 </span>            : 
+<span class="lineNum">     574 </span><span class="lineCov">      51505 :         if (!root-&gt;nr_ordered_extents) {</span>
+<span class="lineNum">     575 </span><span class="lineCov">      30685 :                 spin_lock(&amp;root-&gt;fs_info-&gt;ordered_root_lock);</span>
+<span class="lineNum">     576 </span><span class="lineCov">      61370 :                 BUG_ON(list_empty(&amp;root-&gt;ordered_root));</span>
+<span class="lineNum">     577 </span>            :                 list_del_init(&amp;root-&gt;ordered_root);
+<span class="lineNum">     578 </span><span class="lineCov">      30685 :                 spin_unlock(&amp;root-&gt;fs_info-&gt;ordered_root_lock);</span>
+<span class="lineNum">     579 </span>            :         }
+<span class="lineNum">     580 </span>            :         spin_unlock(&amp;root-&gt;ordered_extent_lock);
+<span class="lineNum">     581 </span><span class="lineCov">      51505 :         wake_up(&amp;entry-&gt;wait);</span>
+<a name="582"><span class="lineNum">     582 </span><span class="lineCov">      51504 : }</span></a>
+<span class="lineNum">     583 </span>            : 
+<span class="lineNum">     584 </span><span class="lineCov">       1053 : static void btrfs_run_ordered_extent_work(struct btrfs_work *work)</span>
+<span class="lineNum">     585 </span>            : {
+<span class="lineNum">     586 </span>            :         struct btrfs_ordered_extent *ordered;
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span><span class="lineCov">       1053 :         ordered = container_of(work, struct btrfs_ordered_extent, flush_work);</span>
+<span class="lineNum">     589 </span><span class="lineCov">       1053 :         btrfs_start_ordered_extent(ordered-&gt;inode, ordered, 1);</span>
+<span class="lineNum">     590 </span><span class="lineCov">       1049 :         complete(&amp;ordered-&gt;completion);</span>
+<span class="lineNum">     591 </span><span class="lineCov">       1052 : }</span>
+<span class="lineNum">     592 </span>            : 
+<span class="lineNum">     593 </span>            : /*
+<span class="lineNum">     594 </span>            :  * wait for all the ordered extents in a root.  This is done when balancing
+<a name="595"><span class="lineNum">     595 </span>            :  * space between drives.</a>
+<span class="lineNum">     596 </span>            :  */
+<span class="lineNum">     597 </span><span class="lineCov">        193 : int btrfs_wait_ordered_extents(struct btrfs_root *root, int nr)</span>
+<span class="lineNum">     598 </span>            : {
+<span class="lineNum">     599 </span>            :         struct list_head splice, works;
+<span class="lineNum">     600 </span>            :         struct btrfs_ordered_extent *ordered, *next;
+<span class="lineNum">     601 </span>            :         int count = 0;
+<span class="lineNum">     602 </span>            : 
+<span class="lineNum">     603 </span>            :         INIT_LIST_HEAD(&amp;splice);
+<span class="lineNum">     604 </span>            :         INIT_LIST_HEAD(&amp;works);
+<span class="lineNum">     605 </span>            : 
+<span class="lineNum">     606 </span><span class="lineCov">        193 :         mutex_lock(&amp;root-&gt;ordered_extent_mutex);</span>
+<span class="lineNum">     607 </span>            :         spin_lock(&amp;root-&gt;ordered_extent_lock);
+<span class="lineNum">     608 </span><span class="lineCov">        193 :         list_splice_init(&amp;root-&gt;ordered_extents, &amp;splice);</span>
+<span class="lineNum">     609 </span><span class="lineCov">       1246 :         while (!list_empty(&amp;splice) &amp;&amp; nr) {</span>
+<span class="lineNum">     610 </span>            :                 ordered = list_first_entry(&amp;splice, struct btrfs_ordered_extent,
+<span class="lineNum">     611 </span>            :                                            root_extent_list);
+<span class="lineNum">     612 </span><span class="lineCov">       1053 :                 list_move_tail(&amp;ordered-&gt;root_extent_list,</span>
+<span class="lineNum">     613 </span>            :                                &amp;root-&gt;ordered_extents);
+<span class="lineNum">     614 </span><span class="lineCov">       1053 :                 atomic_inc(&amp;ordered-&gt;refs);</span>
+<span class="lineNum">     615 </span>            :                 spin_unlock(&amp;root-&gt;ordered_extent_lock);
+<span class="lineNum">     616 </span>            : 
+<span class="lineNum">     617 </span><span class="lineCov">       1053 :                 btrfs_init_work(&amp;ordered-&gt;flush_work,</span>
+<span class="lineNum">     618 </span>            :                                 btrfs_flush_delalloc_helper,
+<span class="lineNum">     619 </span>            :                                 btrfs_run_ordered_extent_work, NULL, NULL);
+<span class="lineNum">     620 </span><span class="lineCov">       1053 :                 list_add_tail(&amp;ordered-&gt;work_list, &amp;works);</span>
+<span class="lineNum">     621 </span><span class="lineCov">       1053 :                 btrfs_queue_work(root-&gt;fs_info-&gt;flush_workers,</span>
+<span class="lineNum">     622 </span>            :                                  &amp;ordered-&gt;flush_work);
+<span class="lineNum">     623 </span>            : 
+<span class="lineNum">     624 </span><span class="lineCov">       1053 :                 cond_resched();</span>
+<span class="lineNum">     625 </span>            :                 spin_lock(&amp;root-&gt;ordered_extent_lock);
+<span class="lineNum">     626 </span><span class="lineCov">       1053 :                 if (nr != -1)</span>
+<span class="lineNum">     627 </span><span class="lineCov">         14 :                         nr--;</span>
+<span class="lineNum">     628 </span><span class="lineCov">       1053 :                 count++;</span>
+<span class="lineNum">     629 </span>            :         }
+<span class="lineNum">     630 </span>            :         list_splice_tail(&amp;splice, &amp;root-&gt;ordered_extents);
+<span class="lineNum">     631 </span>            :         spin_unlock(&amp;root-&gt;ordered_extent_lock);
+<span class="lineNum">     632 </span>            : 
+<span class="lineNum">     633 </span><span class="lineCov">       1246 :         list_for_each_entry_safe(ordered, next, &amp;works, work_list) {</span>
+<span class="lineNum">     634 </span>            :                 list_del_init(&amp;ordered-&gt;work_list);
+<span class="lineNum">     635 </span><span class="lineCov">       1053 :                 wait_for_completion(&amp;ordered-&gt;completion);</span>
+<span class="lineNum">     636 </span><span class="lineCov">       1053 :                 btrfs_put_ordered_extent(ordered);</span>
+<span class="lineNum">     637 </span><span class="lineCov">       1053 :                 cond_resched();</span>
+<span class="lineNum">     638 </span>            :         }
+<span class="lineNum">     639 </span><span class="lineCov">        193 :         mutex_unlock(&amp;root-&gt;ordered_extent_mutex);</span>
+<span class="lineNum">     640 </span>            : 
+<span class="lineNum">     641 </span><span class="lineCov">        193 :         return count;</span>
+<a name="642"><span class="lineNum">     642 </span>            : }</a>
+<span class="lineNum">     643 </span>            : 
+<span class="lineNum">     644 </span><span class="lineCov">       2492 : void btrfs_wait_ordered_roots(struct btrfs_fs_info *fs_info, int nr)</span>
+<span class="lineNum">     645 </span>            : {
+<span class="lineNum">     646 </span>            :         struct btrfs_root *root;
+<span class="lineNum">     647 </span>            :         struct list_head splice;
+<span class="lineNum">     648 </span>            :         int done;
+<span class="lineNum">     649 </span>            : 
+<span class="lineNum">     650 </span>            :         INIT_LIST_HEAD(&amp;splice);
+<span class="lineNum">     651 </span>            : 
+<span class="lineNum">     652 </span><span class="lineCov">       2492 :         mutex_lock(&amp;fs_info-&gt;ordered_operations_mutex);</span>
+<span class="lineNum">     653 </span>            :         spin_lock(&amp;fs_info-&gt;ordered_root_lock);
+<span class="lineNum">     654 </span><span class="lineCov">       2493 :         list_splice_init(&amp;fs_info-&gt;ordered_roots, &amp;splice);</span>
+<span class="lineNum">     655 </span><span class="lineCov">       2540 :         while (!list_empty(&amp;splice) &amp;&amp; nr) {</span>
+<span class="lineNum">     656 </span><span class="lineCov">         47 :                 root = list_first_entry(&amp;splice, struct btrfs_root,</span>
+<span class="lineNum">     657 </span>            :                                         ordered_root);
+<span class="lineNum">     658 </span><span class="lineCov">         47 :                 root = btrfs_grab_fs_root(root);</span>
+<span class="lineNum">     659 </span><span class="lineCov">         47 :                 BUG_ON(!root);</span>
+<span class="lineNum">     660 </span><span class="lineCov">         47 :                 list_move_tail(&amp;root-&gt;ordered_root,</span>
+<span class="lineNum">     661 </span>            :                                &amp;fs_info-&gt;ordered_roots);
+<span class="lineNum">     662 </span>            :                 spin_unlock(&amp;fs_info-&gt;ordered_root_lock);
+<span class="lineNum">     663 </span>            : 
+<span class="lineNum">     664 </span><span class="lineCov">         47 :                 done = btrfs_wait_ordered_extents(root, nr);</span>
+<span class="lineNum">     665 </span><span class="lineCov">         47 :                 btrfs_put_fs_root(root);</span>
+<span class="lineNum">     666 </span>            : 
+<span class="lineNum">     667 </span>            :                 spin_lock(&amp;fs_info-&gt;ordered_root_lock);
+<span class="lineNum">     668 </span><span class="lineCov">         47 :                 if (nr != -1) {</span>
+<span class="lineNum">     669 </span><span class="lineCov">          3 :                         nr -= done;</span>
+<span class="lineNum">     670 </span><span class="lineCov">          3 :                         WARN_ON(nr &lt; 0);</span>
+<span class="lineNum">     671 </span>            :                 }
+<span class="lineNum">     672 </span>            :         }
+<span class="lineNum">     673 </span>            :         list_splice_tail(&amp;splice, &amp;fs_info-&gt;ordered_roots);
+<span class="lineNum">     674 </span>            :         spin_unlock(&amp;fs_info-&gt;ordered_root_lock);
+<span class="lineNum">     675 </span><span class="lineCov">       2493 :         mutex_unlock(&amp;fs_info-&gt;ordered_operations_mutex);</span>
+<span class="lineNum">     676 </span><span class="lineCov">       2493 : }</span>
+<span class="lineNum">     677 </span>            : 
+<span class="lineNum">     678 </span>            : /*
+<span class="lineNum">     679 </span>            :  * Used to start IO or wait for a given ordered extent to finish.
+<span class="lineNum">     680 </span>            :  *
+<span class="lineNum">     681 </span>            :  * If wait is one, this effectively waits on page writeback for all the pages
+<span class="lineNum">     682 </span>            :  * in the extent, and it waits on the io completion code to insert
+<a name="683"><span class="lineNum">     683 </span>            :  * metadata into the btree corresponding to the extent</a>
+<span class="lineNum">     684 </span>            :  */
+<span class="lineNum">     685 </span><span class="lineCov">       3875 : void btrfs_start_ordered_extent(struct inode *inode,</span>
+<span class="lineNum">     686 </span>            :                                        struct btrfs_ordered_extent *entry,
+<span class="lineNum">     687 </span>            :                                        int wait)
+<span class="lineNum">     688 </span>            : {
+<span class="lineNum">     689 </span><span class="lineCov">       3875 :         u64 start = entry-&gt;file_offset;</span>
+<span class="lineNum">     690 </span><span class="lineCov">       3875 :         u64 end = start + entry-&gt;len - 1;</span>
+<span class="lineNum">     691 </span>            : 
+<span class="lineNum">     692 </span><span class="lineCov">       3875 :         trace_btrfs_ordered_extent_start(inode, entry);</span>
+<span class="lineNum">     693 </span>            : 
+<span class="lineNum">     694 </span>            :         /*
+<span class="lineNum">     695 </span>            :          * pages in the range can be dirty, clean or writeback.  We
+<span class="lineNum">     696 </span>            :          * start IO on any dirty ones so the wait doesn't stall waiting
+<span class="lineNum">     697 </span>            :          * for the flusher thread to find them
+<span class="lineNum">     698 </span>            :          */
+<span class="lineNum">     699 </span><span class="lineCov">       3875 :         if (!test_bit(BTRFS_ORDERED_DIRECT, &amp;entry-&gt;flags))</span>
+<span class="lineNum">     700 </span><span class="lineCov">       3875 :                 filemap_fdatawrite_range(inode-&gt;i_mapping, start, end);</span>
+<span class="lineNum">     701 </span><span class="lineCov">       3875 :         if (wait) {</span>
+<span class="lineNum">     702 </span><span class="lineCov">      14832 :                 wait_event(entry-&gt;wait, test_bit(BTRFS_ORDERED_COMPLETE,</span>
+<span class="lineNum">     703 </span>            :                                                  &amp;entry-&gt;flags));
+<span class="lineNum">     704 </span>            :         }
+<span class="lineNum">     705 </span><span class="lineCov">       3874 : }</span>
+<span class="lineNum">     706 </span>            : 
+<span class="lineNum">     707 </span>            : /*
+<a name="708"><span class="lineNum">     708 </span>            :  * Used to wait on ordered extents across a large range of bytes.</a>
+<span class="lineNum">     709 </span>            :  */
+<span class="lineNum">     710 </span><span class="lineCov">      17638 : int btrfs_wait_ordered_range(struct inode *inode, u64 start, u64 len)</span>
+<span class="lineNum">     711 </span>            : {
+<span class="lineNum">     712 </span>            :         int ret = 0;
+<span class="lineNum">     713 </span>            :         u64 end;
+<span class="lineNum">     714 </span>            :         u64 orig_end;
+<span class="lineNum">     715 </span>            :         struct btrfs_ordered_extent *ordered;
+<span class="lineNum">     716 </span>            : 
+<span class="lineNum">     717 </span><span class="lineCov">      17638 :         if (start + len &lt; start) {</span>
+<span class="lineNum">     718 </span>            :                 orig_end = INT_LIMIT(loff_t);
+<span class="lineNum">     719 </span>            :         } else {
+<span class="lineNum">     720 </span><span class="lineCov">      15421 :                 orig_end = start + len - 1;</span>
+<span class="lineNum">     721 </span><span class="lineCov">      15421 :                 if (orig_end &gt; INT_LIMIT(loff_t))</span>
+<span class="lineNum">     722 </span>            :                         orig_end = INT_LIMIT(loff_t);
+<span class="lineNum">     723 </span>            :         }
+<span class="lineNum">     724 </span>            : 
+<span class="lineNum">     725 </span>            :         /* start IO across the range first to instantiate any delalloc
+<span class="lineNum">     726 </span>            :          * extents
+<span class="lineNum">     727 </span>            :          */
+<span class="lineNum">     728 </span><span class="lineCov">      17638 :         ret = filemap_fdatawrite_range(inode-&gt;i_mapping, start, orig_end);</span>
+<span class="lineNum">     729 </span><span class="lineCov">      17637 :         if (ret)</span>
+<span class="lineNum">     730 </span>            :                 return ret;
+<span class="lineNum">     731 </span>            :         /*
+<span class="lineNum">     732 </span>            :          * So with compression we will find and lock a dirty page and clear the
+<span class="lineNum">     733 </span>            :          * first one as dirty, setup an async extent, and immediately return
+<span class="lineNum">     734 </span>            :          * with the entire range locked but with nobody actually marked with
+<span class="lineNum">     735 </span>            :          * writeback.  So we can't just filemap_write_and_wait_range() and
+<span class="lineNum">     736 </span>            :          * expect it to work since it will just kick off a thread to do the
+<span class="lineNum">     737 </span>            :          * actual work.  So we need to call filemap_fdatawrite_range _again_
+<span class="lineNum">     738 </span>            :          * since it will wait on the page lock, which won't be unlocked until
+<span class="lineNum">     739 </span>            :          * after the pages have been marked as writeback and so we're good to go
+<span class="lineNum">     740 </span>            :          * from there.  We have to do this otherwise we'll miss the ordered
+<span class="lineNum">     741 </span>            :          * extents and that results in badness.  Please Josef, do not think you
+<span class="lineNum">     742 </span>            :          * know better and pull this out at some point in the future, it is
+<span class="lineNum">     743 </span>            :          * right and you are wrong.
+<span class="lineNum">     744 </span>            :          */
+<span class="lineNum">     745 </span><span class="lineCov">      17637 :         if (test_bit(BTRFS_INODE_HAS_ASYNC_EXTENT,</span>
+<span class="lineNum">     746 </span>            :                      &amp;BTRFS_I(inode)-&gt;runtime_flags)) {
+<span class="lineNum">     747 </span><span class="lineCov">         90 :                 ret = filemap_fdatawrite_range(inode-&gt;i_mapping, start,</span>
+<span class="lineNum">     748 </span>            :                                                orig_end);
+<span class="lineNum">     749 </span><span class="lineCov">         90 :                 if (ret)</span>
+<span class="lineNum">     750 </span>            :                         return ret;
+<span class="lineNum">     751 </span>            :         }
+<span class="lineNum">     752 </span><span class="lineCov">      17637 :         ret = filemap_fdatawait_range(inode-&gt;i_mapping, start, orig_end);</span>
+<span class="lineNum">     753 </span><span class="lineCov">      17638 :         if (ret)</span>
+<span class="lineNum">     754 </span>            :                 return ret;
+<span class="lineNum">     755 </span>            : 
+<span class="lineNum">     756 </span>            :         end = orig_end;
+<span class="lineNum">     757 </span>            :         while (1) {
+<span class="lineNum">     758 </span><span class="lineCov">      17855 :                 ordered = btrfs_lookup_first_ordered_extent(inode, end);</span>
+<span class="lineNum">     759 </span><span class="lineCov">      17855 :                 if (!ordered)</span>
+<span class="lineNum">     760 </span>            :                         break;
+<span class="lineNum">     761 </span><span class="lineCov">       2809 :                 if (ordered-&gt;file_offset &gt; orig_end) {</span>
+<span class="lineNum">     762 </span><span class="lineNoCov">          0 :                         btrfs_put_ordered_extent(ordered);</span>
+<span class="lineNum">     763 </span><span class="lineNoCov">          0 :                         break;</span>
+<span class="lineNum">     764 </span>            :                 }
+<span class="lineNum">     765 </span><span class="lineCov">       2809 :                 if (ordered-&gt;file_offset + ordered-&gt;len &lt;= start) {</span>
+<span class="lineNum">     766 </span><span class="lineCov">          4 :                         btrfs_put_ordered_extent(ordered);</span>
+<span class="lineNum">     767 </span><span class="lineCov">          4 :                         break;</span>
+<span class="lineNum">     768 </span>            :                 }
+<span class="lineNum">     769 </span><span class="lineCov">       2805 :                 btrfs_start_ordered_extent(inode, ordered, 1);</span>
+<span class="lineNum">     770 </span><span class="lineCov">       2805 :                 end = ordered-&gt;file_offset;</span>
+<span class="lineNum">     771 </span><span class="lineCov">       2805 :                 if (test_bit(BTRFS_ORDERED_IOERR, &amp;ordered-&gt;flags))</span>
+<span class="lineNum">     772 </span>            :                         ret = -EIO;
+<span class="lineNum">     773 </span><span class="lineCov">       2805 :                 btrfs_put_ordered_extent(ordered);</span>
+<span class="lineNum">     774 </span><span class="lineCov">       2805 :                 if (ret || end == 0 || end == start)</span>
+<span class="lineNum">     775 </span>            :                         break;
+<span class="lineNum">     776 </span><span class="lineCov">        217 :                 end--;</span>
+<span class="lineNum">     777 </span><span class="lineCov">        217 :         }</span>
+<span class="lineNum">     778 </span><span class="lineCov">      17638 :         return ret;</span>
+<span class="lineNum">     779 </span>            : }
+<span class="lineNum">     780 </span>            : 
+<span class="lineNum">     781 </span>            : /*
+<span class="lineNum">     782 </span>            :  * find an ordered extent corresponding to file_offset.  return NULL if
+<span class="lineNum">     783 </span>            :  * nothing is found, otherwise take a reference on the extent and return it
+<span class="lineNum">     784 </span>            :  */
+<span class="lineNum">     785 </span><span class="lineCov">    1919242 : struct btrfs_ordered_extent *btrfs_lookup_ordered_extent(struct inode *inode,</span>
+<span class="lineNum">     786 </span>            :                                                          u64 file_offset)
+<span class="lineNum">     787 </span>            : {
+<span class="lineNum">     788 </span>            :         struct btrfs_ordered_inode_tree *tree;
+<span class="lineNum">     789 </span>            :         struct rb_node *node;
+<span class="lineNum">     790 </span><span class="lineCov">      90972 :         struct btrfs_ordered_extent *entry = NULL;</span>
+<span class="lineNum">     791 </span>            : 
+<span class="lineNum">     792 </span><span class="lineCov">    1919242 :         tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;</span>
+<span class="lineNum">     793 </span>            :         spin_lock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     794 </span><span class="lineCov">    1919295 :         node = tree_search(tree, file_offset);</span>
+<span class="lineNum">     795 </span><span class="lineCov">    1919292 :         if (!node)</span>
+<span class="lineNum">     796 </span>            :                 goto out;
+<span class="lineNum">     797 </span>            : 
+<span class="lineNum">     798 </span><span class="lineCov">      90972 :         entry = rb_entry(node, struct btrfs_ordered_extent, rb_node);</span>
+<span class="lineNum">     799 </span><span class="lineCov">      90972 :         if (!offset_in_entry(entry, file_offset))</span>
+<span class="lineNum">     800 </span>            :                 entry = NULL;
+<span class="lineNum">     801 </span><span class="lineCov">      90972 :         if (entry)</span>
+<span class="lineNum">     802 </span><span class="lineCov">      90889 :                 atomic_inc(&amp;entry-&gt;refs);</span>
+<span class="lineNum">     803 </span>            : out:
+<span class="lineNum">     804 </span>            :         spin_unlock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     805 </span><span class="lineCov">    1919296 :         return entry;</span>
+<span class="lineNum">     806 </span>            : }
+<span class="lineNum">     807 </span>            : 
+<span class="lineNum">     808 </span>            : /* Since the DIO code tries to lock a wide area we need to look for any ordered
+<span class="lineNum">     809 </span>            :  * extents that exist in the range, rather than just the start of the range.
+<span class="lineNum">     810 </span>            :  */
+<span class="lineNum">     811 </span><span class="lineCov">     118648 : struct btrfs_ordered_extent *btrfs_lookup_ordered_range(struct inode *inode,</span>
+<span class="lineNum">     812 </span>            :                                                         u64 file_offset,
+<span class="lineNum">     813 </span>            :                                                         u64 len)
+<span class="lineNum">     814 </span>            : {
+<span class="lineNum">     815 </span>            :         struct btrfs_ordered_inode_tree *tree;
+<span class="lineNum">     816 </span>            :         struct rb_node *node;
+<span class="lineNum">     817 </span><span class="lineCov">       2215 :         struct btrfs_ordered_extent *entry = NULL;</span>
+<span class="lineNum">     818 </span>            : 
+<span class="lineNum">     819 </span><span class="lineCov">     118648 :         tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;</span>
+<span class="lineNum">     820 </span>            :         spin_lock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     821 </span><span class="lineCov">     118653 :         node = tree_search(tree, file_offset);</span>
+<span class="lineNum">     822 </span><span class="lineCov">     118652 :         if (!node) {</span>
+<span class="lineNum">     823 </span><span class="lineCov">     116440 :                 node = tree_search(tree, file_offset + len);</span>
+<span class="lineNum">     824 </span><span class="lineCov">     116440 :                 if (!node)</span>
+<span class="lineNum">     825 </span>            :                         goto out;
+<span class="lineNum">     826 </span>            :         }
+<span class="lineNum">     827 </span>            : 
+<span class="lineNum">     828 </span>            :         while (1) {
+<span class="lineNum">     829 </span><span class="lineCov">       2215 :                 entry = rb_entry(node, struct btrfs_ordered_extent, rb_node);</span>
+<span class="lineNum">     830 </span><span class="lineCov">       2215 :                 if (range_overlaps(entry, file_offset, len))</span>
+<span class="lineNum">     831 </span>            :                         break;
+<span class="lineNum">     832 </span>            : 
+<span class="lineNum">     833 </span><span class="lineCov">       2207 :                 if (entry-&gt;file_offset &gt;= file_offset + len) {</span>
+<span class="lineNum">     834 </span>            :                         entry = NULL;
+<span class="lineNum">     835 </span>            :                         break;
+<span class="lineNum">     836 </span>            :                 }
+<span class="lineNum">     837 </span>            :                 entry = NULL;
+<span class="lineNum">     838 </span><span class="lineCov">       2194 :                 node = rb_next(node);</span>
+<span class="lineNum">     839 </span><span class="lineCov">       2195 :                 if (!node)</span>
+<span class="lineNum">     840 </span>            :                         break;
+<span class="lineNum">     841 </span>            :         }
+<span class="lineNum">     842 </span>            : out:
+<span class="lineNum">     843 </span><span class="lineCov">     118653 :         if (entry)</span>
+<span class="lineNum">     844 </span><span class="lineCov">          8 :                 atomic_inc(&amp;entry-&gt;refs);</span>
+<span class="lineNum">     845 </span>            :         spin_unlock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     846 </span><span class="lineCov">     118651 :         return entry;</span>
+<span class="lineNum">     847 </span>            : }
+<span class="lineNum">     848 </span>            : 
+<span class="lineNum">     849 </span>            : /*
+<span class="lineNum">     850 </span>            :  * lookup and return any extent before 'file_offset'.  NULL is returned
+<span class="lineNum">     851 </span>            :  * if none is found
+<a name="852"><span class="lineNum">     852 </span>            :  */</a>
+<span class="lineNum">     853 </span>            : struct btrfs_ordered_extent *
+<span class="lineNum">     854 </span><span class="lineCov">      46076 : btrfs_lookup_first_ordered_extent(struct inode *inode, u64 file_offset)</span>
+<span class="lineNum">     855 </span>            : {
+<span class="lineNum">     856 </span>            :         struct btrfs_ordered_inode_tree *tree;
+<span class="lineNum">     857 </span>            :         struct rb_node *node;
+<span class="lineNum">     858 </span>            :         struct btrfs_ordered_extent *entry = NULL;
+<span class="lineNum">     859 </span>            : 
+<span class="lineNum">     860 </span><span class="lineCov">      46076 :         tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;</span>
+<span class="lineNum">     861 </span>            :         spin_lock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     862 </span><span class="lineCov">      46076 :         node = tree_search(tree, file_offset);</span>
+<span class="lineNum">     863 </span><span class="lineCov">      46076 :         if (!node)</span>
+<span class="lineNum">     864 </span>            :                 goto out;
+<span class="lineNum">     865 </span>            : 
+<span class="lineNum">     866 </span><span class="lineCov">       2812 :         entry = rb_entry(node, struct btrfs_ordered_extent, rb_node);</span>
+<span class="lineNum">     867 </span><span class="lineCov">       2812 :         atomic_inc(&amp;entry-&gt;refs);</span>
+<span class="lineNum">     868 </span>            : out:
+<span class="lineNum">     869 </span>            :         spin_unlock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     870 </span><span class="lineCov">      46076 :         return entry;</span>
+<span class="lineNum">     871 </span>            : }
+<span class="lineNum">     872 </span>            : 
+<span class="lineNum">     873 </span>            : /*
+<span class="lineNum">     874 </span>            :  * After an extent is done, call this to conditionally update the on disk
+<span class="lineNum">     875 </span>            :  * i_size.  i_size is updated to cover any fully written part of the file.
+<span class="lineNum">     876 </span>            :  */
+<span class="lineNum">     877 </span><span class="lineCov">     131334 : int btrfs_ordered_update_i_size(struct inode *inode, u64 offset,</span>
+<span class="lineNum">     878 </span><span class="lineCov">      51505 :                                 struct btrfs_ordered_extent *ordered)</span>
+<span class="lineNum">     879 </span>            : {
+<span class="lineNum">     880 </span><span class="lineCov">      65667 :         struct btrfs_ordered_inode_tree *tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;</span>
+<span class="lineNum">     881 </span>            :         u64 disk_i_size;
+<span class="lineNum">     882 </span>            :         u64 new_i_size;
+<span class="lineNum">     883 </span><span class="lineCov">      65667 :         u64 i_size = i_size_read(inode);</span>
+<span class="lineNum">     884 </span>            :         struct rb_node *node;
+<span class="lineNum">     885 </span>            :         struct rb_node *prev = NULL;
+<span class="lineNum">     886 </span><span class="lineCov">        253 :         struct btrfs_ordered_extent *test;</span>
+<span class="lineNum">     887 </span>            :         int ret = 1;
+<span class="lineNum">     888 </span>            : 
+<span class="lineNum">     889 </span>            :         spin_lock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     890 </span><span class="lineCov">      65667 :         if (ordered) {</span>
+<span class="lineNum">     891 </span>            :                 offset = entry_end(ordered);
+<span class="lineNum">     892 </span><span class="lineCov">      51505 :                 if (test_bit(BTRFS_ORDERED_TRUNCATED, &amp;ordered-&gt;flags))</span>
+<span class="lineNum">     893 </span><span class="lineNoCov">          0 :                         offset = min(offset,</span>
+<span class="lineNum">     894 </span>            :                                      ordered-&gt;file_offset +
+<span class="lineNum">     895 </span>            :                                      ordered-&gt;truncated_len);
+<span class="lineNum">     896 </span>            :         } else {
+<span class="lineNum">     897 </span><span class="lineCov">      14162 :                 offset = ALIGN(offset, BTRFS_I(inode)-&gt;root-&gt;sectorsize);</span>
+<span class="lineNum">     898 </span>            :         }
+<span class="lineNum">     899 </span><span class="lineCov">      65667 :         disk_i_size = BTRFS_I(inode)-&gt;disk_i_size;</span>
+<span class="lineNum">     900 </span>            : 
+<span class="lineNum">     901 </span>            :         /* truncate file */
+<span class="lineNum">     902 </span><span class="lineCov">      65667 :         if (disk_i_size &gt; i_size) {</span>
+<span class="lineNum">     903 </span><span class="lineCov">        560 :                 BTRFS_I(inode)-&gt;disk_i_size = i_size;</span>
+<span class="lineNum">     904 </span>            :                 ret = 0;
+<span class="lineNum">     905 </span><span class="lineCov">        560 :                 goto out;</span>
+<span class="lineNum">     906 </span>            :         }
+<span class="lineNum">     907 </span>            : 
+<span class="lineNum">     908 </span>            :         /*
+<span class="lineNum">     909 </span>            :          * if the disk i_size is already at the inode-&gt;i_size, or
+<span class="lineNum">     910 </span>            :          * this ordered extent is inside the disk i_size, we're done
+<span class="lineNum">     911 </span>            :          */
+<span class="lineNum">     912 </span><span class="lineCov">      65107 :         if (disk_i_size == i_size)</span>
+<span class="lineNum">     913 </span>            :                 goto out;
+<span class="lineNum">     914 </span>            : 
+<span class="lineNum">     915 </span>            :         /*
+<span class="lineNum">     916 </span>            :          * We still need to update disk_i_size if outstanding_isize is greater
+<span class="lineNum">     917 </span>            :          * than disk_i_size.
+<span class="lineNum">     918 </span>            :          */
+<span class="lineNum">     919 </span><span class="lineCov">      20819 :         if (offset &lt;= disk_i_size &amp;&amp;</span>
+<span class="lineNum">     920 </span><span class="lineCov">         79 :             (!ordered || ordered-&gt;outstanding_isize &lt;= disk_i_size))</span>
+<span class="lineNum">     921 </span>            :                 goto out;
+<span class="lineNum">     922 </span>            : 
+<span class="lineNum">     923 </span>            :         /*
+<span class="lineNum">     924 </span>            :          * walk backward from this ordered extent to disk_i_size.
+<span class="lineNum">     925 </span>            :          * if we find an ordered extent then we can't update disk i_size
+<span class="lineNum">     926 </span>            :          * yet
+<span class="lineNum">     927 </span>            :          */
+<span class="lineNum">     928 </span><span class="lineCov">      20740 :         if (ordered) {</span>
+<span class="lineNum">     929 </span><span class="lineCov">      14354 :                 node = rb_prev(&amp;ordered-&gt;rb_node);</span>
+<span class="lineNum">     930 </span>            :         } else {
+<span class="lineNum">     931 </span><span class="lineCov">       6386 :                 prev = tree_search(tree, offset);</span>
+<span class="lineNum">     932 </span>            :                 /*
+<span class="lineNum">     933 </span>            :                  * we insert file extents without involving ordered struct,
+<span class="lineNum">     934 </span>            :                  * so there should be no ordered struct cover this offset
+<span class="lineNum">     935 </span>            :                  */
+<span class="lineNum">     936 </span><span class="lineCov">       6386 :                 if (prev) {</span>
+<span class="lineNum">     937 </span>            :                         test = rb_entry(prev, struct btrfs_ordered_extent,
+<span class="lineNum">     938 </span>            :                                         rb_node);
+<span class="lineNum">     939 </span><span class="lineCov">          6 :                         BUG_ON(offset_in_entry(test, offset));</span>
+<span class="lineNum">     940 </span>            :                 }
+<span class="lineNum">     941 </span>            :                 node = prev;
+<span class="lineNum">     942 </span>            :         }
+<span class="lineNum">     943 </span><span class="lineCov">         24 :         for (; node; node = rb_prev(node)) {</span>
+<span class="lineNum">     944 </span>            :                 test = rb_entry(node, struct btrfs_ordered_extent, rb_node);
+<span class="lineNum">     945 </span>            : 
+<span class="lineNum">     946 </span>            :                 /* We treat this entry as if it doesnt exist */
+<span class="lineNum">     947 </span><span class="lineCov">        305 :                 if (test_bit(BTRFS_ORDERED_UPDATED_ISIZE, &amp;test-&gt;flags))</span>
+<span class="lineNum">     948 </span><span class="lineCov">         24 :                         continue;</span>
+<span class="lineNum">     949 </span><span class="lineCov">        281 :                 if (test-&gt;file_offset + test-&gt;len &lt;= disk_i_size)</span>
+<span class="lineNum">     950 </span>            :                         break;
+<span class="lineNum">     951 </span><span class="lineCov">        247 :                 if (test-&gt;file_offset &gt;= i_size)</span>
+<span class="lineNum">     952 </span>            :                         break;
+<span class="lineNum">     953 </span><span class="lineCov">        247 :                 if (entry_end(test) &gt; disk_i_size) {</span>
+<span class="lineNum">     954 </span>            :                         /*
+<span class="lineNum">     955 </span>            :                          * we don't update disk_i_size now, so record this
+<span class="lineNum">     956 </span>            :                          * undealt i_size. Or we will not know the real
+<span class="lineNum">     957 </span>            :                          * i_size.
+<span class="lineNum">     958 </span>            :                          */
+<span class="lineNum">     959 </span><span class="lineCov">        247 :                         if (test-&gt;outstanding_isize &lt; offset)</span>
+<span class="lineNum">     960 </span><span class="lineCov">        247 :                                 test-&gt;outstanding_isize = offset;</span>
+<span class="lineNum">     961 </span><span class="lineCov">        488 :                         if (ordered &amp;&amp;</span>
+<span class="lineNum">     962 </span><span class="lineCov">        241 :                             ordered-&gt;outstanding_isize &gt;</span>
+<span class="lineNum">     963 </span><span class="lineCov">        241 :                             test-&gt;outstanding_isize)</span>
+<span class="lineNum">     964 </span><span class="lineCov">         15 :                                 test-&gt;outstanding_isize =</span>
+<span class="lineNum">     965 </span>            :                                                 ordered-&gt;outstanding_isize;
+<span class="lineNum">     966 </span>            :                         goto out;
+<span class="lineNum">     967 </span>            :                 }
+<span class="lineNum">     968 </span>            :         }
+<span class="lineNum">     969 </span><span class="lineCov">      20493 :         new_i_size = min_t(u64, offset, i_size);</span>
+<span class="lineNum">     970 </span>            : 
+<span class="lineNum">     971 </span>            :         /*
+<span class="lineNum">     972 </span>            :          * Some ordered extents may completed before the current one, and
+<span class="lineNum">     973 </span>            :          * we hold the real i_size in -&gt;outstanding_isize.
+<span class="lineNum">     974 </span>            :          */
+<span class="lineNum">     975 </span><span class="lineCov">      20493 :         if (ordered &amp;&amp; ordered-&gt;outstanding_isize &gt; new_i_size)</span>
+<span class="lineNum">     976 </span><span class="lineCov">        180 :                 new_i_size = min_t(u64, ordered-&gt;outstanding_isize, i_size);</span>
+<span class="lineNum">     977 </span><span class="lineCov">      20493 :         BTRFS_I(inode)-&gt;disk_i_size = new_i_size;</span>
+<span class="lineNum">     978 </span>            :         ret = 0;
+<span class="lineNum">     979 </span>            : out:
+<span class="lineNum">     980 </span>            :         /*
+<span class="lineNum">     981 </span>            :          * We need to do this because we can't remove ordered extents until
+<span class="lineNum">     982 </span>            :          * after the i_disk_size has been updated and then the inode has been
+<span class="lineNum">     983 </span>            :          * updated to reflect the change, so we need to tell anybody who finds
+<span class="lineNum">     984 </span>            :          * this ordered extent that we've already done all the real work, we
+<span class="lineNum">     985 </span>            :          * just haven't completed all the other work.
+<span class="lineNum">     986 </span>            :          */
+<span class="lineNum">     987 </span><span class="lineCov">      65667 :         if (ordered)</span>
+<span class="lineNum">     988 </span>            :                 set_bit(BTRFS_ORDERED_UPDATED_ISIZE, &amp;ordered-&gt;flags);
+<span class="lineNum">     989 </span>            :         spin_unlock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">     990 </span><span class="lineCov">      65667 :         return ret;</span>
+<span class="lineNum">     991 </span>            : }
+<span class="lineNum">     992 </span>            : 
+<span class="lineNum">     993 </span>            : /*
+<span class="lineNum">     994 </span>            :  * search the ordered extents for one corresponding to 'offset' and
+<span class="lineNum">     995 </span>            :  * try to find a checksum.  This is used because we allow pages to
+<a name="996"><span class="lineNum">     996 </span>            :  * be reclaimed before their checksum is actually put into the btree</a>
+<span class="lineNum">     997 </span>            :  */
+<span class="lineNum">     998 </span><span class="lineCov">      26589 : int btrfs_find_ordered_sum(struct inode *inode, u64 offset, u64 disk_bytenr,</span>
+<span class="lineNum">     999 </span>            :                            u32 *sum, int len)
+<span class="lineNum">    1000 </span>            : {
+<span class="lineNum">    1001 </span>            :         struct btrfs_ordered_sum *ordered_sum;
+<span class="lineNum">    1002 </span>            :         struct btrfs_ordered_extent *ordered;
+<span class="lineNum">    1003 </span>            :         struct btrfs_ordered_inode_tree *tree = &amp;BTRFS_I(inode)-&gt;ordered_tree;
+<span class="lineNum">    1004 </span>            :         unsigned long num_sectors;
+<span class="lineNum">    1005 </span>            :         unsigned long i;
+<span class="lineNum">    1006 </span><span class="lineCov">      26589 :         u32 sectorsize = BTRFS_I(inode)-&gt;root-&gt;sectorsize;</span>
+<span class="lineNum">    1007 </span>            :         int index = 0;
+<span class="lineNum">    1008 </span>            : 
+<span class="lineNum">    1009 </span><span class="lineCov">      26589 :         ordered = btrfs_lookup_ordered_extent(inode, offset);</span>
+<span class="lineNum">    1010 </span><span class="lineCov">      26589 :         if (!ordered)</span>
+<span class="lineNum">    1011 </span>            :                 return 0;
+<span class="lineNum">    1012 </span>            : 
+<span class="lineNum">    1013 </span>            :         spin_lock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">    1014 </span><span class="lineNoCov">          0 :         list_for_each_entry_reverse(ordered_sum, &amp;ordered-&gt;list, list) {</span>
+<span class="lineNum">    1015 </span><span class="lineNoCov">          0 :                 if (disk_bytenr &gt;= ordered_sum-&gt;bytenr &amp;&amp;</span>
+<span class="lineNum">    1016 </span><span class="lineNoCov">          0 :                     disk_bytenr &lt; ordered_sum-&gt;bytenr + ordered_sum-&gt;len) {</span>
+<span class="lineNum">    1017 </span><span class="lineNoCov">          0 :                         i = (disk_bytenr - ordered_sum-&gt;bytenr) &gt;&gt;</span>
+<span class="lineNum">    1018 </span><span class="lineNoCov">          0 :                             inode-&gt;i_sb-&gt;s_blocksize_bits;</span>
+<span class="lineNum">    1019 </span><span class="lineNoCov">          0 :                         num_sectors = ordered_sum-&gt;len &gt;&gt;</span>
+<span class="lineNum">    1020 </span>            :                                       inode-&gt;i_sb-&gt;s_blocksize_bits;
+<span class="lineNum">    1021 </span><span class="lineNoCov">          0 :                         num_sectors = min_t(int, len - index, num_sectors - i);</span>
+<span class="lineNum">    1022 </span><span class="lineNoCov">          0 :                         memcpy(sum + index, ordered_sum-&gt;sums + i,</span>
+<span class="lineNum">    1023 </span>            :                                num_sectors);
+<span class="lineNum">    1024 </span>            : 
+<span class="lineNum">    1025 </span><span class="lineNoCov">          0 :                         index += (int)num_sectors;</span>
+<span class="lineNum">    1026 </span><span class="lineNoCov">          0 :                         if (index == len)</span>
+<span class="lineNum">    1027 </span>            :                                 goto out;
+<span class="lineNum">    1028 </span><span class="lineNoCov">          0 :                         disk_bytenr += num_sectors * sectorsize;</span>
+<span class="lineNum">    1029 </span>            :                 }
+<span class="lineNum">    1030 </span>            :         }
+<span class="lineNum">    1031 </span>            : out:
+<span class="lineNum">    1032 </span>            :         spin_unlock_irq(&amp;tree-&gt;lock);
+<span class="lineNum">    1033 </span><span class="lineNoCov">          0 :         btrfs_put_ordered_extent(ordered);</span>
+<span class="lineNum">    1034 </span><span class="lineNoCov">          0 :         return index;</span>
+<a name="1035"><span class="lineNum">    1035 </span>            : }</a>
+<span class="lineNum">    1036 </span>            : 
+<span class="lineNum">    1037 </span><span class="lineNoCov">          0 : int __init ordered_data_init(void)</span>
+<span class="lineNum">    1038 </span>            : {
+<span class="lineNum">    1039 </span><span class="lineNoCov">          0 :         btrfs_ordered_extent_cache = kmem_cache_create(&quot;btrfs_ordered_extent&quot;,</span>
+<span class="lineNum">    1040 </span>            :                                      sizeof(struct btrfs_ordered_extent), 0,
+<span class="lineNum">    1041 </span>            :                                      SLAB_RECLAIM_ACCOUNT | SLAB_MEM_SPREAD,
+<span class="lineNum">    1042 </span>            :                                      NULL);
+<span class="lineNum">    1043 </span><span class="lineNoCov">          0 :         if (!btrfs_ordered_extent_cache)</span>
+<span class="lineNum">    1044 </span>            :                 return -ENOMEM;
+<span class="lineNum">    1045 </span>            : 
+<span class="lineNum">    1046 </span><span class="lineNoCov">          0 :         return 0;</span>
+<a name="1047"><span class="lineNum">    1047 </span>            : }</a>
+<span class="lineNum">    1048 </span>            : 
+<span class="lineNum">    1049 </span><span class="lineNoCov">          0 : void ordered_data_exit(void)</span>
+<span class="lineNum">    1050 </span>            : {
+<span class="lineNum">    1051 </span><span class="lineNoCov">          0 :         if (btrfs_ordered_extent_cache)</span>
+<span class="lineNum">    1052 </span><span class="lineNoCov">          0 :                 kmem_cache_destroy(btrfs_ordered_extent_cache);</span>
+<span class="lineNum">    1053 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/uaccess.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - uaccess.h<span style="font-size: 80%;"> (source / <a href="uaccess.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntry">2</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef __LINUX_UACCESS_H__</a>
+<span class="lineNum">       2 </span>            : #define __LINUX_UACCESS_H__
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #include &lt;linux/preempt.h&gt;
+<span class="lineNum">       5 </span>            : #include &lt;asm/uaccess.h&gt;
+<span class="lineNum">       6 </span>            : 
+<span class="lineNum">       7 </span>            : /*
+<span class="lineNum">       8 </span>            :  * These routines enable/disable the pagefault handler in that
+<span class="lineNum">       9 </span>            :  * it will not take any locks and go straight to the fixup table.
+<span class="lineNum">      10 </span>            :  *
+<span class="lineNum">      11 </span>            :  * They have great resemblance to the preempt_disable/enable calls
+<span class="lineNum">      12 </span>            :  * and in fact they are identical; this is because currently there is
+<span class="lineNum">      13 </span>            :  * no other way to make the pagefault handlers do this. So we do
+<span class="lineNum">      14 </span>            :  * disable preemption but we don't necessarily care about that.
+<span class="lineNum">      15 </span>            :  */
+<span class="lineNum">      16 </span>            : static inline void pagefault_disable(void)
+<span class="lineNum">      17 </span>            : {
+<span class="lineNum">      18 </span>            :         preempt_count_inc();
+<span class="lineNum">      19 </span>            :         /*
+<span class="lineNum">      20 </span>            :          * make sure to have issued the store before a pagefault
+<span class="lineNum">      21 </span>            :          * can hit.
+<span class="lineNum">      22 </span>            :          */
+<span class="lineNum">      23 </span><span class="lineCov">    5795356 :         barrier();</span>
+<span class="lineNum">      24 </span>            : }
+<span class="lineNum">      25 </span>            : 
+<span class="lineNum">      26 </span>            : static inline void pagefault_enable(void)
+<span class="lineNum">      27 </span>            : {
+<span class="lineNum">      28 </span>            : #ifndef CONFIG_PREEMPT
+<span class="lineNum">      29 </span>            :         /*
+<span class="lineNum">      30 </span>            :          * make sure to issue those last loads/stores before enabling
+<span class="lineNum">      31 </span>            :          * the pagefault handler again.
+<span class="lineNum">      32 </span>            :          */
+<span class="lineNum">      33 </span><span class="lineCov">    5790067 :         barrier();</span>
+<span class="lineNum">      34 </span>            :         preempt_count_dec();
+<span class="lineNum">      35 </span>            : #else
+<span class="lineNum">      36 </span>            :         preempt_enable();
+<span class="lineNum">      37 </span>            : #endif
+<span class="lineNum">      38 </span>            : }
+<span class="lineNum">      39 </span>            : 
+<span class="lineNum">      40 </span>            : #ifndef ARCH_HAS_NOCACHE_UACCESS
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : static inline unsigned long __copy_from_user_inatomic_nocache(void *to,
+<span class="lineNum">      43 </span>            :                                 const void __user *from, unsigned long n)
+<span class="lineNum">      44 </span>            : {
+<span class="lineNum">      45 </span>            :         return __copy_from_user_inatomic(to, from, n);
+<span class="lineNum">      46 </span>            : }
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : static inline unsigned long __copy_from_user_nocache(void *to,
+<span class="lineNum">      49 </span>            :                                 const void __user *from, unsigned long n)
+<span class="lineNum">      50 </span>            : {
+<span class="lineNum">      51 </span>            :         return __copy_from_user(to, from, n);
+<span class="lineNum">      52 </span>            : }
+<span class="lineNum">      53 </span>            : 
+<span class="lineNum">      54 </span>            : #endif          /* ARCH_HAS_NOCACHE_UACCESS */
+<span class="lineNum">      55 </span>            : 
+<span class="lineNum">      56 </span>            : /**
+<span class="lineNum">      57 </span>            :  * probe_kernel_address(): safely attempt to read from a location
+<span class="lineNum">      58 </span>            :  * @addr: address to read from - its type is type typeof(retval)*
+<span class="lineNum">      59 </span>            :  * @retval: read into this variable
+<span class="lineNum">      60 </span>            :  *
+<span class="lineNum">      61 </span>            :  * Safely read from address @addr into variable @revtal.  If a kernel fault
+<span class="lineNum">      62 </span>            :  * happens, handle that and return -EFAULT.
+<span class="lineNum">      63 </span>            :  * We ensure that the __get_user() is executed in atomic context so that
+<span class="lineNum">      64 </span>            :  * do_page_fault() doesn't attempt to take mmap_sem.  This makes
+<span class="lineNum">      65 </span>            :  * probe_kernel_address() suitable for use within regions where the caller
+<span class="lineNum">      66 </span>            :  * already holds mmap_sem, or other locks which nest inside mmap_sem.
+<span class="lineNum">      67 </span>            :  * This must be a macro because __get_user() needs to know the types of the
+<span class="lineNum">      68 </span>            :  * args.
+<span class="lineNum">      69 </span>            :  *
+<span class="lineNum">      70 </span>            :  * We don't include enough header files to be able to do the set_fs().  We
+<span class="lineNum">      71 </span>            :  * require that the probe_kernel_address() caller will do that.
+<span class="lineNum">      72 </span>            :  */
+<span class="lineNum">      73 </span>            : #define probe_kernel_address(addr, retval)              \
+<span class="lineNum">      74 </span>            :         ({                                              \
+<span class="lineNum">      75 </span>            :                 long ret;                               \
+<span class="lineNum">      76 </span>            :                 mm_segment_t old_fs = get_fs();         \
+<span class="lineNum">      77 </span>            :                                                         \
+<span class="lineNum">      78 </span>            :                 set_fs(KERNEL_DS);                      \
+<span class="lineNum">      79 </span>            :                 pagefault_disable();                    \
+<span class="lineNum">      80 </span>            :                 ret = __copy_from_user_inatomic(&amp;(retval), (__force typeof(retval) __user *)(addr), sizeof(retval));                \
+<span class="lineNum">      81 </span>            :                 pagefault_enable();                     \
+<span class="lineNum">      82 </span>            :                 set_fs(old_fs);                         \
+<span class="lineNum">      83 </span>            :                 ret;                                    \
+<span class="lineNum">      84 </span>            :         })
+<span class="lineNum">      85 </span>            : 
+<span class="lineNum">      86 </span>            : /*
+<span class="lineNum">      87 </span>            :  * probe_kernel_read(): safely attempt to read from a location
+<span class="lineNum">      88 </span>            :  * @dst: pointer to the buffer that shall take the data
+<span class="lineNum">      89 </span>            :  * @src: address to read from
+<span class="lineNum">      90 </span>            :  * @size: size of the data chunk
+<span class="lineNum">      91 </span>            :  *
+<span class="lineNum">      92 </span>            :  * Safely read from address @src to the buffer at @dst.  If a kernel fault
+<span class="lineNum">      93 </span>            :  * happens, handle that and return -EFAULT.
+<span class="lineNum">      94 </span>            :  */
+<span class="lineNum">      95 </span>            : extern long probe_kernel_read(void *dst, const void *src, size_t size);
+<span class="lineNum">      96 </span>            : extern long __probe_kernel_read(void *dst, const void *src, size_t size);
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            : /*
+<span class="lineNum">      99 </span>            :  * probe_kernel_write(): safely attempt to write to a location
+<span class="lineNum">     100 </span>            :  * @dst: address to write to
+<span class="lineNum">     101 </span>            :  * @src: pointer to the data that shall be written
+<span class="lineNum">     102 </span>            :  * @size: size of the data chunk
+<span class="lineNum">     103 </span>            :  *
+<span class="lineNum">     104 </span>            :  * Safely write to address @dst from the buffer at @src.  If a kernel fault
+<span class="lineNum">     105 </span>            :  * happens, handle that and return -EFAULT.
+<span class="lineNum">     106 </span>            :  */
+<span class="lineNum">     107 </span>            : extern long notrace probe_kernel_write(void *dst, const void *src, size_t size);
+<span class="lineNum">     108 </span>            : extern long notrace __probe_kernel_write(void *dst, const void *src, size_t size);
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : #endif          /* __LINUX_UACCESS_H__ */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

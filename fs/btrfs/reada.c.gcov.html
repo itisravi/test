@@ -1,0 +1,1071 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/reada.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - reada.c<span style="font-size: 80%;"> (source / <a href="reada.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">264</td>
+            <td class="headerCovTableEntry">306</td>
+            <td class="headerCovTableEntryMed">86.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">17</td>
+            <td class="headerCovTableEntryHi">94.1 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2011 STRATO.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #include &lt;linux/sched.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/pagemap.h&gt;
+<span class="lineNum">      21 </span>            : #include &lt;linux/writeback.h&gt;
+<span class="lineNum">      22 </span>            : #include &lt;linux/blkdev.h&gt;
+<span class="lineNum">      23 </span>            : #include &lt;linux/rbtree.h&gt;
+<span class="lineNum">      24 </span>            : #include &lt;linux/slab.h&gt;
+<span class="lineNum">      25 </span>            : #include &lt;linux/workqueue.h&gt;
+<span class="lineNum">      26 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">      27 </span>            : #include &quot;volumes.h&quot;
+<span class="lineNum">      28 </span>            : #include &quot;disk-io.h&quot;
+<span class="lineNum">      29 </span>            : #include &quot;transaction.h&quot;
+<span class="lineNum">      30 </span>            : #include &quot;dev-replace.h&quot;
+<span class="lineNum">      31 </span>            : 
+<span class="lineNum">      32 </span>            : #undef DEBUG
+<span class="lineNum">      33 </span>            : 
+<span class="lineNum">      34 </span>            : /*
+<span class="lineNum">      35 </span>            :  * This is the implementation for the generic read ahead framework.
+<span class="lineNum">      36 </span>            :  *
+<span class="lineNum">      37 </span>            :  * To trigger a readahead, btrfs_reada_add must be called. It will start
+<span class="lineNum">      38 </span>            :  * a read ahead for the given range [start, end) on tree root. The returned
+<span class="lineNum">      39 </span>            :  * handle can either be used to wait on the readahead to finish
+<span class="lineNum">      40 </span>            :  * (btrfs_reada_wait), or to send it to the background (btrfs_reada_detach).
+<span class="lineNum">      41 </span>            :  *
+<span class="lineNum">      42 </span>            :  * The read ahead works as follows:
+<span class="lineNum">      43 </span>            :  * On btrfs_reada_add, the root of the tree is inserted into a radix_tree.
+<span class="lineNum">      44 </span>            :  * reada_start_machine will then search for extents to prefetch and trigger
+<span class="lineNum">      45 </span>            :  * some reads. When a read finishes for a node, all contained node/leaf
+<span class="lineNum">      46 </span>            :  * pointers that lie in the given range will also be enqueued. The reads will
+<span class="lineNum">      47 </span>            :  * be triggered in sequential order, thus giving a big win over a naive
+<span class="lineNum">      48 </span>            :  * enumeration. It will also make use of multi-device layouts. Each disk
+<span class="lineNum">      49 </span>            :  * will have its on read pointer and all disks will by utilized in parallel.
+<span class="lineNum">      50 </span>            :  * Also will no two disks read both sides of a mirror simultaneously, as this
+<span class="lineNum">      51 </span>            :  * would waste seeking capacity. Instead both disks will read different parts
+<span class="lineNum">      52 </span>            :  * of the filesystem.
+<span class="lineNum">      53 </span>            :  * Any number of readaheads can be started in parallel. The read order will be
+<span class="lineNum">      54 </span>            :  * determined globally, i.e. 2 parallel readaheads will normally finish faster
+<span class="lineNum">      55 </span>            :  * than the 2 started one after another.
+<span class="lineNum">      56 </span>            :  */
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : #define MAX_IN_FLIGHT 6
+<span class="lineNum">      59 </span>            : 
+<span class="lineNum">      60 </span>            : struct reada_extctl {
+<span class="lineNum">      61 </span>            :         struct list_head        list;
+<span class="lineNum">      62 </span>            :         struct reada_control    *rc;
+<span class="lineNum">      63 </span>            :         u64                     generation;
+<span class="lineNum">      64 </span>            : };
+<span class="lineNum">      65 </span>            : 
+<span class="lineNum">      66 </span>            : struct reada_extent {
+<span class="lineNum">      67 </span>            :         u64                     logical;
+<span class="lineNum">      68 </span>            :         struct btrfs_key        top;
+<span class="lineNum">      69 </span>            :         u32                     blocksize;
+<span class="lineNum">      70 </span>            :         int                     err;
+<span class="lineNum">      71 </span>            :         struct list_head        extctl;
+<span class="lineNum">      72 </span>            :         int                     refcnt;
+<span class="lineNum">      73 </span>            :         spinlock_t              lock;
+<span class="lineNum">      74 </span>            :         struct reada_zone       *zones[BTRFS_MAX_MIRRORS];
+<span class="lineNum">      75 </span>            :         int                     nzones;
+<span class="lineNum">      76 </span>            :         struct btrfs_device     *scheduled_for;
+<span class="lineNum">      77 </span>            : };
+<span class="lineNum">      78 </span>            : 
+<span class="lineNum">      79 </span>            : struct reada_zone {
+<span class="lineNum">      80 </span>            :         u64                     start;
+<span class="lineNum">      81 </span>            :         u64                     end;
+<span class="lineNum">      82 </span>            :         u64                     elems;
+<span class="lineNum">      83 </span>            :         struct list_head        list;
+<span class="lineNum">      84 </span>            :         spinlock_t              lock;
+<span class="lineNum">      85 </span>            :         int                     locked;
+<span class="lineNum">      86 </span>            :         struct btrfs_device     *device;
+<span class="lineNum">      87 </span>            :         struct btrfs_device     *devs[BTRFS_MAX_MIRRORS]; /* full list, incl
+<span class="lineNum">      88 </span>            :                                                            * self */
+<span class="lineNum">      89 </span>            :         int                     ndevs;
+<span class="lineNum">      90 </span>            :         struct kref             refcnt;
+<span class="lineNum">      91 </span>            : };
+<span class="lineNum">      92 </span>            : 
+<span class="lineNum">      93 </span>            : struct reada_machine_work {
+<span class="lineNum">      94 </span>            :         struct btrfs_work       work;
+<span class="lineNum">      95 </span>            :         struct btrfs_fs_info    *fs_info;
+<span class="lineNum">      96 </span>            : };
+<span class="lineNum">      97 </span>            : 
+<span class="lineNum">      98 </span>            : static void reada_extent_put(struct btrfs_fs_info *, struct reada_extent *);
+<span class="lineNum">      99 </span>            : static void reada_control_release(struct kref *kref);
+<span class="lineNum">     100 </span>            : static void reada_zone_release(struct kref *kref);
+<span class="lineNum">     101 </span>            : static void reada_start_machine(struct btrfs_fs_info *fs_info);
+<span class="lineNum">     102 </span>            : static void __reada_start_machine(struct btrfs_fs_info *fs_info);
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span>            : static int reada_add_block(struct reada_control *rc, u64 logical,
+<span class="lineNum">     105 </span>            :                            struct btrfs_key *top, int level, u64 generation);
+<span class="lineNum">     106 </span>            : 
+<a name="107"><span class="lineNum">     107 </span>            : /* recurses */</a>
+<span class="lineNum">     108 </span>            : /* in case of err, eb might be NULL */
+<span class="lineNum">     109 </span><span class="lineCov">      61312 : static int __readahead_hook(struct btrfs_root *root, struct extent_buffer *eb,</span>
+<span class="lineNum">     110 </span>            :                             u64 start, int err)
+<span class="lineNum">     111 </span>            : {
+<span class="lineNum">     112 </span>            :         int level = 0;
+<span class="lineNum">     113 </span>            :         int nritems;
+<span class="lineNum">     114 </span>            :         int i;
+<span class="lineNum">     115 </span>            :         u64 bytenr;
+<span class="lineNum">     116 </span>            :         u64 generation;
+<span class="lineNum">     117 </span>            :         struct reada_extent *re;
+<span class="lineNum">     118 </span><span class="lineCov">      15890 :         struct btrfs_fs_info *fs_info = root-&gt;fs_info;</span>
+<span class="lineNum">     119 </span>            :         struct list_head list;
+<span class="lineNum">     120 </span><span class="lineCov">      15890 :         unsigned long index = start &gt;&gt; PAGE_CACHE_SHIFT;</span>
+<span class="lineNum">     121 </span>            :         struct btrfs_device *for_dev;
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span><span class="lineCov">      15890 :         if (eb)</span>
+<span class="lineNum">     124 </span><span class="lineCov">      15889 :                 level = btrfs_header_level(eb);</span>
+<span class="lineNum">     125 </span>            : 
+<span class="lineNum">     126 </span>            :         /* find extent */
+<span class="lineNum">     127 </span>            :         spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     128 </span><span class="lineCov">      15891 :         re = radix_tree_lookup(&amp;fs_info-&gt;reada_tree, index);</span>
+<span class="lineNum">     129 </span><span class="lineCov">      15891 :         if (re)</span>
+<span class="lineNum">     130 </span><span class="lineCov">      15825 :                 re-&gt;refcnt++;</span>
+<span class="lineNum">     131 </span>            :         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     132 </span>            : 
+<span class="lineNum">     133 </span><span class="lineCov">      15891 :         if (!re)</span>
+<span class="lineNum">     134 </span>            :                 return -1;
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :         spin_lock(&amp;re-&gt;lock);
+<span class="lineNum">     137 </span>            :         /*
+<span class="lineNum">     138 </span>            :          * just take the full list from the extent. afterwards we
+<span class="lineNum">     139 </span>            :          * don't need the lock anymore
+<span class="lineNum">     140 </span>            :          */
+<span class="lineNum">     141 </span><span class="lineCov">      15825 :         list_replace_init(&amp;re-&gt;extctl, &amp;list);</span>
+<span class="lineNum">     142 </span><span class="lineCov">      15825 :         for_dev = re-&gt;scheduled_for;</span>
+<span class="lineNum">     143 </span><span class="lineCov">      15825 :         re-&gt;scheduled_for = NULL;</span>
+<span class="lineNum">     144 </span>            :         spin_unlock(&amp;re-&gt;lock);
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span><span class="lineCov">      15855 :         if (err == 0) {</span>
+<span class="lineNum">     147 </span><span class="lineCov">      29533 :                 nritems = level ? btrfs_header_nritems(eb) : 0;</span>
+<span class="lineNum">     148 </span>            :                 generation = btrfs_header_generation(eb);
+<span class="lineNum">     149 </span>            :                 /*
+<span class="lineNum">     150 </span>            :                  * FIXME: currently we just set nritems to 0 if this is a leaf,
+<span class="lineNum">     151 </span>            :                  * effectively ignoring the content. In a next step we could
+<span class="lineNum">     152 </span>            :                  * trigger more readahead depending from the content, e.g.
+<span class="lineNum">     153 </span>            :                  * fetch the checksums for the extents in the leaf.
+<span class="lineNum">     154 </span>            :                  */
+<span class="lineNum">     155 </span>            :         } else {
+<span class="lineNum">     156 </span>            :                 /*
+<span class="lineNum">     157 </span>            :                  * this is the error case, the extent buffer has not been
+<span class="lineNum">     158 </span>            :                  * read correctly. We won't access anything from it and
+<span class="lineNum">     159 </span>            :                  * just cleanup our data structures. Effectively this will
+<span class="lineNum">     160 </span>            :                  * cut the branch below this node from read ahead.
+<span class="lineNum">     161 </span>            :                  */
+<span class="lineNum">     162 </span>            :                 nritems = 0;
+<span class="lineNum">     163 </span>            :                 generation = 0;
+<span class="lineNum">     164 </span>            :         }
+<span class="lineNum">     165 </span>            : 
+<span class="lineNum">     166 </span><span class="lineCov">     354306 :         for (i = 0; i &lt; nritems; i++) {</span>
+<span class="lineNum">     167 </span>            :                 struct reada_extctl *rec;
+<span class="lineNum">     168 </span>            :                 u64 n_gen;
+<span class="lineNum">     169 </span>            :                 struct btrfs_key key;
+<span class="lineNum">     170 </span>            :                 struct btrfs_key next_key;
+<span class="lineNum">     171 </span>            : 
+<span class="lineNum">     172 </span>            :                 btrfs_node_key_to_cpu(eb, &amp;key, i);
+<span class="lineNum">     173 </span><span class="lineCov">     342788 :                 if (i + 1 &lt; nritems)</span>
+<span class="lineNum">     174 </span>            :                         btrfs_node_key_to_cpu(eb, &amp;next_key, i + 1);
+<span class="lineNum">     175 </span>            :                 else
+<span class="lineNum">     176 </span><span class="lineCov">      13708 :                         next_key = re-&gt;top;</span>
+<span class="lineNum">     177 </span>            :                 bytenr = btrfs_node_blockptr(eb, i);
+<span class="lineNum">     178 </span>            :                 n_gen = btrfs_node_ptr_generation(eb, i);
+<span class="lineNum">     179 </span>            : 
+<span class="lineNum">     180 </span><span class="lineCov">     347858 :                 list_for_each_entry(rec, &amp;list, list) {</span>
+<span class="lineNum">     181 </span><span class="lineCov">       9407 :                         struct reada_control *rc = rec-&gt;rc;</span>
+<span class="lineNum">     182 </span>            : 
+<span class="lineNum">     183 </span>            :                         /*
+<span class="lineNum">     184 </span>            :                          * if the generation doesn't match, just ignore this
+<span class="lineNum">     185 </span>            :                          * extctl. This will probably cut off a branch from
+<span class="lineNum">     186 </span>            :                          * prefetch. Alternatively one could start a new (sub-)
+<span class="lineNum">     187 </span>            :                          * prefetch for this branch, starting again from root.
+<span class="lineNum">     188 </span>            :                          * FIXME: move the generation check out of this loop
+<span class="lineNum">     189 </span>            :                          */
+<span class="lineNum">     190 </span>            : #ifdef DEBUG
+<span class="lineNum">     191 </span>            :                         if (rec-&gt;generation != generation) {
+<span class="lineNum">     192 </span>            :                                 btrfs_debug(root-&gt;fs_info,
+<span class="lineNum">     193 </span>            :                                            &quot;generation mismatch for (%llu,%d,%llu) %llu != %llu&quot;,
+<span class="lineNum">     194 </span>            :                                        key.objectid, key.type, key.offset,
+<span class="lineNum">     195 </span>            :                                        rec-&gt;generation, generation);
+<span class="lineNum">     196 </span>            :                         }
+<span class="lineNum">     197 </span>            : #endif
+<span class="lineNum">     198 </span><span class="lineCov">      18812 :                         if (rec-&gt;generation == generation &amp;&amp;</span>
+<span class="lineNum">     199 </span><span class="lineCov">      12792 :                             btrfs_comp_cpu_keys(&amp;key, &amp;rc-&gt;key_end) &lt; 0 &amp;&amp;</span>
+<span class="lineNum">     200 </span><span class="lineCov">       3383 :                             btrfs_comp_cpu_keys(&amp;next_key, &amp;rc-&gt;key_start) &gt; 0)</span>
+<span class="lineNum">     201 </span><span class="lineCov">       1762 :                                 reada_add_block(rc, bytenr, &amp;next_key,</span>
+<span class="lineNum">     202 </span>            :                                                 level - 1, n_gen);
+<span class="lineNum">     203 </span>            :                 }
+<span class="lineNum">     204 </span>            :         }
+<span class="lineNum">     205 </span>            :         /*
+<span class="lineNum">     206 </span>            :          * free extctl records
+<span class="lineNum">     207 </span>            :          */
+<span class="lineNum">     208 </span><span class="lineCov">      17813 :         while (!list_empty(&amp;list)) {</span>
+<span class="lineNum">     209 </span>            :                 struct reada_control *rc;
+<span class="lineNum">     210 </span>            :                 struct reada_extctl *rec;
+<span class="lineNum">     211 </span>            : 
+<span class="lineNum">     212 </span>            :                 rec = list_first_entry(&amp;list, struct reada_extctl, list);
+<span class="lineNum">     213 </span><span class="lineCov">       1988 :                 list_del(&amp;rec-&gt;list);</span>
+<span class="lineNum">     214 </span><span class="lineCov">       1988 :                 rc = rec-&gt;rc;</span>
+<span class="lineNum">     215 </span><span class="lineCov">       1988 :                 kfree(rec);</span>
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span><span class="lineCov">       1987 :                 kref_get(&amp;rc-&gt;refcnt);</span>
+<span class="lineNum">     218 </span><span class="lineCov">       3978 :                 if (atomic_dec_and_test(&amp;rc-&gt;elems)) {</span>
+<span class="lineNum">     219 </span>            :                         kref_put(&amp;rc-&gt;refcnt, reada_control_release);
+<span class="lineNum">     220 </span><span class="lineCov">        226 :                         wake_up(&amp;rc-&gt;wait);</span>
+<span class="lineNum">     221 </span>            :                 }
+<span class="lineNum">     222 </span>            :                 kref_put(&amp;rc-&gt;refcnt, reada_control_release);
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineCov">       1988 :                 reada_extent_put(fs_info, re);  /* one ref for each entry */</span>
+<span class="lineNum">     225 </span>            :         }
+<span class="lineNum">     226 </span><span class="lineCov">      15825 :         reada_extent_put(fs_info, re);  /* our ref */</span>
+<span class="lineNum">     227 </span><span class="lineCov">      15825 :         if (for_dev)</span>
+<span class="lineNum">     228 </span><span class="lineCov">      15825 :                 atomic_dec(&amp;for_dev-&gt;reada_in_flight);</span>
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span>            :         return 0;
+<span class="lineNum">     231 </span>            : }
+<span class="lineNum">     232 </span>            : 
+<span class="lineNum">     233 </span>            : /*
+<span class="lineNum">     234 </span>            :  * start is passed separately in case eb in NULL, which may be the case with
+<a name="235"><span class="lineNum">     235 </span>            :  * failed I/O</a>
+<span class="lineNum">     236 </span>            :  */
+<span class="lineNum">     237 </span><span class="lineCov">        144 : int btree_readahead_hook(struct btrfs_root *root, struct extent_buffer *eb,</span>
+<span class="lineNum">     238 </span>            :                          u64 start, int err)
+<span class="lineNum">     239 </span>            : {
+<span class="lineNum">     240 </span>            :         int ret;
+<span class="lineNum">     241 </span>            : 
+<span class="lineNum">     242 </span><span class="lineCov">        144 :         ret = __readahead_hook(root, eb, start, err);</span>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineCov">        144 :         reada_start_machine(root-&gt;fs_info);</span>
+<span class="lineNum">     245 </span>            : 
+<span class="lineNum">     246 </span><span class="lineCov">        144 :         return ret;</span>
+<a name="247"><span class="lineNum">     247 </span>            : }</a>
+<span class="lineNum">     248 </span>            : 
+<span class="lineNum">     249 </span><span class="lineCov">       4204 : static struct reada_zone *reada_find_zone(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     250 </span>            :                                           struct btrfs_device *dev, u64 logical,
+<span class="lineNum">     251 </span>            :                                           struct btrfs_bio *bbio)
+<span class="lineNum">     252 </span>            : {
+<span class="lineNum">     253 </span>            :         int ret;
+<span class="lineNum">     254 </span>            :         struct reada_zone *zone;
+<span class="lineNum">     255 </span>            :         struct btrfs_block_group_cache *cache = NULL;
+<span class="lineNum">     256 </span>            :         u64 start;
+<span class="lineNum">     257 </span>            :         u64 end;
+<span class="lineNum">     258 </span>            :         int i;
+<span class="lineNum">     259 </span>            : 
+<span class="lineNum">     260 </span><span class="lineCov">       4204 :         zone = NULL;</span>
+<span class="lineNum">     261 </span>            :         spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     262 </span><span class="lineCov">       4206 :         ret = radix_tree_gang_lookup(&amp;dev-&gt;reada_zones, (void **)&amp;zone,</span>
+<span class="lineNum">     263 </span><span class="lineCov">       4206 :                                      logical &gt;&gt; PAGE_CACHE_SHIFT, 1);</span>
+<span class="lineNum">     264 </span><span class="lineCov">       4206 :         if (ret == 1)</span>
+<span class="lineNum">     265 </span><span class="lineCov">       3972 :                 kref_get(&amp;zone-&gt;refcnt);</span>
+<span class="lineNum">     266 </span>            :         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     267 </span>            : 
+<span class="lineNum">     268 </span><span class="lineCov">       4206 :         if (ret == 1) {</span>
+<span class="lineNum">     269 </span><span class="lineCov">       3972 :                 if (logical &gt;= zone-&gt;start &amp;&amp; logical &lt; zone-&gt;end)</span>
+<span class="lineNum">     270 </span>            :                         return zone;
+<span class="lineNum">     271 </span>            :                 spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     272 </span><span class="lineNoCov">          0 :                 kref_put(&amp;zone-&gt;refcnt, reada_zone_release);</span>
+<span class="lineNum">     273 </span>            :                 spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     274 </span>            :         }
+<span class="lineNum">     275 </span>            : 
+<span class="lineNum">     276 </span><span class="lineCov">        234 :         cache = btrfs_lookup_block_group(fs_info, logical);</span>
+<span class="lineNum">     277 </span><span class="lineCov">        234 :         if (!cache)</span>
+<span class="lineNum">     278 </span>            :                 return NULL;
+<span class="lineNum">     279 </span>            : 
+<span class="lineNum">     280 </span><span class="lineCov">        234 :         start = cache-&gt;key.objectid;</span>
+<span class="lineNum">     281 </span><span class="lineCov">        234 :         end = start + cache-&gt;key.offset - 1;</span>
+<span class="lineNum">     282 </span><span class="lineCov">        234 :         btrfs_put_block_group(cache);</span>
+<span class="lineNum">     283 </span>            : 
+<span class="lineNum">     284 </span><span class="lineCov">        234 :         zone = kzalloc(sizeof(*zone), GFP_NOFS);</span>
+<span class="lineNum">     285 </span><span class="lineCov">        234 :         if (!zone)</span>
+<span class="lineNum">     286 </span>            :                 return NULL;
+<span class="lineNum">     287 </span>            : 
+<span class="lineNum">     288 </span><span class="lineCov">        234 :         zone-&gt;start = start;</span>
+<span class="lineNum">     289 </span><span class="lineCov">        234 :         zone-&gt;end = end;</span>
+<span class="lineNum">     290 </span><span class="lineCov">        234 :         INIT_LIST_HEAD(&amp;zone-&gt;list);</span>
+<span class="lineNum">     291 </span><span class="lineCov">        234 :         spin_lock_init(&amp;zone-&gt;lock);</span>
+<span class="lineNum">     292 </span><span class="lineCov">        234 :         zone-&gt;locked = 0;</span>
+<span class="lineNum">     293 </span>            :         kref_init(&amp;zone-&gt;refcnt);
+<span class="lineNum">     294 </span><span class="lineCov">        234 :         zone-&gt;elems = 0;</span>
+<span class="lineNum">     295 </span><span class="lineCov">        234 :         zone-&gt;device = dev; /* our device always sits at index 0 */</span>
+<span class="lineNum">     296 </span><span class="lineCov">        675 :         for (i = 0; i &lt; bbio-&gt;num_stripes; ++i) {</span>
+<span class="lineNum">     297 </span>            :                 /* bounds have already been checked */
+<span class="lineNum">     298 </span><span class="lineCov">        441 :                 zone-&gt;devs[i] = bbio-&gt;stripes[i].dev;</span>
+<span class="lineNum">     299 </span>            :         }
+<span class="lineNum">     300 </span><span class="lineCov">        234 :         zone-&gt;ndevs = bbio-&gt;num_stripes;</span>
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span>            :         spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     303 </span><span class="lineCov">        234 :         ret = radix_tree_insert(&amp;dev-&gt;reada_zones,</span>
+<span class="lineNum">     304 </span><span class="lineCov">        234 :                                 (unsigned long)(zone-&gt;end &gt;&gt; PAGE_CACHE_SHIFT),</span>
+<span class="lineNum">     305 </span>            :                                 zone);
+<span class="lineNum">     306 </span>            : 
+<span class="lineNum">     307 </span><span class="lineCov">        234 :         if (ret == -EEXIST) {</span>
+<span class="lineNum">     308 </span><span class="lineNoCov">          0 :                 kfree(zone);</span>
+<span class="lineNum">     309 </span><span class="lineNoCov">          0 :                 ret = radix_tree_gang_lookup(&amp;dev-&gt;reada_zones, (void **)&amp;zone,</span>
+<span class="lineNum">     310 </span>            :                                              logical &gt;&gt; PAGE_CACHE_SHIFT, 1);
+<span class="lineNum">     311 </span><span class="lineNoCov">          0 :                 if (ret == 1)</span>
+<span class="lineNum">     312 </span><span class="lineNoCov">          0 :                         kref_get(&amp;zone-&gt;refcnt);</span>
+<span class="lineNum">     313 </span>            :         }
+<span class="lineNum">     314 </span>            :         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineCov">        234 :         return zone;</span>
+<a name="317"><span class="lineNum">     317 </span>            : }</a>
+<span class="lineNum">     318 </span>            : 
+<span class="lineNum">     319 </span><span class="lineCov">       3975 : static struct reada_extent *reada_find_extent(struct btrfs_root *root,</span>
+<span class="lineNum">     320 </span>            :                                               u64 logical,
+<span class="lineNum">     321 </span>            :                                               struct btrfs_key *top, int level)
+<span class="lineNum">     322 </span>            : {
+<span class="lineNum">     323 </span>            :         int ret;
+<span class="lineNum">     324 </span>            :         struct reada_extent *re = NULL;
+<span class="lineNum">     325 </span>            :         struct reada_extent *re_exist = NULL;
+<span class="lineNum">     326 </span><span class="lineCov">       1988 :         struct btrfs_fs_info *fs_info = root-&gt;fs_info;</span>
+<span class="lineNum">     327 </span><span class="lineCov">       1988 :         struct btrfs_bio *bbio = NULL;</span>
+<span class="lineNum">     328 </span>            :         struct btrfs_device *dev;
+<span class="lineNum">     329 </span>            :         struct btrfs_device *prev_dev;
+<span class="lineNum">     330 </span>            :         u32 blocksize;
+<span class="lineNum">     331 </span>            :         u64 length;
+<span class="lineNum">     332 </span>            :         int nzones = 0;
+<span class="lineNum">     333 </span>            :         int i;
+<span class="lineNum">     334 </span><span class="lineCov">       1988 :         unsigned long index = logical &gt;&gt; PAGE_CACHE_SHIFT;</span>
+<span class="lineNum">     335 </span>            :         int dev_replace_is_ongoing;
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            :         spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     338 </span><span class="lineCov">       1989 :         re = radix_tree_lookup(&amp;fs_info-&gt;reada_tree, index);</span>
+<span class="lineNum">     339 </span><span class="lineCov">       1989 :         if (re)</span>
+<span class="lineNum">     340 </span><span class="lineCov">          1 :                 re-&gt;refcnt++;</span>
+<span class="lineNum">     341 </span>            :         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     342 </span>            : 
+<span class="lineNum">     343 </span><span class="lineCov">       1989 :         if (re)</span>
+<span class="lineNum">     344 </span>            :                 return re;
+<span class="lineNum">     345 </span>            : 
+<span class="lineNum">     346 </span><span class="lineCov">       1988 :         re = kzalloc(sizeof(*re), GFP_NOFS);</span>
+<span class="lineNum">     347 </span><span class="lineCov">       1987 :         if (!re)</span>
+<span class="lineNum">     348 </span>            :                 return NULL;
+<span class="lineNum">     349 </span>            : 
+<span class="lineNum">     350 </span>            :         blocksize = btrfs_level_size(root, level);
+<span class="lineNum">     351 </span><span class="lineCov">       1987 :         re-&gt;logical = logical;</span>
+<span class="lineNum">     352 </span><span class="lineCov">       1987 :         re-&gt;blocksize = blocksize;</span>
+<span class="lineNum">     353 </span><span class="lineCov">       1987 :         re-&gt;top = *top;</span>
+<span class="lineNum">     354 </span><span class="lineCov">       1987 :         INIT_LIST_HEAD(&amp;re-&gt;extctl);</span>
+<span class="lineNum">     355 </span><span class="lineCov">       1987 :         spin_lock_init(&amp;re-&gt;lock);</span>
+<span class="lineNum">     356 </span><span class="lineCov">       1987 :         re-&gt;refcnt = 1;</span>
+<span class="lineNum">     357 </span>            : 
+<span class="lineNum">     358 </span>            :         /*
+<span class="lineNum">     359 </span>            :          * map block
+<span class="lineNum">     360 </span>            :          */
+<span class="lineNum">     361 </span><span class="lineCov">       1987 :         length = blocksize;</span>
+<span class="lineNum">     362 </span><span class="lineCov">       1987 :         ret = btrfs_map_block(fs_info, REQ_GET_READ_MIRRORS, logical, &amp;length,</span>
+<span class="lineNum">     363 </span>            :                               &amp;bbio, 0);
+<span class="lineNum">     364 </span><span class="lineCov">       1986 :         if (ret || !bbio || length &lt; blocksize)</span>
+<span class="lineNum">     365 </span>            :                 goto error;
+<span class="lineNum">     366 </span>            : 
+<span class="lineNum">     367 </span><span class="lineCov">       1988 :         if (bbio-&gt;num_stripes &gt; BTRFS_MAX_MIRRORS) {</span>
+<span class="lineNum">     368 </span><span class="lineNoCov">          0 :                 btrfs_err(root-&gt;fs_info,</span>
+<span class="lineNum">     369 </span>            :                            &quot;readahead: more than %d copies not supported&quot;,
+<span class="lineNum">     370 </span>            :                            BTRFS_MAX_MIRRORS);
+<span class="lineNum">     371 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     372 </span>            :         }
+<span class="lineNum">     373 </span>            : 
+<span class="lineNum">     374 </span><span class="lineCov">       4206 :         for (nzones = 0; nzones &lt; bbio-&gt;num_stripes; ++nzones) {</span>
+<span class="lineNum">     375 </span>            :                 struct reada_zone *zone;
+<span class="lineNum">     376 </span>            : 
+<span class="lineNum">     377 </span><span class="lineCov">       4204 :                 dev = bbio-&gt;stripes[nzones].dev;</span>
+<span class="lineNum">     378 </span><span class="lineCov">       4204 :                 zone = reada_find_zone(fs_info, dev, logical, bbio);</span>
+<span class="lineNum">     379 </span><span class="lineCov">       4206 :                 if (!zone)</span>
+<span class="lineNum">     380 </span>            :                         break;
+<span class="lineNum">     381 </span>            : 
+<span class="lineNum">     382 </span><span class="lineCov">       4206 :                 re-&gt;zones[nzones] = zone;</span>
+<span class="lineNum">     383 </span>            :                 spin_lock(&amp;zone-&gt;lock);
+<span class="lineNum">     384 </span><span class="lineCov">       4206 :                 if (!zone-&gt;elems)</span>
+<span class="lineNum">     385 </span><span class="lineCov">        234 :                         kref_get(&amp;zone-&gt;refcnt);</span>
+<span class="lineNum">     386 </span><span class="lineCov">       4206 :                 ++zone-&gt;elems;</span>
+<span class="lineNum">     387 </span>            :                 spin_unlock(&amp;zone-&gt;lock);
+<span class="lineNum">     388 </span>            :                 spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     389 </span><span class="lineCov">       4206 :                 kref_put(&amp;zone-&gt;refcnt, reada_zone_release);</span>
+<span class="lineNum">     390 </span>            :                 spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     391 </span>            :         }
+<span class="lineNum">     392 </span><span class="lineCov">       1990 :         re-&gt;nzones = nzones;</span>
+<span class="lineNum">     393 </span><span class="lineCov">       1990 :         if (nzones == 0) {</span>
+<span class="lineNum">     394 </span>            :                 /* not a single zone found, error and out */
+<span class="lineNum">     395 </span>            :                 goto error;
+<span class="lineNum">     396 </span>            :         }
+<span class="lineNum">     397 </span>            : 
+<span class="lineNum">     398 </span>            :         /* insert extent in reada_tree + all per-device trees, all or nothing */
+<span class="lineNum">     399 </span><span class="lineCov">       1988 :         btrfs_dev_replace_lock(&amp;fs_info-&gt;dev_replace);</span>
+<span class="lineNum">     400 </span>            :         spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     401 </span><span class="lineCov">       1988 :         ret = radix_tree_insert(&amp;fs_info-&gt;reada_tree, index, re);</span>
+<span class="lineNum">     402 </span><span class="lineCov">       1988 :         if (ret == -EEXIST) {</span>
+<span class="lineNum">     403 </span><span class="lineNoCov">          0 :                 re_exist = radix_tree_lookup(&amp;fs_info-&gt;reada_tree, index);</span>
+<span class="lineNum">     404 </span><span class="lineNoCov">          0 :                 BUG_ON(!re_exist);</span>
+<span class="lineNum">     405 </span><span class="lineNoCov">          0 :                 re_exist-&gt;refcnt++;</span>
+<span class="lineNum">     406 </span>            :                 spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     407 </span><span class="lineNoCov">          0 :                 btrfs_dev_replace_unlock(&amp;fs_info-&gt;dev_replace);</span>
+<span class="lineNum">     408 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     409 </span>            :         }
+<span class="lineNum">     410 </span><span class="lineCov">       1988 :         if (ret) {</span>
+<span class="lineNum">     411 </span>            :                 spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     412 </span><span class="lineNoCov">          0 :                 btrfs_dev_replace_unlock(&amp;fs_info-&gt;dev_replace);</span>
+<span class="lineNum">     413 </span><span class="lineNoCov">          0 :                 goto error;</span>
+<span class="lineNum">     414 </span>            :         }
+<span class="lineNum">     415 </span>            :         prev_dev = NULL;
+<span class="lineNum">     416 </span><span class="lineCov">       1988 :         dev_replace_is_ongoing = btrfs_dev_replace_is_ongoing(</span>
+<span class="lineNum">     417 </span>            :                         &amp;fs_info-&gt;dev_replace);
+<span class="lineNum">     418 </span><span class="lineCov">       6194 :         for (i = 0; i &lt; nzones; ++i) {</span>
+<span class="lineNum">     419 </span><span class="lineCov">       4206 :                 dev = bbio-&gt;stripes[i].dev;</span>
+<span class="lineNum">     420 </span><span class="lineCov">       4206 :                 if (dev == prev_dev) {</span>
+<span class="lineNum">     421 </span>            :                         /*
+<span class="lineNum">     422 </span>            :                          * in case of DUP, just add the first zone. As both
+<span class="lineNum">     423 </span>            :                          * are on the same device, there's nothing to gain
+<span class="lineNum">     424 </span>            :                          * from adding both.
+<span class="lineNum">     425 </span>            :                          * Also, it wouldn't work, as the tree is per device
+<span class="lineNum">     426 </span>            :                          * and adding would fail with EEXIST
+<span class="lineNum">     427 </span>            :                          */
+<span class="lineNum">     428 </span><span class="lineCov">        622 :                         continue;</span>
+<span class="lineNum">     429 </span>            :                 }
+<span class="lineNum">     430 </span><span class="lineCov">       3584 :                 if (!dev-&gt;bdev) {</span>
+<span class="lineNum">     431 </span>            :                         /*
+<span class="lineNum">     432 </span>            :                          * cannot read ahead on missing device, but for RAID5/6,
+<span class="lineNum">     433 </span>            :                          * REQ_GET_READ_MIRRORS return 1. So don't skip missing
+<span class="lineNum">     434 </span>            :                          * device for such case.
+<span class="lineNum">     435 </span>            :                          */
+<span class="lineNum">     436 </span><span class="lineNoCov">          0 :                         if (nzones &gt; 1)</span>
+<span class="lineNum">     437 </span><span class="lineNoCov">          0 :                                 continue;</span>
+<span class="lineNum">     438 </span>            :                 }
+<span class="lineNum">     439 </span><span class="lineCov">       5201 :                 if (dev_replace_is_ongoing &amp;&amp;</span>
+<span class="lineNum">     440 </span><span class="lineCov">       1617 :                     dev == fs_info-&gt;dev_replace.tgtdev) {</span>
+<span class="lineNum">     441 </span>            :                         /*
+<span class="lineNum">     442 </span>            :                          * as this device is selected for reading only as
+<span class="lineNum">     443 </span>            :                          * a last resort, skip it for read ahead.
+<span class="lineNum">     444 </span>            :                          */
+<span class="lineNum">     445 </span><span class="lineCov">        508 :                         continue;</span>
+<span class="lineNum">     446 </span>            :                 }
+<span class="lineNum">     447 </span>            :                 prev_dev = dev;
+<span class="lineNum">     448 </span><span class="lineCov">       3076 :                 ret = radix_tree_insert(&amp;dev-&gt;reada_extents, index, re);</span>
+<span class="lineNum">     449 </span><span class="lineCov">       3076 :                 if (ret) {</span>
+<span class="lineNum">     450 </span><span class="lineNoCov">          0 :                         while (--i &gt;= 0) {</span>
+<span class="lineNum">     451 </span><span class="lineNoCov">          0 :                                 dev = bbio-&gt;stripes[i].dev;</span>
+<span class="lineNum">     452 </span><span class="lineNoCov">          0 :                                 BUG_ON(dev == NULL);</span>
+<span class="lineNum">     453 </span>            :                                 /* ignore whether the entry was inserted */
+<span class="lineNum">     454 </span><span class="lineNoCov">          0 :                                 radix_tree_delete(&amp;dev-&gt;reada_extents, index);</span>
+<span class="lineNum">     455 </span>            :                         }
+<span class="lineNum">     456 </span><span class="lineNoCov">          0 :                         BUG_ON(fs_info == NULL);</span>
+<span class="lineNum">     457 </span><span class="lineNoCov">          0 :                         radix_tree_delete(&amp;fs_info-&gt;reada_tree, index);</span>
+<span class="lineNum">     458 </span>            :                         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     459 </span><span class="lineNoCov">          0 :                         btrfs_dev_replace_unlock(&amp;fs_info-&gt;dev_replace);</span>
+<span class="lineNum">     460 </span><span class="lineNoCov">          0 :                         goto error;</span>
+<span class="lineNum">     461 </span>            :                 }
+<span class="lineNum">     462 </span>            :         }
+<span class="lineNum">     463 </span>            :         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     464 </span><span class="lineCov">       1988 :         btrfs_dev_replace_unlock(&amp;fs_info-&gt;dev_replace);</span>
+<span class="lineNum">     465 </span>            : 
+<span class="lineNum">     466 </span><span class="lineCov">       1988 :         kfree(bbio);</span>
+<span class="lineNum">     467 </span><span class="lineCov">       1988 :         return re;</span>
+<span class="lineNum">     468 </span>            : 
+<span class="lineNum">     469 </span>            : error:
+<span class="lineNum">     470 </span><span class="lineNoCov">          0 :         while (nzones) {</span>
+<span class="lineNum">     471 </span>            :                 struct reada_zone *zone;
+<span class="lineNum">     472 </span>            : 
+<span class="lineNum">     473 </span><span class="lineNoCov">          0 :                 --nzones;</span>
+<span class="lineNum">     474 </span><span class="lineNoCov">          0 :                 zone = re-&gt;zones[nzones];</span>
+<span class="lineNum">     475 </span><span class="lineNoCov">          0 :                 kref_get(&amp;zone-&gt;refcnt);</span>
+<span class="lineNum">     476 </span>            :                 spin_lock(&amp;zone-&gt;lock);
+<span class="lineNum">     477 </span><span class="lineNoCov">          0 :                 --zone-&gt;elems;</span>
+<span class="lineNum">     478 </span><span class="lineNoCov">          0 :                 if (zone-&gt;elems == 0) {</span>
+<span class="lineNum">     479 </span>            :                         /*
+<span class="lineNum">     480 </span>            :                          * no fs_info-&gt;reada_lock needed, as this can't be
+<span class="lineNum">     481 </span>            :                          * the last ref
+<span class="lineNum">     482 </span>            :                          */
+<span class="lineNum">     483 </span>            :                         kref_put(&amp;zone-&gt;refcnt, reada_zone_release);
+<span class="lineNum">     484 </span>            :                 }
+<span class="lineNum">     485 </span>            :                 spin_unlock(&amp;zone-&gt;lock);
+<span class="lineNum">     486 </span>            : 
+<span class="lineNum">     487 </span>            :                 spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     488 </span>            :                 kref_put(&amp;zone-&gt;refcnt, reada_zone_release);
+<span class="lineNum">     489 </span>            :                 spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     490 </span>            :         }
+<span class="lineNum">     491 </span><span class="lineNoCov">          0 :         kfree(bbio);</span>
+<span class="lineNum">     492 </span><span class="lineNoCov">          0 :         kfree(re);</span>
+<span class="lineNum">     493 </span><span class="lineNoCov">          0 :         return re_exist;</span>
+<a name="494"><span class="lineNum">     494 </span>            : }</a>
+<span class="lineNum">     495 </span>            : 
+<span class="lineNum">     496 </span><span class="lineCov">      33872 : static void reada_extent_put(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     497 </span>            :                              struct reada_extent *re)
+<span class="lineNum">     498 </span>            : {
+<span class="lineNum">     499 </span>            :         int i;
+<span class="lineNum">     500 </span><span class="lineCov">      33872 :         unsigned long index = re-&gt;logical &gt;&gt; PAGE_CACHE_SHIFT;</span>
+<span class="lineNum">     501 </span>            : 
+<span class="lineNum">     502 </span>            :         spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     503 </span><span class="lineCov">      33932 :         if (--re-&gt;refcnt) {</span>
+<span class="lineNum">     504 </span>            :                 spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     505 </span><span class="lineCov">      33930 :                 return;</span>
+<span class="lineNum">     506 </span>            :         }
+<span class="lineNum">     507 </span>            : 
+<span class="lineNum">     508 </span><span class="lineCov">       1988 :         radix_tree_delete(&amp;fs_info-&gt;reada_tree, index);</span>
+<span class="lineNum">     509 </span><span class="lineCov">       6194 :         for (i = 0; i &lt; re-&gt;nzones; ++i) {</span>
+<span class="lineNum">     510 </span><span class="lineCov">       4206 :                 struct reada_zone *zone = re-&gt;zones[i];</span>
+<span class="lineNum">     511 </span>            : 
+<span class="lineNum">     512 </span><span class="lineCov">       4206 :                 radix_tree_delete(&amp;zone-&gt;device-&gt;reada_extents, index);</span>
+<span class="lineNum">     513 </span>            :         }
+<span class="lineNum">     514 </span>            : 
+<span class="lineNum">     515 </span>            :         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     516 </span>            : 
+<span class="lineNum">     517 </span><span class="lineCov">       6194 :         for (i = 0; i &lt; re-&gt;nzones; ++i) {</span>
+<span class="lineNum">     518 </span><span class="lineCov">       4206 :                 struct reada_zone *zone = re-&gt;zones[i];</span>
+<span class="lineNum">     519 </span>            : 
+<span class="lineNum">     520 </span><span class="lineCov">       4206 :                 kref_get(&amp;zone-&gt;refcnt);</span>
+<span class="lineNum">     521 </span>            :                 spin_lock(&amp;zone-&gt;lock);
+<span class="lineNum">     522 </span><span class="lineCov">       4206 :                 --zone-&gt;elems;</span>
+<span class="lineNum">     523 </span><span class="lineCov">       4206 :                 if (zone-&gt;elems == 0) {</span>
+<span class="lineNum">     524 </span>            :                         /* no fs_info-&gt;reada_lock needed, as this can't be
+<span class="lineNum">     525 </span>            :                          * the last ref */
+<span class="lineNum">     526 </span>            :                         kref_put(&amp;zone-&gt;refcnt, reada_zone_release);
+<span class="lineNum">     527 </span>            :                 }
+<span class="lineNum">     528 </span>            :                 spin_unlock(&amp;zone-&gt;lock);
+<span class="lineNum">     529 </span>            : 
+<span class="lineNum">     530 </span>            :                 spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     531 </span>            :                 kref_put(&amp;zone-&gt;refcnt, reada_zone_release);
+<span class="lineNum">     532 </span>            :                 spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     533 </span>            :         }
+<span class="lineNum">     534 </span><span class="lineCov">       1988 :         if (re-&gt;scheduled_for)</span>
+<span class="lineNum">     535 </span><span class="lineCov">         66 :                 atomic_dec(&amp;re-&gt;scheduled_for-&gt;reada_in_flight);</span>
+<span class="lineNum">     536 </span>            : 
+<span class="lineNum">     537 </span><span class="lineCov">       1988 :         kfree(re);</span>
+<a name="538"><span class="lineNum">     538 </span>            : }</a>
+<span class="lineNum">     539 </span>            : 
+<span class="lineNum">     540 </span><span class="lineCov">        234 : static void reada_zone_release(struct kref *kref)</span>
+<span class="lineNum">     541 </span>            : {
+<span class="lineNum">     542 </span><span class="lineCov">        234 :         struct reada_zone *zone = container_of(kref, struct reada_zone, refcnt);</span>
+<span class="lineNum">     543 </span>            : 
+<span class="lineNum">     544 </span><span class="lineCov">        234 :         radix_tree_delete(&amp;zone-&gt;device-&gt;reada_zones,</span>
+<span class="lineNum">     545 </span><span class="lineCov">        234 :                           zone-&gt;end &gt;&gt; PAGE_CACHE_SHIFT);</span>
+<span class="lineNum">     546 </span>            : 
+<span class="lineNum">     547 </span><span class="lineCov">        234 :         kfree(zone);</span>
+<a name="548"><span class="lineNum">     548 </span><span class="lineCov">        234 : }</span></a>
+<span class="lineNum">     549 </span>            : 
+<span class="lineNum">     550 </span><span class="lineCov">        226 : static void reada_control_release(struct kref *kref)</span>
+<span class="lineNum">     551 </span>            : {
+<span class="lineNum">     552 </span><span class="lineCov">        226 :         struct reada_control *rc = container_of(kref, struct reada_control,</span>
+<span class="lineNum">     553 </span>            :                                                 refcnt);
+<span class="lineNum">     554 </span>            : 
+<span class="lineNum">     555 </span><span class="lineCov">        226 :         kfree(rc);</span>
+<a name="556"><span class="lineNum">     556 </span><span class="lineCov">        226 : }</span></a>
+<span class="lineNum">     557 </span>            : 
+<span class="lineNum">     558 </span><span class="lineCov">       1988 : static int reada_add_block(struct reada_control *rc, u64 logical,</span>
+<span class="lineNum">     559 </span>            :                            struct btrfs_key *top, int level, u64 generation)
+<span class="lineNum">     560 </span>            : {
+<span class="lineNum">     561 </span><span class="lineCov">       1988 :         struct btrfs_root *root = rc-&gt;root;</span>
+<span class="lineNum">     562 </span>            :         struct reada_extent *re;
+<span class="lineNum">     563 </span>            :         struct reada_extctl *rec;
+<span class="lineNum">     564 </span>            : 
+<span class="lineNum">     565 </span><span class="lineCov">       1988 :         re = reada_find_extent(root, logical, top, level); /* takes one ref */</span>
+<span class="lineNum">     566 </span><span class="lineCov">       1989 :         if (!re)</span>
+<span class="lineNum">     567 </span>            :                 return -1;
+<span class="lineNum">     568 </span>            : 
+<span class="lineNum">     569 </span><span class="lineCov">       1989 :         rec = kzalloc(sizeof(*rec), GFP_NOFS);</span>
+<span class="lineNum">     570 </span><span class="lineCov">       1989 :         if (!rec) {</span>
+<span class="lineNum">     571 </span><span class="lineNoCov">          0 :                 reada_extent_put(root-&gt;fs_info, re);</span>
+<span class="lineNum">     572 </span><span class="lineNoCov">          0 :                 return -1;</span>
+<span class="lineNum">     573 </span>            :         }
+<span class="lineNum">     574 </span>            : 
+<span class="lineNum">     575 </span><span class="lineCov">       1989 :         rec-&gt;rc = rc;</span>
+<span class="lineNum">     576 </span><span class="lineCov">       1989 :         rec-&gt;generation = generation;</span>
+<span class="lineNum">     577 </span><span class="lineCov">       1989 :         atomic_inc(&amp;rc-&gt;elems);</span>
+<span class="lineNum">     578 </span>            : 
+<span class="lineNum">     579 </span>            :         spin_lock(&amp;re-&gt;lock);
+<span class="lineNum">     580 </span><span class="lineCov">       1989 :         list_add_tail(&amp;rec-&gt;list, &amp;re-&gt;extctl);</span>
+<span class="lineNum">     581 </span>            :         spin_unlock(&amp;re-&gt;lock);
+<span class="lineNum">     582 </span>            : 
+<span class="lineNum">     583 </span>            :         /* leave the ref on the extent */
+<span class="lineNum">     584 </span>            : 
+<span class="lineNum">     585 </span><span class="lineCov">       1989 :         return 0;</span>
+<span class="lineNum">     586 </span>            : }
+<span class="lineNum">     587 </span>            : 
+<span class="lineNum">     588 </span>            : /*
+<a name="589"><span class="lineNum">     589 </span>            :  * called with fs_info-&gt;reada_lock held</a>
+<span class="lineNum">     590 </span>            :  */
+<span class="lineNum">     591 </span><span class="lineCov">      32334 : static void reada_peer_zones_set_lock(struct reada_zone *zone, int lock)</span>
+<span class="lineNum">     592 </span>            : {
+<span class="lineNum">     593 </span>            :         int i;
+<span class="lineNum">     594 </span><span class="lineCov">      32334 :         unsigned long index = zone-&gt;end &gt;&gt; PAGE_CACHE_SHIFT;</span>
+<span class="lineNum">     595 </span>            : 
+<span class="lineNum">     596 </span><span class="lineCov">     103026 :         for (i = 0; i &lt; zone-&gt;ndevs; ++i) {</span>
+<span class="lineNum">     597 </span>            :                 struct reada_zone *peer;
+<span class="lineNum">     598 </span><span class="lineCov">      70692 :                 peer = radix_tree_lookup(&amp;zone-&gt;devs[i]-&gt;reada_zones, index);</span>
+<span class="lineNum">     599 </span><span class="lineCov">      70692 :                 if (peer &amp;&amp; peer-&gt;device != zone-&gt;device)</span>
+<span class="lineNum">     600 </span><span class="lineCov">      15331 :                         peer-&gt;locked = lock;</span>
+<span class="lineNum">     601 </span>            :         }
+<span class="lineNum">     602 </span><span class="lineCov">      32334 : }</span>
+<span class="lineNum">     603 </span>            : 
+<span class="lineNum">     604 </span>            : /*
+<a name="605"><span class="lineNum">     605 </span>            :  * called with fs_info-&gt;reada_lock held</a>
+<span class="lineNum">     606 </span>            :  */
+<span class="lineNum">     607 </span><span class="lineCov">      26952 : static int reada_pick_zone(struct btrfs_device *dev)</span>
+<span class="lineNum">     608 </span>            : {
+<span class="lineNum">     609 </span>            :         struct reada_zone *top_zone = NULL;
+<span class="lineNum">     610 </span>            :         struct reada_zone *top_locked_zone = NULL;
+<span class="lineNum">     611 </span>            :         u64 top_elems = 0;
+<span class="lineNum">     612 </span>            :         u64 top_locked_elems = 0;
+<span class="lineNum">     613 </span>            :         unsigned long index = 0;
+<span class="lineNum">     614 </span>            :         int ret;
+<span class="lineNum">     615 </span>            : 
+<span class="lineNum">     616 </span><span class="lineCov">      26952 :         if (dev-&gt;reada_curr_zone) {</span>
+<span class="lineNum">     617 </span><span class="lineCov">      16167 :                 reada_peer_zones_set_lock(dev-&gt;reada_curr_zone, 0);</span>
+<span class="lineNum">     618 </span><span class="lineCov">      16167 :                 kref_put(&amp;dev-&gt;reada_curr_zone-&gt;refcnt, reada_zone_release);</span>
+<span class="lineNum">     619 </span><span class="lineCov">      16167 :                 dev-&gt;reada_curr_zone = NULL;</span>
+<span class="lineNum">     620 </span>            :         }
+<span class="lineNum">     621 </span>            :         /* pick the zone with the most elements */
+<span class="lineNum">     622 </span>            :         while (1) {
+<span class="lineNum">     623 </span>            :                 struct reada_zone *zone;
+<span class="lineNum">     624 </span>            : 
+<span class="lineNum">     625 </span><span class="lineCov">      43138 :                 ret = radix_tree_gang_lookup(&amp;dev-&gt;reada_zones,</span>
+<span class="lineNum">     626 </span>            :                                              (void **)&amp;zone, index, 1);
+<span class="lineNum">     627 </span><span class="lineCov">      43138 :                 if (ret == 0)</span>
+<span class="lineNum">     628 </span>            :                         break;
+<span class="lineNum">     629 </span><span class="lineCov">      16186 :                 index = (zone-&gt;end &gt;&gt; PAGE_CACHE_SHIFT) + 1;</span>
+<span class="lineNum">     630 </span><span class="lineCov">      16186 :                 if (zone-&gt;locked) {</span>
+<span class="lineNum">     631 </span><span class="lineCov">       5330 :                         if (zone-&gt;elems &gt; top_locked_elems) {</span>
+<span class="lineNum">     632 </span>            :                                 top_locked_elems = zone-&gt;elems;
+<span class="lineNum">     633 </span>            :                                 top_locked_zone = zone;
+<span class="lineNum">     634 </span>            :                         }
+<span class="lineNum">     635 </span>            :                 } else {
+<span class="lineNum">     636 </span><span class="lineCov">      10856 :                         if (zone-&gt;elems &gt; top_elems) {</span>
+<span class="lineNum">     637 </span>            :                                 top_elems = zone-&gt;elems;
+<span class="lineNum">     638 </span>            :                                 top_zone = zone;
+<span class="lineNum">     639 </span>            :                         }
+<span class="lineNum">     640 </span>            :                 }
+<span class="lineNum">     641 </span><span class="lineCov">      16186 :         }</span>
+<span class="lineNum">     642 </span><span class="lineCov">      26952 :         if (top_zone)</span>
+<span class="lineNum">     643 </span><span class="lineCov">      10845 :                 dev-&gt;reada_curr_zone = top_zone;</span>
+<span class="lineNum">     644 </span><span class="lineCov">      16107 :         else if (top_locked_zone)</span>
+<span class="lineNum">     645 </span><span class="lineCov">       5322 :                 dev-&gt;reada_curr_zone = top_locked_zone;</span>
+<span class="lineNum">     646 </span>            :         else
+<span class="lineNum">     647 </span>            :                 return 0;
+<span class="lineNum">     648 </span>            : 
+<span class="lineNum">     649 </span><span class="lineCov">      16167 :         dev-&gt;reada_next = dev-&gt;reada_curr_zone-&gt;start;</span>
+<span class="lineNum">     650 </span><span class="lineCov">      16167 :         kref_get(&amp;dev-&gt;reada_curr_zone-&gt;refcnt);</span>
+<span class="lineNum">     651 </span><span class="lineCov">      16167 :         reada_peer_zones_set_lock(dev-&gt;reada_curr_zone, 1);</span>
+<span class="lineNum">     652 </span>            : 
+<span class="lineNum">     653 </span><span class="lineCov">      16167 :         return 1;</span>
+<a name="654"><span class="lineNum">     654 </span>            : }</a>
+<span class="lineNum">     655 </span>            : 
+<span class="lineNum">     656 </span><span class="lineCov">      28911 : static int reada_start_machine_dev(struct btrfs_fs_info *fs_info,</span>
+<span class="lineNum">     657 </span>            :                                    struct btrfs_device *dev)
+<span class="lineNum">     658 </span>            : {
+<span class="lineNum">     659 </span><span class="lineCov">      28911 :         struct reada_extent *re = NULL;</span>
+<span class="lineNum">     660 </span>            :         int mirror_num = 0;
+<span class="lineNum">     661 </span><span class="lineCov">      28911 :         struct extent_buffer *eb = NULL;</span>
+<span class="lineNum">     662 </span>            :         u64 logical;
+<span class="lineNum">     663 </span>            :         u32 blocksize;
+<span class="lineNum">     664 </span>            :         int ret;
+<span class="lineNum">     665 </span>            :         int i;
+<span class="lineNum">     666 </span>            :         int need_kick = 0;
+<span class="lineNum">     667 </span>            : 
+<span class="lineNum">     668 </span>            :         spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     669 </span><span class="lineCov">      28913 :         if (dev-&gt;reada_curr_zone == NULL) {</span>
+<span class="lineNum">     670 </span><span class="lineCov">      10785 :                 ret = reada_pick_zone(dev);</span>
+<span class="lineNum">     671 </span><span class="lineCov">      10785 :                 if (!ret) {</span>
+<span class="lineNum">     672 </span>            :                         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     673 </span><span class="lineCov">      10566 :                         return 0;</span>
+<span class="lineNum">     674 </span>            :                 }
+<span class="lineNum">     675 </span>            :         }
+<span class="lineNum">     676 </span>            :         /*
+<span class="lineNum">     677 </span>            :          * FIXME currently we issue the reads one extent at a time. If we have
+<span class="lineNum">     678 </span>            :          * a contiguous block of extents, we could also coagulate them or use
+<span class="lineNum">     679 </span>            :          * plugging to speed things up
+<span class="lineNum">     680 </span>            :          */
+<span class="lineNum">     681 </span><span class="lineCov">      18347 :         ret = radix_tree_gang_lookup(&amp;dev-&gt;reada_extents, (void **)&amp;re,</span>
+<span class="lineNum">     682 </span><span class="lineCov">      18347 :                                      dev-&gt;reada_next &gt;&gt; PAGE_CACHE_SHIFT, 1);</span>
+<span class="lineNum">     683 </span><span class="lineCov">      18347 :         if (ret == 0 || re-&gt;logical &gt;= dev-&gt;reada_curr_zone-&gt;end) {</span>
+<span class="lineNum">     684 </span><span class="lineCov">      16167 :                 ret = reada_pick_zone(dev);</span>
+<span class="lineNum">     685 </span><span class="lineCov">      16167 :                 if (!ret) {</span>
+<span class="lineNum">     686 </span>            :                         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     687 </span><span class="lineCov">        219 :                         return 0;</span>
+<span class="lineNum">     688 </span>            :                 }
+<span class="lineNum">     689 </span><span class="lineCov">      15948 :                 re = NULL;</span>
+<span class="lineNum">     690 </span><span class="lineCov">      15948 :                 ret = radix_tree_gang_lookup(&amp;dev-&gt;reada_extents, (void **)&amp;re,</span>
+<span class="lineNum">     691 </span><span class="lineCov">      15948 :                                         dev-&gt;reada_next &gt;&gt; PAGE_CACHE_SHIFT, 1);</span>
+<span class="lineNum">     692 </span>            :         }
+<span class="lineNum">     693 </span><span class="lineCov">      18128 :         if (ret == 0) {</span>
+<span class="lineNum">     694 </span>            :                 spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     695 </span><span class="lineCov">       2010 :                 return 0;</span>
+<span class="lineNum">     696 </span>            :         }
+<span class="lineNum">     697 </span><span class="lineCov">      16118 :         dev-&gt;reada_next = re-&gt;logical + re-&gt;blocksize;</span>
+<span class="lineNum">     698 </span><span class="lineCov">      16118 :         re-&gt;refcnt++;</span>
+<span class="lineNum">     699 </span>            : 
+<span class="lineNum">     700 </span>            :         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     701 </span>            : 
+<span class="lineNum">     702 </span>            :         /*
+<span class="lineNum">     703 </span>            :          * find mirror num
+<span class="lineNum">     704 </span>            :          */
+<span class="lineNum">     705 </span><span class="lineCov">      17815 :         for (i = 0; i &lt; re-&gt;nzones; ++i) {</span>
+<span class="lineNum">     706 </span><span class="lineCov">      17815 :                 if (re-&gt;zones[i]-&gt;device == dev) {</span>
+<span class="lineNum">     707 </span><span class="lineCov">      16118 :                         mirror_num = i + 1;</span>
+<span class="lineNum">     708 </span><span class="lineCov">      16118 :                         break;</span>
+<span class="lineNum">     709 </span>            :                 }
+<span class="lineNum">     710 </span>            :         }
+<span class="lineNum">     711 </span><span class="lineCov">      16118 :         logical = re-&gt;logical;</span>
+<span class="lineNum">     712 </span><span class="lineCov">      16118 :         blocksize = re-&gt;blocksize;</span>
+<span class="lineNum">     713 </span>            : 
+<span class="lineNum">     714 </span>            :         spin_lock(&amp;re-&gt;lock);
+<span class="lineNum">     715 </span><span class="lineCov">      16118 :         if (re-&gt;scheduled_for == NULL) {</span>
+<span class="lineNum">     716 </span><span class="lineCov">      15891 :                 re-&gt;scheduled_for = dev;</span>
+<span class="lineNum">     717 </span>            :                 need_kick = 1;
+<span class="lineNum">     718 </span>            :         }
+<span class="lineNum">     719 </span>            :         spin_unlock(&amp;re-&gt;lock);
+<span class="lineNum">     720 </span>            : 
+<span class="lineNum">     721 </span><span class="lineCov">      16118 :         reada_extent_put(fs_info, re);</span>
+<span class="lineNum">     722 </span>            : 
+<span class="lineNum">     723 </span><span class="lineCov">      16118 :         if (!need_kick)</span>
+<span class="lineNum">     724 </span>            :                 return 0;
+<span class="lineNum">     725 </span>            : 
+<span class="lineNum">     726 </span><span class="lineCov">      15891 :         atomic_inc(&amp;dev-&gt;reada_in_flight);</span>
+<span class="lineNum">     727 </span><span class="lineCov">      31637 :         ret = reada_tree_block_flagged(fs_info-&gt;extent_root, logical, blocksize,</span>
+<span class="lineNum">     728 </span>            :                          mirror_num, &amp;eb);
+<span class="lineNum">     729 </span><span class="lineCov">      15890 :         if (ret)</span>
+<span class="lineNum">     730 </span><span class="lineNoCov">          0 :                 __readahead_hook(fs_info-&gt;extent_root, NULL, logical, ret);</span>
+<span class="lineNum">     731 </span><span class="lineCov">      15890 :         else if (eb)</span>
+<span class="lineNum">     732 </span><span class="lineCov">      31492 :                 __readahead_hook(fs_info-&gt;extent_root, eb, eb-&gt;start, ret);</span>
+<span class="lineNum">     733 </span>            : 
+<span class="lineNum">     734 </span><span class="lineCov">      15891 :         if (eb)</span>
+<span class="lineNum">     735 </span><span class="lineCov">      15747 :                 free_extent_buffer(eb);</span>
+<span class="lineNum">     736 </span>            : 
+<span class="lineNum">     737 </span>            :         return 1;
+<span class="lineNum">     738 </span>            : 
+<a name="739"><span class="lineNum">     739 </span>            : }</a>
+<span class="lineNum">     740 </span>            : 
+<span class="lineNum">     741 </span><span class="lineCov">        372 : static void reada_start_machine_worker(struct btrfs_work *work)</span>
+<span class="lineNum">     742 </span>            : {
+<span class="lineNum">     743 </span>            :         struct reada_machine_work *rmw;
+<span class="lineNum">     744 </span>            :         struct btrfs_fs_info *fs_info;
+<span class="lineNum">     745 </span>            :         int old_ioprio;
+<span class="lineNum">     746 </span>            : 
+<span class="lineNum">     747 </span>            :         rmw = container_of(work, struct reada_machine_work, work);
+<span class="lineNum">     748 </span><span class="lineCov">        372 :         fs_info = rmw-&gt;fs_info;</span>
+<span class="lineNum">     749 </span>            : 
+<span class="lineNum">     750 </span><span class="lineCov">        372 :         kfree(rmw);</span>
+<span class="lineNum">     751 </span>            : 
+<span class="lineNum">     752 </span><span class="lineCov">        744 :         old_ioprio = IOPRIO_PRIO_VALUE(task_nice_ioclass(current),</span>
+<span class="lineNum">     753 </span>            :                                        task_nice_ioprio(current));
+<span class="lineNum">     754 </span><span class="lineCov">        372 :         set_task_ioprio(current, BTRFS_IOPRIO_READA);</span>
+<span class="lineNum">     755 </span><span class="lineCov">        372 :         __reada_start_machine(fs_info);</span>
+<span class="lineNum">     756 </span><span class="lineCov">        372 :         set_task_ioprio(current, old_ioprio);</span>
+<a name="757"><span class="lineNum">     757 </span><span class="lineCov">        371 : }</span></a>
+<span class="lineNum">     758 </span>            : 
+<span class="lineNum">     759 </span><span class="lineCov">        370 : static void __reada_start_machine(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     760 </span>            : {
+<span class="lineNum">     761 </span>            :         struct btrfs_device *device;
+<span class="lineNum">     762 </span><span class="lineCov">        370 :         struct btrfs_fs_devices *fs_devices = fs_info-&gt;fs_devices;</span>
+<span class="lineNum">     763 </span>            :         u64 enqueued;
+<span class="lineNum">     764 </span>            :         u64 total = 0;
+<span class="lineNum">     765 </span>            :         int i;
+<span class="lineNum">     766 </span>            : 
+<span class="lineNum">     767 </span>            :         do {
+<span class="lineNum">     768 </span>            :                 enqueued = 0;
+<span class="lineNum">     769 </span><span class="lineCov">      43929 :                 list_for_each_entry(device, &amp;fs_devices-&gt;devices, dev_list) {</span>
+<span class="lineNum">     770 </span><span class="lineCov">      29170 :                         if (atomic_read(&amp;device-&gt;reada_in_flight) &lt;</span>
+<span class="lineNum">     771 </span>            :                             MAX_IN_FLIGHT)
+<span class="lineNum">     772 </span><span class="lineCov">      28911 :                                 enqueued += reada_start_machine_dev(fs_info,</span>
+<span class="lineNum">     773 </span>            :                                                                     device);
+<span class="lineNum">     774 </span>            :                 }
+<span class="lineNum">     775 </span><span class="lineCov">      14759 :                 total += enqueued;</span>
+<span class="lineNum">     776 </span><span class="lineCov">      14759 :         } while (enqueued &amp;&amp; total &lt; 10000);</span>
+<span class="lineNum">     777 </span>            : 
+<span class="lineNum">     778 </span><span class="lineCov">        372 :         if (enqueued == 0)</span>
+<span class="lineNum">     779 </span><span class="lineCov">        372 :                 return;</span>
+<span class="lineNum">     780 </span>            : 
+<span class="lineNum">     781 </span>            :         /*
+<span class="lineNum">     782 </span>            :          * If everything is already in the cache, this is effectively single
+<span class="lineNum">     783 </span>            :          * threaded. To a) not hold the caller for too long and b) to utilize
+<span class="lineNum">     784 </span>            :          * more cores, we broke the loop above after 10000 iterations and now
+<span class="lineNum">     785 </span>            :          * enqueue to workers to finish it. This will distribute the load to
+<span class="lineNum">     786 </span>            :          * the cores.
+<span class="lineNum">     787 </span>            :          */
+<span class="lineNum">     788 </span><span class="lineCov">          2 :         for (i = 0; i &lt; 2; ++i)</span>
+<span class="lineNum">     789 </span><span class="lineCov">          2 :                 reada_start_machine(fs_info);</span>
+<a name="790"><span class="lineNum">     790 </span>            : }</a>
+<span class="lineNum">     791 </span>            : 
+<span class="lineNum">     792 </span><span class="lineCov">        372 : static void reada_start_machine(struct btrfs_fs_info *fs_info)</span>
+<span class="lineNum">     793 </span>            : {
+<span class="lineNum">     794 </span>            :         struct reada_machine_work *rmw;
+<span class="lineNum">     795 </span>            : 
+<span class="lineNum">     796 </span><span class="lineCov">        372 :         rmw = kzalloc(sizeof(*rmw), GFP_NOFS);</span>
+<span class="lineNum">     797 </span><span class="lineCov">        372 :         if (!rmw) {</span>
+<span class="lineNum">     798 </span>            :                 /* FIXME we cannot handle this properly right now */
+<span class="lineNum">     799 </span><span class="lineNoCov">          0 :                 BUG();</span>
+<span class="lineNum">     800 </span>            :         }
+<span class="lineNum">     801 </span><span class="lineCov">        372 :         btrfs_init_work(&amp;rmw-&gt;work, btrfs_readahead_helper,</span>
+<span class="lineNum">     802 </span>            :                         reada_start_machine_worker, NULL, NULL);
+<span class="lineNum">     803 </span><span class="lineCov">        372 :         rmw-&gt;fs_info = fs_info;</span>
+<span class="lineNum">     804 </span>            : 
+<span class="lineNum">     805 </span><span class="lineCov">        372 :         btrfs_queue_work(fs_info-&gt;readahead_workers, &amp;rmw-&gt;work);</span>
+<span class="lineNum">     806 </span><span class="lineCov">        372 : }</span>
+<span class="lineNum">     807 </span>            : 
+<span class="lineNum">     808 </span>            : #ifdef DEBUG
+<span class="lineNum">     809 </span>            : static void dump_devs(struct btrfs_fs_info *fs_info, int all)
+<span class="lineNum">     810 </span>            : {
+<span class="lineNum">     811 </span>            :         struct btrfs_device *device;
+<span class="lineNum">     812 </span>            :         struct btrfs_fs_devices *fs_devices = fs_info-&gt;fs_devices;
+<span class="lineNum">     813 </span>            :         unsigned long index;
+<span class="lineNum">     814 </span>            :         int ret;
+<span class="lineNum">     815 </span>            :         int i;
+<span class="lineNum">     816 </span>            :         int j;
+<span class="lineNum">     817 </span>            :         int cnt;
+<span class="lineNum">     818 </span>            : 
+<span class="lineNum">     819 </span>            :         spin_lock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     820 </span>            :         list_for_each_entry(device, &amp;fs_devices-&gt;devices, dev_list) {
+<span class="lineNum">     821 </span>            :                 printk(KERN_DEBUG &quot;dev %lld has %d in flight\n&quot;, device-&gt;devid,
+<span class="lineNum">     822 </span>            :                         atomic_read(&amp;device-&gt;reada_in_flight));
+<span class="lineNum">     823 </span>            :                 index = 0;
+<span class="lineNum">     824 </span>            :                 while (1) {
+<span class="lineNum">     825 </span>            :                         struct reada_zone *zone;
+<span class="lineNum">     826 </span>            :                         ret = radix_tree_gang_lookup(&amp;device-&gt;reada_zones,
+<span class="lineNum">     827 </span>            :                                                      (void **)&amp;zone, index, 1);
+<span class="lineNum">     828 </span>            :                         if (ret == 0)
+<span class="lineNum">     829 </span>            :                                 break;
+<span class="lineNum">     830 </span>            :                         printk(KERN_DEBUG &quot;  zone %llu-%llu elems %llu locked &quot;
+<span class="lineNum">     831 </span>            :                                 &quot;%d devs&quot;, zone-&gt;start, zone-&gt;end, zone-&gt;elems,
+<span class="lineNum">     832 </span>            :                                 zone-&gt;locked);
+<span class="lineNum">     833 </span>            :                         for (j = 0; j &lt; zone-&gt;ndevs; ++j) {
+<span class="lineNum">     834 </span>            :                                 printk(KERN_CONT &quot; %lld&quot;,
+<span class="lineNum">     835 </span>            :                                         zone-&gt;devs[j]-&gt;devid);
+<span class="lineNum">     836 </span>            :                         }
+<span class="lineNum">     837 </span>            :                         if (device-&gt;reada_curr_zone == zone)
+<span class="lineNum">     838 </span>            :                                 printk(KERN_CONT &quot; curr off %llu&quot;,
+<span class="lineNum">     839 </span>            :                                         device-&gt;reada_next - zone-&gt;start);
+<span class="lineNum">     840 </span>            :                         printk(KERN_CONT &quot;\n&quot;);
+<span class="lineNum">     841 </span>            :                         index = (zone-&gt;end &gt;&gt; PAGE_CACHE_SHIFT) + 1;
+<span class="lineNum">     842 </span>            :                 }
+<span class="lineNum">     843 </span>            :                 cnt = 0;
+<span class="lineNum">     844 </span>            :                 index = 0;
+<span class="lineNum">     845 </span>            :                 while (all) {
+<span class="lineNum">     846 </span>            :                         struct reada_extent *re = NULL;
+<span class="lineNum">     847 </span>            : 
+<span class="lineNum">     848 </span>            :                         ret = radix_tree_gang_lookup(&amp;device-&gt;reada_extents,
+<span class="lineNum">     849 </span>            :                                                      (void **)&amp;re, index, 1);
+<span class="lineNum">     850 </span>            :                         if (ret == 0)
+<span class="lineNum">     851 </span>            :                                 break;
+<span class="lineNum">     852 </span>            :                         printk(KERN_DEBUG
+<span class="lineNum">     853 </span>            :                                 &quot;  re: logical %llu size %u empty %d for %lld&quot;,
+<span class="lineNum">     854 </span>            :                                 re-&gt;logical, re-&gt;blocksize,
+<span class="lineNum">     855 </span>            :                                 list_empty(&amp;re-&gt;extctl), re-&gt;scheduled_for ?
+<span class="lineNum">     856 </span>            :                                 re-&gt;scheduled_for-&gt;devid : -1);
+<span class="lineNum">     857 </span>            : 
+<span class="lineNum">     858 </span>            :                         for (i = 0; i &lt; re-&gt;nzones; ++i) {
+<span class="lineNum">     859 </span>            :                                 printk(KERN_CONT &quot; zone %llu-%llu devs&quot;,
+<span class="lineNum">     860 </span>            :                                         re-&gt;zones[i]-&gt;start,
+<span class="lineNum">     861 </span>            :                                         re-&gt;zones[i]-&gt;end);
+<span class="lineNum">     862 </span>            :                                 for (j = 0; j &lt; re-&gt;zones[i]-&gt;ndevs; ++j) {
+<span class="lineNum">     863 </span>            :                                         printk(KERN_CONT &quot; %lld&quot;,
+<span class="lineNum">     864 </span>            :                                                 re-&gt;zones[i]-&gt;devs[j]-&gt;devid);
+<span class="lineNum">     865 </span>            :                                 }
+<span class="lineNum">     866 </span>            :                         }
+<span class="lineNum">     867 </span>            :                         printk(KERN_CONT &quot;\n&quot;);
+<span class="lineNum">     868 </span>            :                         index = (re-&gt;logical &gt;&gt; PAGE_CACHE_SHIFT) + 1;
+<span class="lineNum">     869 </span>            :                         if (++cnt &gt; 15)
+<span class="lineNum">     870 </span>            :                                 break;
+<span class="lineNum">     871 </span>            :                 }
+<span class="lineNum">     872 </span>            :         }
+<span class="lineNum">     873 </span>            : 
+<span class="lineNum">     874 </span>            :         index = 0;
+<span class="lineNum">     875 </span>            :         cnt = 0;
+<span class="lineNum">     876 </span>            :         while (all) {
+<span class="lineNum">     877 </span>            :                 struct reada_extent *re = NULL;
+<span class="lineNum">     878 </span>            : 
+<span class="lineNum">     879 </span>            :                 ret = radix_tree_gang_lookup(&amp;fs_info-&gt;reada_tree, (void **)&amp;re,
+<span class="lineNum">     880 </span>            :                                              index, 1);
+<span class="lineNum">     881 </span>            :                 if (ret == 0)
+<span class="lineNum">     882 </span>            :                         break;
+<span class="lineNum">     883 </span>            :                 if (!re-&gt;scheduled_for) {
+<span class="lineNum">     884 </span>            :                         index = (re-&gt;logical &gt;&gt; PAGE_CACHE_SHIFT) + 1;
+<span class="lineNum">     885 </span>            :                         continue;
+<span class="lineNum">     886 </span>            :                 }
+<span class="lineNum">     887 </span>            :                 printk(KERN_DEBUG
+<span class="lineNum">     888 </span>            :                         &quot;re: logical %llu size %u list empty %d for %lld&quot;,
+<span class="lineNum">     889 </span>            :                         re-&gt;logical, re-&gt;blocksize, list_empty(&amp;re-&gt;extctl),
+<span class="lineNum">     890 </span>            :                         re-&gt;scheduled_for ? re-&gt;scheduled_for-&gt;devid : -1);
+<span class="lineNum">     891 </span>            :                 for (i = 0; i &lt; re-&gt;nzones; ++i) {
+<span class="lineNum">     892 </span>            :                         printk(KERN_CONT &quot; zone %llu-%llu devs&quot;,
+<span class="lineNum">     893 </span>            :                                 re-&gt;zones[i]-&gt;start,
+<span class="lineNum">     894 </span>            :                                 re-&gt;zones[i]-&gt;end);
+<span class="lineNum">     895 </span>            :                         for (i = 0; i &lt; re-&gt;nzones; ++i) {
+<span class="lineNum">     896 </span>            :                                 printk(KERN_CONT &quot; zone %llu-%llu devs&quot;,
+<span class="lineNum">     897 </span>            :                                         re-&gt;zones[i]-&gt;start,
+<span class="lineNum">     898 </span>            :                                         re-&gt;zones[i]-&gt;end);
+<span class="lineNum">     899 </span>            :                                 for (j = 0; j &lt; re-&gt;zones[i]-&gt;ndevs; ++j) {
+<span class="lineNum">     900 </span>            :                                         printk(KERN_CONT &quot; %lld&quot;,
+<span class="lineNum">     901 </span>            :                                                 re-&gt;zones[i]-&gt;devs[j]-&gt;devid);
+<span class="lineNum">     902 </span>            :                                 }
+<span class="lineNum">     903 </span>            :                         }
+<span class="lineNum">     904 </span>            :                 }
+<span class="lineNum">     905 </span>            :                 printk(KERN_CONT &quot;\n&quot;);
+<span class="lineNum">     906 </span>            :                 index = (re-&gt;logical &gt;&gt; PAGE_CACHE_SHIFT) + 1;
+<span class="lineNum">     907 </span>            :         }
+<span class="lineNum">     908 </span>            :         spin_unlock(&amp;fs_info-&gt;reada_lock);
+<span class="lineNum">     909 </span>            : }
+<span class="lineNum">     910 </span>            : #endif
+<span class="lineNum">     911 </span>            : 
+<span class="lineNum">     912 </span>            : /*
+<a name="913"><span class="lineNum">     913 </span>            :  * interface</a>
+<span class="lineNum">     914 </span>            :  */
+<span class="lineNum">     915 </span><span class="lineCov">        226 : struct reada_control *btrfs_reada_add(struct btrfs_root *root,</span>
+<span class="lineNum">     916 </span>            :                         struct btrfs_key *key_start, struct btrfs_key *key_end)
+<span class="lineNum">     917 </span>            : {
+<span class="lineNum">     918 </span>            :         struct reada_control *rc;
+<span class="lineNum">     919 </span>            :         u64 start;
+<span class="lineNum">     920 </span>            :         u64 generation;
+<span class="lineNum">     921 </span>            :         int level;
+<span class="lineNum">     922 </span><span class="lineCov">        226 :         struct extent_buffer *node;</span>
+<span class="lineNum">     923 </span>            :         static struct btrfs_key max_key = {
+<span class="lineNum">     924 </span>            :                 .objectid = (u64)-1,
+<span class="lineNum">     925 </span>            :                 .type = (u8)-1,
+<span class="lineNum">     926 </span>            :                 .offset = (u64)-1
+<span class="lineNum">     927 </span>            :         };
+<span class="lineNum">     928 </span>            : 
+<span class="lineNum">     929 </span><span class="lineCov">        226 :         rc = kzalloc(sizeof(*rc), GFP_NOFS);</span>
+<span class="lineNum">     930 </span><span class="lineCov">        226 :         if (!rc)</span>
+<span class="lineNum">     931 </span>            :                 return ERR_PTR(-ENOMEM);
+<span class="lineNum">     932 </span>            : 
+<span class="lineNum">     933 </span><span class="lineCov">        226 :         rc-&gt;root = root;</span>
+<span class="lineNum">     934 </span><span class="lineCov">        226 :         rc-&gt;key_start = *key_start;</span>
+<span class="lineNum">     935 </span><span class="lineCov">        226 :         rc-&gt;key_end = *key_end;</span>
+<span class="lineNum">     936 </span>            :         atomic_set(&amp;rc-&gt;elems, 0);
+<span class="lineNum">     937 </span><span class="lineCov">        226 :         init_waitqueue_head(&amp;rc-&gt;wait);</span>
+<span class="lineNum">     938 </span>            :         kref_init(&amp;rc-&gt;refcnt);
+<span class="lineNum">     939 </span><span class="lineCov">        226 :         kref_get(&amp;rc-&gt;refcnt); /* one ref for having elements */</span>
+<span class="lineNum">     940 </span>            : 
+<span class="lineNum">     941 </span><span class="lineCov">        226 :         node = btrfs_root_node(root);</span>
+<span class="lineNum">     942 </span><span class="lineCov">        226 :         start = node-&gt;start;</span>
+<span class="lineNum">     943 </span><span class="lineCov">        226 :         level = btrfs_header_level(node);</span>
+<span class="lineNum">     944 </span>            :         generation = btrfs_header_generation(node);
+<span class="lineNum">     945 </span><span class="lineCov">        226 :         free_extent_buffer(node);</span>
+<span class="lineNum">     946 </span>            : 
+<span class="lineNum">     947 </span><span class="lineCov">        226 :         if (reada_add_block(rc, start, &amp;max_key, level, generation)) {</span>
+<span class="lineNum">     948 </span><span class="lineNoCov">          0 :                 kfree(rc);</span>
+<span class="lineNum">     949 </span><span class="lineNoCov">          0 :                 return ERR_PTR(-ENOMEM);</span>
+<span class="lineNum">     950 </span>            :         }
+<span class="lineNum">     951 </span>            : 
+<span class="lineNum">     952 </span><span class="lineCov">        226 :         reada_start_machine(root-&gt;fs_info);</span>
+<span class="lineNum">     953 </span>            : 
+<span class="lineNum">     954 </span><span class="lineCov">        226 :         return rc;</span>
+<span class="lineNum">     955 </span>            : }
+<span class="lineNum">     956 </span>            : 
+<span class="lineNum">     957 </span>            : #ifdef DEBUG
+<span class="lineNum">     958 </span>            : int btrfs_reada_wait(void *handle)
+<span class="lineNum">     959 </span>            : {
+<span class="lineNum">     960 </span>            :         struct reada_control *rc = handle;
+<span class="lineNum">     961 </span>            : 
+<span class="lineNum">     962 </span>            :         while (atomic_read(&amp;rc-&gt;elems)) {
+<span class="lineNum">     963 </span>            :                 wait_event_timeout(rc-&gt;wait, atomic_read(&amp;rc-&gt;elems) == 0,
+<span class="lineNum">     964 </span>            :                                    5 * HZ);
+<span class="lineNum">     965 </span>            :                 dump_devs(rc-&gt;root-&gt;fs_info,
+<span class="lineNum">     966 </span>            :                           atomic_read(&amp;rc-&gt;elems) &lt; 10 ? 1 : 0);
+<span class="lineNum">     967 </span>            :         }
+<span class="lineNum">     968 </span>            : 
+<span class="lineNum">     969 </span>            :         dump_devs(rc-&gt;root-&gt;fs_info, atomic_read(&amp;rc-&gt;elems) &lt; 10 ? 1 : 0);
+<span class="lineNum">     970 </span>            : 
+<span class="lineNum">     971 </span>            :         kref_put(&amp;rc-&gt;refcnt, reada_control_release);
+<span class="lineNum">     972 </span>            : 
+<span class="lineNum">     973 </span>            :         return 0;
+<a name="974"><span class="lineNum">     974 </span>            : }</a>
+<span class="lineNum">     975 </span>            : #else
+<span class="lineNum">     976 </span><span class="lineCov">        226 : int btrfs_reada_wait(void *handle)</span>
+<span class="lineNum">     977 </span>            : {
+<span class="lineNum">     978 </span>            :         struct reada_control *rc = handle;
+<span class="lineNum">     979 </span>            : 
+<span class="lineNum">     980 </span><span class="lineCov">        572 :         while (atomic_read(&amp;rc-&gt;elems)) {</span>
+<span class="lineNum">     981 </span><span class="lineCov">        480 :                 wait_event(rc-&gt;wait, atomic_read(&amp;rc-&gt;elems) == 0);</span>
+<span class="lineNum">     982 </span>            :         }
+<span class="lineNum">     983 </span>            : 
+<span class="lineNum">     984 </span><span class="lineCov">        226 :         kref_put(&amp;rc-&gt;refcnt, reada_control_release);</span>
+<span class="lineNum">     985 </span>            : 
+<span class="lineNum">     986 </span><span class="lineCov">        226 :         return 0;</span>
+<span class="lineNum">     987 </span>            : }
+<a name="988"><span class="lineNum">     988 </span>            : #endif</a>
+<span class="lineNum">     989 </span>            : 
+<span class="lineNum">     990 </span><span class="lineNoCov">          0 : void btrfs_reada_detach(void *handle)</span>
+<span class="lineNum">     991 </span>            : {
+<span class="lineNum">     992 </span>            :         struct reada_control *rc = handle;
+<span class="lineNum">     993 </span>            : 
+<span class="lineNum">     994 </span><span class="lineNoCov">          0 :         kref_put(&amp;rc-&gt;refcnt, reada_control_release);</span>
+<span class="lineNum">     995 </span><span class="lineNoCov">          0 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

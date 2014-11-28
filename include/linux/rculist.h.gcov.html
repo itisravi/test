@@ -1,0 +1,623 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/rculist.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - rculist.h<span style="font-size: 80%;"> (source / <a href="rculist.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">19</td>
+            <td class="headerCovTableEntryLo">42.1 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #ifndef _LINUX_RCULIST_H</a>
+<span class="lineNum">       2 </span>            : #define _LINUX_RCULIST_H
+<span class="lineNum">       3 </span>            : 
+<span class="lineNum">       4 </span>            : #ifdef __KERNEL__
+<span class="lineNum">       5 </span>            : 
+<span class="lineNum">       6 </span>            : /*
+<span class="lineNum">       7 </span>            :  * RCU-protected list version
+<span class="lineNum">       8 </span>            :  */
+<span class="lineNum">       9 </span>            : #include &lt;linux/list.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;linux/rcupdate.h&gt;
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : /*
+<span class="lineNum">      13 </span>            :  * Why is there no list_empty_rcu()?  Because list_empty() serves this
+<span class="lineNum">      14 </span>            :  * purpose.  The list_empty() function fetches the RCU-protected pointer
+<span class="lineNum">      15 </span>            :  * and compares it to the address of the list head, but neither dereferences
+<span class="lineNum">      16 </span>            :  * this pointer itself nor provides this pointer to the caller.  Therefore,
+<span class="lineNum">      17 </span>            :  * it is not necessary to use rcu_dereference(), so that list_empty() can
+<span class="lineNum">      18 </span>            :  * be used anywhere you would want to use a list_empty_rcu().
+<span class="lineNum">      19 </span>            :  */
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span>            : /*
+<span class="lineNum">      22 </span>            :  * INIT_LIST_HEAD_RCU - Initialize a list_head visible to RCU readers
+<span class="lineNum">      23 </span>            :  * @list: list to be initialized
+<span class="lineNum">      24 </span>            :  *
+<span class="lineNum">      25 </span>            :  * You should instead use INIT_LIST_HEAD() for normal initialization and
+<span class="lineNum">      26 </span>            :  * cleanup tasks, when readers have no access to the list being initialized.
+<span class="lineNum">      27 </span>            :  * However, if the list being initialized is visible to readers, you
+<span class="lineNum">      28 </span>            :  * need to keep the compiler from being too mischievous.
+<span class="lineNum">      29 </span>            :  */
+<span class="lineNum">      30 </span>            : static inline void INIT_LIST_HEAD_RCU(struct list_head *list)
+<span class="lineNum">      31 </span>            : {
+<span class="lineNum">      32 </span><span class="lineNoCov">          0 :         ACCESS_ONCE(list-&gt;next) = list;</span>
+<span class="lineNum">      33 </span><span class="lineNoCov">          0 :         ACCESS_ONCE(list-&gt;prev) = list;</span>
+<span class="lineNum">      34 </span>            : }
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : /*
+<span class="lineNum">      37 </span>            :  * return the -&gt;next pointer of a list_head in an rcu safe
+<span class="lineNum">      38 </span>            :  * way, we must not access it directly
+<span class="lineNum">      39 </span>            :  */
+<span class="lineNum">      40 </span>            : #define list_next_rcu(list)     (*((struct list_head __rcu **)(&amp;(list)-&gt;next)))
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : /*
+<span class="lineNum">      43 </span>            :  * Insert a new entry between two known consecutive entries.
+<span class="lineNum">      44 </span>            :  *
+<span class="lineNum">      45 </span>            :  * This is only for internal list manipulation where we know
+<span class="lineNum">      46 </span>            :  * the prev/next entries already!
+<span class="lineNum">      47 </span>            :  */
+<span class="lineNum">      48 </span>            : #ifndef CONFIG_DEBUG_LIST
+<span class="lineNum">      49 </span>            : static inline void __list_add_rcu(struct list_head *new,
+<span class="lineNum">      50 </span>            :                 struct list_head *prev, struct list_head *next)
+<span class="lineNum">      51 </span>            : {
+<span class="lineNum">      52 </span>            :         new-&gt;next = next;
+<span class="lineNum">      53 </span>            :         new-&gt;prev = prev;
+<span class="lineNum">      54 </span>            :         rcu_assign_pointer(list_next_rcu(prev), new);
+<span class="lineNum">      55 </span>            :         next-&gt;prev = new;
+<span class="lineNum">      56 </span>            : }
+<span class="lineNum">      57 </span>            : #else
+<span class="lineNum">      58 </span>            : void __list_add_rcu(struct list_head *new,
+<span class="lineNum">      59 </span>            :                     struct list_head *prev, struct list_head *next);
+<span class="lineNum">      60 </span>            : #endif
+<span class="lineNum">      61 </span>            : 
+<span class="lineNum">      62 </span>            : /**
+<span class="lineNum">      63 </span>            :  * list_add_rcu - add a new entry to rcu-protected list
+<span class="lineNum">      64 </span>            :  * @new: new entry to be added
+<span class="lineNum">      65 </span>            :  * @head: list head to add it after
+<span class="lineNum">      66 </span>            :  *
+<span class="lineNum">      67 </span>            :  * Insert a new entry after the specified head.
+<span class="lineNum">      68 </span>            :  * This is good for implementing stacks.
+<span class="lineNum">      69 </span>            :  *
+<span class="lineNum">      70 </span>            :  * The caller must take whatever precautions are necessary
+<span class="lineNum">      71 </span>            :  * (such as holding appropriate locks) to avoid racing
+<span class="lineNum">      72 </span>            :  * with another list-mutation primitive, such as list_add_rcu()
+<span class="lineNum">      73 </span>            :  * or list_del_rcu(), running on this same list.
+<span class="lineNum">      74 </span>            :  * However, it is perfectly legal to run concurrently with
+<span class="lineNum">      75 </span>            :  * the _rcu list-traversal primitives, such as
+<span class="lineNum">      76 </span>            :  * list_for_each_entry_rcu().
+<span class="lineNum">      77 </span>            :  */
+<span class="lineNum">      78 </span>            : static inline void list_add_rcu(struct list_head *new, struct list_head *head)
+<span class="lineNum">      79 </span>            : {
+<span class="lineNum">      80 </span><span class="lineCov">        783 :         __list_add_rcu(new, head, head-&gt;next);</span>
+<span class="lineNum">      81 </span>            : }
+<span class="lineNum">      82 </span>            : 
+<span class="lineNum">      83 </span>            : /**
+<span class="lineNum">      84 </span>            :  * list_add_tail_rcu - add a new entry to rcu-protected list
+<span class="lineNum">      85 </span>            :  * @new: new entry to be added
+<span class="lineNum">      86 </span>            :  * @head: list head to add it before
+<span class="lineNum">      87 </span>            :  *
+<span class="lineNum">      88 </span>            :  * Insert a new entry before the specified head.
+<span class="lineNum">      89 </span>            :  * This is useful for implementing queues.
+<span class="lineNum">      90 </span>            :  *
+<span class="lineNum">      91 </span>            :  * The caller must take whatever precautions are necessary
+<span class="lineNum">      92 </span>            :  * (such as holding appropriate locks) to avoid racing
+<span class="lineNum">      93 </span>            :  * with another list-mutation primitive, such as list_add_tail_rcu()
+<span class="lineNum">      94 </span>            :  * or list_del_rcu(), running on this same list.
+<span class="lineNum">      95 </span>            :  * However, it is perfectly legal to run concurrently with
+<span class="lineNum">      96 </span>            :  * the _rcu list-traversal primitives, such as
+<span class="lineNum">      97 </span>            :  * list_for_each_entry_rcu().
+<span class="lineNum">      98 </span>            :  */
+<span class="lineNum">      99 </span>            : static inline void list_add_tail_rcu(struct list_head *new,
+<span class="lineNum">     100 </span>            :                                         struct list_head *head)
+<span class="lineNum">     101 </span>            : {
+<span class="lineNum">     102 </span>            :         __list_add_rcu(new, head-&gt;prev, head);
+<span class="lineNum">     103 </span>            : }
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            : /**
+<span class="lineNum">     106 </span>            :  * list_del_rcu - deletes entry from list without re-initialization
+<span class="lineNum">     107 </span>            :  * @entry: the element to delete from the list.
+<span class="lineNum">     108 </span>            :  *
+<span class="lineNum">     109 </span>            :  * Note: list_empty() on entry does not return true after this,
+<span class="lineNum">     110 </span>            :  * the entry is in an undefined state. It is useful for RCU based
+<span class="lineNum">     111 </span>            :  * lockfree traversal.
+<span class="lineNum">     112 </span>            :  *
+<span class="lineNum">     113 </span>            :  * In particular, it means that we can not poison the forward
+<span class="lineNum">     114 </span>            :  * pointers that may still be used for walking the list.
+<span class="lineNum">     115 </span>            :  *
+<span class="lineNum">     116 </span>            :  * The caller must take whatever precautions are necessary
+<span class="lineNum">     117 </span>            :  * (such as holding appropriate locks) to avoid racing
+<span class="lineNum">     118 </span>            :  * with another list-mutation primitive, such as list_del_rcu()
+<span class="lineNum">     119 </span>            :  * or list_add_rcu(), running on this same list.
+<span class="lineNum">     120 </span>            :  * However, it is perfectly legal to run concurrently with
+<span class="lineNum">     121 </span>            :  * the _rcu list-traversal primitives, such as
+<span class="lineNum">     122 </span>            :  * list_for_each_entry_rcu().
+<span class="lineNum">     123 </span>            :  *
+<span class="lineNum">     124 </span>            :  * Note that the caller is not permitted to immediately free
+<span class="lineNum">     125 </span>            :  * the newly deleted entry.  Instead, either synchronize_rcu()
+<span class="lineNum">     126 </span>            :  * or call_rcu() must be used to defer freeing until an RCU
+<span class="lineNum">     127 </span>            :  * grace period has elapsed.
+<span class="lineNum">     128 </span>            :  */
+<span class="lineNum">     129 </span>            : static inline void list_del_rcu(struct list_head *entry)
+<span class="lineNum">     130 </span>            : {
+<span class="lineNum">     131 </span><span class="lineCov">         15 :         __list_del_entry(entry);</span>
+<span class="lineNum">     132 </span><span class="lineCov">         15 :         entry-&gt;prev = LIST_POISON2;</span>
+<span class="lineNum">     133 </span>            : }
+<span class="lineNum">     134 </span>            : 
+<span class="lineNum">     135 </span>            : /**
+<span class="lineNum">     136 </span>            :  * hlist_del_init_rcu - deletes entry from hash list with re-initialization
+<span class="lineNum">     137 </span>            :  * @n: the element to delete from the hash list.
+<span class="lineNum">     138 </span>            :  *
+<span class="lineNum">     139 </span>            :  * Note: list_unhashed() on the node return true after this. It is
+<span class="lineNum">     140 </span>            :  * useful for RCU based read lockfree traversal if the writer side
+<span class="lineNum">     141 </span>            :  * must know if the list entry is still hashed or already unhashed.
+<span class="lineNum">     142 </span>            :  *
+<span class="lineNum">     143 </span>            :  * In particular, it means that we can not poison the forward pointers
+<span class="lineNum">     144 </span>            :  * that may still be used for walking the hash list and we can only
+<span class="lineNum">     145 </span>            :  * zero the pprev pointer so list_unhashed() will return true after
+<span class="lineNum">     146 </span>            :  * this.
+<span class="lineNum">     147 </span>            :  *
+<span class="lineNum">     148 </span>            :  * The caller must take whatever precautions are necessary (such as
+<span class="lineNum">     149 </span>            :  * holding appropriate locks) to avoid racing with another
+<span class="lineNum">     150 </span>            :  * list-mutation primitive, such as hlist_add_head_rcu() or
+<span class="lineNum">     151 </span>            :  * hlist_del_rcu(), running on this same list.  However, it is
+<span class="lineNum">     152 </span>            :  * perfectly legal to run concurrently with the _rcu list-traversal
+<span class="lineNum">     153 </span>            :  * primitives, such as hlist_for_each_entry_rcu().
+<span class="lineNum">     154 </span>            :  */
+<span class="lineNum">     155 </span>            : static inline void hlist_del_init_rcu(struct hlist_node *n)
+<span class="lineNum">     156 </span>            : {
+<span class="lineNum">     157 </span>            :         if (!hlist_unhashed(n)) {
+<span class="lineNum">     158 </span>            :                 __hlist_del(n);
+<span class="lineNum">     159 </span>            :                 n-&gt;pprev = NULL;
+<span class="lineNum">     160 </span>            :         }
+<span class="lineNum">     161 </span>            : }
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span>            : /**
+<span class="lineNum">     164 </span>            :  * list_replace_rcu - replace old entry by new one
+<span class="lineNum">     165 </span>            :  * @old : the element to be replaced
+<span class="lineNum">     166 </span>            :  * @new : the new element to insert
+<span class="lineNum">     167 </span>            :  *
+<span class="lineNum">     168 </span>            :  * The @old entry will be replaced with the @new entry atomically.
+<span class="lineNum">     169 </span>            :  * Note: @old should not be empty.
+<span class="lineNum">     170 </span>            :  */
+<span class="lineNum">     171 </span>            : static inline void list_replace_rcu(struct list_head *old,
+<span class="lineNum">     172 </span>            :                                 struct list_head *new)
+<span class="lineNum">     173 </span>            : {
+<span class="lineNum">     174 </span><span class="lineCov">        248 :         new-&gt;next = old-&gt;next;</span>
+<span class="lineNum">     175 </span><span class="lineCov">        248 :         new-&gt;prev = old-&gt;prev;</span>
+<span class="lineNum">     176 </span><span class="lineCov">        248 :         rcu_assign_pointer(list_next_rcu(new-&gt;prev), new);</span>
+<span class="lineNum">     177 </span><span class="lineCov">        248 :         new-&gt;next-&gt;prev = new;</span>
+<span class="lineNum">     178 </span><span class="lineCov">        248 :         old-&gt;prev = LIST_POISON2;</span>
+<span class="lineNum">     179 </span>            : }
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            : /**
+<span class="lineNum">     182 </span>            :  * list_splice_init_rcu - splice an RCU-protected list into an existing list.
+<span class="lineNum">     183 </span>            :  * @list:       the RCU-protected list to splice
+<span class="lineNum">     184 </span>            :  * @head:       the place in the list to splice the first list into
+<span class="lineNum">     185 </span>            :  * @sync:       function to sync: synchronize_rcu(), synchronize_sched(), ...
+<span class="lineNum">     186 </span>            :  *
+<span class="lineNum">     187 </span>            :  * @head can be RCU-read traversed concurrently with this function.
+<span class="lineNum">     188 </span>            :  *
+<span class="lineNum">     189 </span>            :  * Note that this function blocks.
+<span class="lineNum">     190 </span>            :  *
+<span class="lineNum">     191 </span>            :  * Important note: the caller must take whatever action is necessary to
+<span class="lineNum">     192 </span>            :  *      prevent any other updates to @head.  In principle, it is possible
+<span class="lineNum">     193 </span>            :  *      to modify the list as soon as sync() begins execution.
+<span class="lineNum">     194 </span>            :  *      If this sort of thing becomes necessary, an alternative version
+<span class="lineNum">     195 </span>            :  *      based on call_rcu() could be created.  But only if -really-
+<span class="lineNum">     196 </span>            :  *      needed -- there is no shortage of RCU API members.
+<span class="lineNum">     197 </span>            :  */
+<span class="lineNum">     198 </span>            : static inline void list_splice_init_rcu(struct list_head *list,
+<span class="lineNum">     199 </span>            :                                         struct list_head *head,
+<span class="lineNum">     200 </span>            :                                         void (*sync)(void))
+<span class="lineNum">     201 </span>            : {
+<span class="lineNum">     202 </span><span class="lineNoCov">          0 :         struct list_head *first = list-&gt;next;</span>
+<span class="lineNum">     203 </span><span class="lineNoCov">          0 :         struct list_head *last = list-&gt;prev;</span>
+<span class="lineNum">     204 </span><span class="lineNoCov">          0 :         struct list_head *at = head-&gt;next;</span>
+<span class="lineNum">     205 </span>            : 
+<span class="lineNum">     206 </span><span class="lineNoCov">          0 :         if (list_empty(list))</span>
+<span class="lineNum">     207 </span>            :                 return;
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span>            :         /*
+<span class="lineNum">     210 </span>            :          * &quot;first&quot; and &quot;last&quot; tracking list, so initialize it.  RCU readers
+<span class="lineNum">     211 </span>            :          * have access to this list, so we must use INIT_LIST_HEAD_RCU()
+<span class="lineNum">     212 </span>            :          * instead of INIT_LIST_HEAD().
+<span class="lineNum">     213 </span>            :          */
+<span class="lineNum">     214 </span>            : 
+<span class="lineNum">     215 </span>            :         INIT_LIST_HEAD_RCU(list);
+<span class="lineNum">     216 </span>            : 
+<span class="lineNum">     217 </span>            :         /*
+<span class="lineNum">     218 </span>            :          * At this point, the list body still points to the source list.
+<span class="lineNum">     219 </span>            :          * Wait for any readers to finish using the list before splicing
+<span class="lineNum">     220 </span>            :          * the list body into the new list.  Any new readers will see
+<span class="lineNum">     221 </span>            :          * an empty list.
+<span class="lineNum">     222 </span>            :          */
+<span class="lineNum">     223 </span>            : 
+<span class="lineNum">     224 </span><span class="lineNoCov">          0 :         sync();</span>
+<span class="lineNum">     225 </span>            : 
+<span class="lineNum">     226 </span>            :         /*
+<span class="lineNum">     227 </span>            :          * Readers are finished with the source list, so perform splice.
+<span class="lineNum">     228 </span>            :          * The order is important if the new list is global and accessible
+<span class="lineNum">     229 </span>            :          * to concurrent RCU readers.  Note that RCU readers are not
+<span class="lineNum">     230 </span>            :          * permitted to traverse the prev pointers without excluding
+<span class="lineNum">     231 </span>            :          * this function.
+<span class="lineNum">     232 </span>            :          */
+<span class="lineNum">     233 </span>            : 
+<span class="lineNum">     234 </span><span class="lineNoCov">          0 :         last-&gt;next = at;</span>
+<span class="lineNum">     235 </span><span class="lineNoCov">          0 :         rcu_assign_pointer(list_next_rcu(head), first);</span>
+<span class="lineNum">     236 </span><span class="lineNoCov">          0 :         first-&gt;prev = head;</span>
+<span class="lineNum">     237 </span><span class="lineNoCov">          0 :         at-&gt;prev = last;</span>
+<span class="lineNum">     238 </span>            : }
+<span class="lineNum">     239 </span>            : 
+<span class="lineNum">     240 </span>            : /**
+<span class="lineNum">     241 </span>            :  * list_entry_rcu - get the struct for this entry
+<span class="lineNum">     242 </span>            :  * @ptr:        the &amp;struct list_head pointer.
+<span class="lineNum">     243 </span>            :  * @type:       the type of the struct this is embedded in.
+<span class="lineNum">     244 </span>            :  * @member:     the name of the list_struct within the struct.
+<span class="lineNum">     245 </span>            :  *
+<span class="lineNum">     246 </span>            :  * This primitive may safely run concurrently with the _rcu list-mutation
+<span class="lineNum">     247 </span>            :  * primitives such as list_add_rcu() as long as it's guarded by rcu_read_lock().
+<span class="lineNum">     248 </span>            :  */
+<span class="lineNum">     249 </span>            : #define list_entry_rcu(ptr, type, member) \
+<span class="lineNum">     250 </span>            : ({ \
+<span class="lineNum">     251 </span>            :         typeof(*ptr) __rcu *__ptr = (typeof(*ptr) __rcu __force *)ptr; \
+<span class="lineNum">     252 </span>            :         container_of((typeof(ptr))rcu_dereference_raw(__ptr), type, member); \
+<span class="lineNum">     253 </span>            : })
+<span class="lineNum">     254 </span>            : 
+<span class="lineNum">     255 </span>            : /**
+<span class="lineNum">     256 </span>            :  * Where are list_empty_rcu() and list_first_entry_rcu()?
+<span class="lineNum">     257 </span>            :  *
+<span class="lineNum">     258 </span>            :  * Implementing those functions following their counterparts list_empty() and
+<span class="lineNum">     259 </span>            :  * list_first_entry() is not advisable because they lead to subtle race
+<span class="lineNum">     260 </span>            :  * conditions as the following snippet shows:
+<span class="lineNum">     261 </span>            :  *
+<span class="lineNum">     262 </span>            :  * if (!list_empty_rcu(mylist)) {
+<span class="lineNum">     263 </span>            :  *      struct foo *bar = list_first_entry_rcu(mylist, struct foo, list_member);
+<span class="lineNum">     264 </span>            :  *      do_something(bar);
+<span class="lineNum">     265 </span>            :  * }
+<span class="lineNum">     266 </span>            :  *
+<span class="lineNum">     267 </span>            :  * The list may not be empty when list_empty_rcu checks it, but it may be when
+<span class="lineNum">     268 </span>            :  * list_first_entry_rcu rereads the -&gt;next pointer.
+<span class="lineNum">     269 </span>            :  *
+<span class="lineNum">     270 </span>            :  * Rereading the -&gt;next pointer is not a problem for list_empty() and
+<span class="lineNum">     271 </span>            :  * list_first_entry() because they would be protected by a lock that blocks
+<span class="lineNum">     272 </span>            :  * writers.
+<span class="lineNum">     273 </span>            :  *
+<span class="lineNum">     274 </span>            :  * See list_first_or_null_rcu for an alternative.
+<span class="lineNum">     275 </span>            :  */
+<span class="lineNum">     276 </span>            : 
+<span class="lineNum">     277 </span>            : /**
+<span class="lineNum">     278 </span>            :  * list_first_or_null_rcu - get the first element from a list
+<span class="lineNum">     279 </span>            :  * @ptr:        the list head to take the element from.
+<span class="lineNum">     280 </span>            :  * @type:       the type of the struct this is embedded in.
+<span class="lineNum">     281 </span>            :  * @member:     the name of the list_struct within the struct.
+<span class="lineNum">     282 </span>            :  *
+<span class="lineNum">     283 </span>            :  * Note that if the list is empty, it returns NULL.
+<span class="lineNum">     284 </span>            :  *
+<span class="lineNum">     285 </span>            :  * This primitive may safely run concurrently with the _rcu list-mutation
+<span class="lineNum">     286 </span>            :  * primitives such as list_add_rcu() as long as it's guarded by rcu_read_lock().
+<span class="lineNum">     287 </span>            :  */
+<span class="lineNum">     288 </span>            : #define list_first_or_null_rcu(ptr, type, member) \
+<span class="lineNum">     289 </span>            : ({ \
+<span class="lineNum">     290 </span>            :         struct list_head *__ptr = (ptr); \
+<span class="lineNum">     291 </span>            :         struct list_head *__next = ACCESS_ONCE(__ptr-&gt;next); \
+<span class="lineNum">     292 </span>            :         likely(__ptr != __next) ? list_entry_rcu(__next, type, member) : NULL; \
+<span class="lineNum">     293 </span>            : })
+<span class="lineNum">     294 </span>            : 
+<span class="lineNum">     295 </span>            : /**
+<span class="lineNum">     296 </span>            :  * list_for_each_entry_rcu      -       iterate over rcu list of given type
+<span class="lineNum">     297 </span>            :  * @pos:        the type * to use as a loop cursor.
+<span class="lineNum">     298 </span>            :  * @head:       the head for your list.
+<span class="lineNum">     299 </span>            :  * @member:     the name of the list_struct within the struct.
+<span class="lineNum">     300 </span>            :  *
+<span class="lineNum">     301 </span>            :  * This list-traversal primitive may safely run concurrently with
+<span class="lineNum">     302 </span>            :  * the _rcu list-mutation primitives such as list_add_rcu()
+<span class="lineNum">     303 </span>            :  * as long as the traversal is guarded by rcu_read_lock().
+<span class="lineNum">     304 </span>            :  */
+<span class="lineNum">     305 </span>            : #define list_for_each_entry_rcu(pos, head, member) \
+<span class="lineNum">     306 </span>            :         for (pos = list_entry_rcu((head)-&gt;next, typeof(*pos), member); \
+<span class="lineNum">     307 </span>            :                 &amp;pos-&gt;member != (head); \
+<span class="lineNum">     308 </span>            :                 pos = list_entry_rcu(pos-&gt;member.next, typeof(*pos), member))
+<span class="lineNum">     309 </span>            : 
+<span class="lineNum">     310 </span>            : /**
+<span class="lineNum">     311 </span>            :  * list_for_each_entry_continue_rcu - continue iteration over list of given type
+<span class="lineNum">     312 </span>            :  * @pos:        the type * to use as a loop cursor.
+<span class="lineNum">     313 </span>            :  * @head:       the head for your list.
+<span class="lineNum">     314 </span>            :  * @member:     the name of the list_struct within the struct.
+<span class="lineNum">     315 </span>            :  *
+<span class="lineNum">     316 </span>            :  * Continue to iterate over list of given type, continuing after
+<span class="lineNum">     317 </span>            :  * the current position.
+<span class="lineNum">     318 </span>            :  */
+<span class="lineNum">     319 </span>            : #define list_for_each_entry_continue_rcu(pos, head, member)             \
+<span class="lineNum">     320 </span>            :         for (pos = list_entry_rcu(pos-&gt;member.next, typeof(*pos), member); \
+<span class="lineNum">     321 </span>            :              &amp;pos-&gt;member != (head);     \
+<span class="lineNum">     322 </span>            :              pos = list_entry_rcu(pos-&gt;member.next, typeof(*pos), member))
+<span class="lineNum">     323 </span>            : 
+<span class="lineNum">     324 </span>            : /**
+<span class="lineNum">     325 </span>            :  * hlist_del_rcu - deletes entry from hash list without re-initialization
+<span class="lineNum">     326 </span>            :  * @n: the element to delete from the hash list.
+<span class="lineNum">     327 </span>            :  *
+<span class="lineNum">     328 </span>            :  * Note: list_unhashed() on entry does not return true after this,
+<span class="lineNum">     329 </span>            :  * the entry is in an undefined state. It is useful for RCU based
+<span class="lineNum">     330 </span>            :  * lockfree traversal.
+<span class="lineNum">     331 </span>            :  *
+<span class="lineNum">     332 </span>            :  * In particular, it means that we can not poison the forward
+<span class="lineNum">     333 </span>            :  * pointers that may still be used for walking the hash list.
+<span class="lineNum">     334 </span>            :  *
+<span class="lineNum">     335 </span>            :  * The caller must take whatever precautions are necessary
+<span class="lineNum">     336 </span>            :  * (such as holding appropriate locks) to avoid racing
+<span class="lineNum">     337 </span>            :  * with another list-mutation primitive, such as hlist_add_head_rcu()
+<span class="lineNum">     338 </span>            :  * or hlist_del_rcu(), running on this same list.
+<span class="lineNum">     339 </span>            :  * However, it is perfectly legal to run concurrently with
+<span class="lineNum">     340 </span>            :  * the _rcu list-traversal primitives, such as
+<span class="lineNum">     341 </span>            :  * hlist_for_each_entry().
+<span class="lineNum">     342 </span>            :  */
+<span class="lineNum">     343 </span>            : static inline void hlist_del_rcu(struct hlist_node *n)
+<span class="lineNum">     344 </span>            : {
+<span class="lineNum">     345 </span>            :         __hlist_del(n);
+<span class="lineNum">     346 </span>            :         n-&gt;pprev = LIST_POISON2;
+<span class="lineNum">     347 </span>            : }
+<span class="lineNum">     348 </span>            : 
+<span class="lineNum">     349 </span>            : /**
+<span class="lineNum">     350 </span>            :  * hlist_replace_rcu - replace old entry by new one
+<span class="lineNum">     351 </span>            :  * @old : the element to be replaced
+<span class="lineNum">     352 </span>            :  * @new : the new element to insert
+<span class="lineNum">     353 </span>            :  *
+<span class="lineNum">     354 </span>            :  * The @old entry will be replaced with the @new entry atomically.
+<span class="lineNum">     355 </span>            :  */
+<span class="lineNum">     356 </span>            : static inline void hlist_replace_rcu(struct hlist_node *old,
+<span class="lineNum">     357 </span>            :                                         struct hlist_node *new)
+<span class="lineNum">     358 </span>            : {
+<span class="lineNum">     359 </span>            :         struct hlist_node *next = old-&gt;next;
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            :         new-&gt;next = next;
+<span class="lineNum">     362 </span>            :         new-&gt;pprev = old-&gt;pprev;
+<span class="lineNum">     363 </span>            :         rcu_assign_pointer(*(struct hlist_node __rcu **)new-&gt;pprev, new);
+<span class="lineNum">     364 </span>            :         if (next)
+<span class="lineNum">     365 </span>            :                 new-&gt;next-&gt;pprev = &amp;new-&gt;next;
+<span class="lineNum">     366 </span>            :         old-&gt;pprev = LIST_POISON2;
+<span class="lineNum">     367 </span>            : }
+<span class="lineNum">     368 </span>            : 
+<span class="lineNum">     369 </span>            : /*
+<span class="lineNum">     370 </span>            :  * return the first or the next element in an RCU protected hlist
+<span class="lineNum">     371 </span>            :  */
+<span class="lineNum">     372 </span>            : #define hlist_first_rcu(head)   (*((struct hlist_node __rcu **)(&amp;(head)-&gt;first)))
+<span class="lineNum">     373 </span>            : #define hlist_next_rcu(node)    (*((struct hlist_node __rcu **)(&amp;(node)-&gt;next)))
+<span class="lineNum">     374 </span>            : #define hlist_pprev_rcu(node)   (*((struct hlist_node __rcu **)((node)-&gt;pprev)))
+<span class="lineNum">     375 </span>            : 
+<span class="lineNum">     376 </span>            : /**
+<span class="lineNum">     377 </span>            :  * hlist_add_head_rcu
+<span class="lineNum">     378 </span>            :  * @n: the element to add to the hash list.
+<span class="lineNum">     379 </span>            :  * @h: the list to add to.
+<span class="lineNum">     380 </span>            :  *
+<span class="lineNum">     381 </span>            :  * Description:
+<span class="lineNum">     382 </span>            :  * Adds the specified element to the specified hlist,
+<span class="lineNum">     383 </span>            :  * while permitting racing traversals.
+<span class="lineNum">     384 </span>            :  *
+<span class="lineNum">     385 </span>            :  * The caller must take whatever precautions are necessary
+<span class="lineNum">     386 </span>            :  * (such as holding appropriate locks) to avoid racing
+<span class="lineNum">     387 </span>            :  * with another list-mutation primitive, such as hlist_add_head_rcu()
+<span class="lineNum">     388 </span>            :  * or hlist_del_rcu(), running on this same list.
+<span class="lineNum">     389 </span>            :  * However, it is perfectly legal to run concurrently with
+<span class="lineNum">     390 </span>            :  * the _rcu list-traversal primitives, such as
+<span class="lineNum">     391 </span>            :  * hlist_for_each_entry_rcu(), used to prevent memory-consistency
+<span class="lineNum">     392 </span>            :  * problems on Alpha CPUs.  Regardless of the type of CPU, the
+<span class="lineNum">     393 </span>            :  * list-traversal primitive must be guarded by rcu_read_lock().
+<span class="lineNum">     394 </span>            :  */
+<span class="lineNum">     395 </span>            : static inline void hlist_add_head_rcu(struct hlist_node *n,
+<span class="lineNum">     396 </span>            :                                         struct hlist_head *h)
+<span class="lineNum">     397 </span>            : {
+<span class="lineNum">     398 </span>            :         struct hlist_node *first = h-&gt;first;
+<span class="lineNum">     399 </span>            : 
+<span class="lineNum">     400 </span>            :         n-&gt;next = first;
+<span class="lineNum">     401 </span>            :         n-&gt;pprev = &amp;h-&gt;first;
+<span class="lineNum">     402 </span>            :         rcu_assign_pointer(hlist_first_rcu(h), n);
+<span class="lineNum">     403 </span>            :         if (first)
+<span class="lineNum">     404 </span>            :                 first-&gt;pprev = &amp;n-&gt;next;
+<span class="lineNum">     405 </span>            : }
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            : /**
+<span class="lineNum">     408 </span>            :  * hlist_add_before_rcu
+<span class="lineNum">     409 </span>            :  * @n: the new element to add to the hash list.
+<span class="lineNum">     410 </span>            :  * @next: the existing element to add the new element before.
+<span class="lineNum">     411 </span>            :  *
+<span class="lineNum">     412 </span>            :  * Description:
+<span class="lineNum">     413 </span>            :  * Adds the specified element to the specified hlist
+<span class="lineNum">     414 </span>            :  * before the specified node while permitting racing traversals.
+<span class="lineNum">     415 </span>            :  *
+<span class="lineNum">     416 </span>            :  * The caller must take whatever precautions are necessary
+<span class="lineNum">     417 </span>            :  * (such as holding appropriate locks) to avoid racing
+<span class="lineNum">     418 </span>            :  * with another list-mutation primitive, such as hlist_add_head_rcu()
+<span class="lineNum">     419 </span>            :  * or hlist_del_rcu(), running on this same list.
+<span class="lineNum">     420 </span>            :  * However, it is perfectly legal to run concurrently with
+<span class="lineNum">     421 </span>            :  * the _rcu list-traversal primitives, such as
+<span class="lineNum">     422 </span>            :  * hlist_for_each_entry_rcu(), used to prevent memory-consistency
+<span class="lineNum">     423 </span>            :  * problems on Alpha CPUs.
+<span class="lineNum">     424 </span>            :  */
+<span class="lineNum">     425 </span>            : static inline void hlist_add_before_rcu(struct hlist_node *n,
+<span class="lineNum">     426 </span>            :                                         struct hlist_node *next)
+<span class="lineNum">     427 </span>            : {
+<span class="lineNum">     428 </span>            :         n-&gt;pprev = next-&gt;pprev;
+<span class="lineNum">     429 </span>            :         n-&gt;next = next;
+<span class="lineNum">     430 </span>            :         rcu_assign_pointer(hlist_pprev_rcu(n), n);
+<span class="lineNum">     431 </span>            :         next-&gt;pprev = &amp;n-&gt;next;
+<span class="lineNum">     432 </span>            : }
+<span class="lineNum">     433 </span>            : 
+<span class="lineNum">     434 </span>            : /**
+<span class="lineNum">     435 </span>            :  * hlist_add_behind_rcu
+<span class="lineNum">     436 </span>            :  * @n: the new element to add to the hash list.
+<span class="lineNum">     437 </span>            :  * @prev: the existing element to add the new element after.
+<span class="lineNum">     438 </span>            :  *
+<span class="lineNum">     439 </span>            :  * Description:
+<span class="lineNum">     440 </span>            :  * Adds the specified element to the specified hlist
+<span class="lineNum">     441 </span>            :  * after the specified node while permitting racing traversals.
+<span class="lineNum">     442 </span>            :  *
+<span class="lineNum">     443 </span>            :  * The caller must take whatever precautions are necessary
+<span class="lineNum">     444 </span>            :  * (such as holding appropriate locks) to avoid racing
+<span class="lineNum">     445 </span>            :  * with another list-mutation primitive, such as hlist_add_head_rcu()
+<span class="lineNum">     446 </span>            :  * or hlist_del_rcu(), running on this same list.
+<span class="lineNum">     447 </span>            :  * However, it is perfectly legal to run concurrently with
+<span class="lineNum">     448 </span>            :  * the _rcu list-traversal primitives, such as
+<span class="lineNum">     449 </span>            :  * hlist_for_each_entry_rcu(), used to prevent memory-consistency
+<span class="lineNum">     450 </span>            :  * problems on Alpha CPUs.
+<span class="lineNum">     451 </span>            :  */
+<span class="lineNum">     452 </span>            : static inline void hlist_add_behind_rcu(struct hlist_node *n,
+<span class="lineNum">     453 </span>            :                                         struct hlist_node *prev)
+<span class="lineNum">     454 </span>            : {
+<span class="lineNum">     455 </span>            :         n-&gt;next = prev-&gt;next;
+<span class="lineNum">     456 </span>            :         n-&gt;pprev = &amp;prev-&gt;next;
+<span class="lineNum">     457 </span>            :         rcu_assign_pointer(hlist_next_rcu(prev), n);
+<span class="lineNum">     458 </span>            :         if (n-&gt;next)
+<span class="lineNum">     459 </span>            :                 n-&gt;next-&gt;pprev = &amp;n-&gt;next;
+<span class="lineNum">     460 </span>            : }
+<span class="lineNum">     461 </span>            : 
+<span class="lineNum">     462 </span>            : #define __hlist_for_each_rcu(pos, head)                         \
+<span class="lineNum">     463 </span>            :         for (pos = rcu_dereference(hlist_first_rcu(head));      \
+<span class="lineNum">     464 </span>            :              pos;                                               \
+<span class="lineNum">     465 </span>            :              pos = rcu_dereference(hlist_next_rcu(pos)))
+<span class="lineNum">     466 </span>            : 
+<span class="lineNum">     467 </span>            : /**
+<span class="lineNum">     468 </span>            :  * hlist_for_each_entry_rcu - iterate over rcu list of given type
+<span class="lineNum">     469 </span>            :  * @pos:        the type * to use as a loop cursor.
+<span class="lineNum">     470 </span>            :  * @head:       the head for your list.
+<span class="lineNum">     471 </span>            :  * @member:     the name of the hlist_node within the struct.
+<span class="lineNum">     472 </span>            :  *
+<span class="lineNum">     473 </span>            :  * This list-traversal primitive may safely run concurrently with
+<span class="lineNum">     474 </span>            :  * the _rcu list-mutation primitives such as hlist_add_head_rcu()
+<span class="lineNum">     475 </span>            :  * as long as the traversal is guarded by rcu_read_lock().
+<span class="lineNum">     476 </span>            :  */
+<span class="lineNum">     477 </span>            : #define hlist_for_each_entry_rcu(pos, head, member)                     \
+<span class="lineNum">     478 </span>            :         for (pos = hlist_entry_safe (rcu_dereference_raw(hlist_first_rcu(head)),\
+<span class="lineNum">     479 </span>            :                         typeof(*(pos)), member);                        \
+<span class="lineNum">     480 </span>            :                 pos;                                                    \
+<span class="lineNum">     481 </span>            :                 pos = hlist_entry_safe(rcu_dereference_raw(hlist_next_rcu(\
+<span class="lineNum">     482 </span>            :                         &amp;(pos)-&gt;member)), typeof(*(pos)), member))
+<span class="lineNum">     483 </span>            : 
+<span class="lineNum">     484 </span>            : /**
+<span class="lineNum">     485 </span>            :  * hlist_for_each_entry_rcu_notrace - iterate over rcu list of given type (for tracing)
+<span class="lineNum">     486 </span>            :  * @pos:        the type * to use as a loop cursor.
+<span class="lineNum">     487 </span>            :  * @head:       the head for your list.
+<span class="lineNum">     488 </span>            :  * @member:     the name of the hlist_node within the struct.
+<span class="lineNum">     489 </span>            :  *
+<span class="lineNum">     490 </span>            :  * This list-traversal primitive may safely run concurrently with
+<span class="lineNum">     491 </span>            :  * the _rcu list-mutation primitives such as hlist_add_head_rcu()
+<span class="lineNum">     492 </span>            :  * as long as the traversal is guarded by rcu_read_lock().
+<span class="lineNum">     493 </span>            :  *
+<span class="lineNum">     494 </span>            :  * This is the same as hlist_for_each_entry_rcu() except that it does
+<span class="lineNum">     495 </span>            :  * not do any RCU debugging or tracing.
+<span class="lineNum">     496 </span>            :  */
+<span class="lineNum">     497 </span>            : #define hlist_for_each_entry_rcu_notrace(pos, head, member)                     \
+<span class="lineNum">     498 </span>            :         for (pos = hlist_entry_safe (rcu_dereference_raw_notrace(hlist_first_rcu(head)),\
+<span class="lineNum">     499 </span>            :                         typeof(*(pos)), member);                        \
+<span class="lineNum">     500 </span>            :                 pos;                                                    \
+<span class="lineNum">     501 </span>            :                 pos = hlist_entry_safe(rcu_dereference_raw_notrace(hlist_next_rcu(\
+<span class="lineNum">     502 </span>            :                         &amp;(pos)-&gt;member)), typeof(*(pos)), member))
+<span class="lineNum">     503 </span>            : 
+<span class="lineNum">     504 </span>            : /**
+<span class="lineNum">     505 </span>            :  * hlist_for_each_entry_rcu_bh - iterate over rcu list of given type
+<span class="lineNum">     506 </span>            :  * @pos:        the type * to use as a loop cursor.
+<span class="lineNum">     507 </span>            :  * @head:       the head for your list.
+<span class="lineNum">     508 </span>            :  * @member:     the name of the hlist_node within the struct.
+<span class="lineNum">     509 </span>            :  *
+<span class="lineNum">     510 </span>            :  * This list-traversal primitive may safely run concurrently with
+<span class="lineNum">     511 </span>            :  * the _rcu list-mutation primitives such as hlist_add_head_rcu()
+<span class="lineNum">     512 </span>            :  * as long as the traversal is guarded by rcu_read_lock().
+<span class="lineNum">     513 </span>            :  */
+<span class="lineNum">     514 </span>            : #define hlist_for_each_entry_rcu_bh(pos, head, member)                  \
+<span class="lineNum">     515 </span>            :         for (pos = hlist_entry_safe(rcu_dereference_bh(hlist_first_rcu(head)),\
+<span class="lineNum">     516 </span>            :                         typeof(*(pos)), member);                        \
+<span class="lineNum">     517 </span>            :                 pos;                                                    \
+<span class="lineNum">     518 </span>            :                 pos = hlist_entry_safe(rcu_dereference_bh(hlist_next_rcu(\
+<span class="lineNum">     519 </span>            :                         &amp;(pos)-&gt;member)), typeof(*(pos)), member))
+<span class="lineNum">     520 </span>            : 
+<span class="lineNum">     521 </span>            : /**
+<span class="lineNum">     522 </span>            :  * hlist_for_each_entry_continue_rcu - iterate over a hlist continuing after current point
+<span class="lineNum">     523 </span>            :  * @pos:        the type * to use as a loop cursor.
+<span class="lineNum">     524 </span>            :  * @member:     the name of the hlist_node within the struct.
+<span class="lineNum">     525 </span>            :  */
+<span class="lineNum">     526 </span>            : #define hlist_for_each_entry_continue_rcu(pos, member)                  \
+<span class="lineNum">     527 </span>            :         for (pos = hlist_entry_safe(rcu_dereference((pos)-&gt;member.next),\
+<span class="lineNum">     528 </span>            :                         typeof(*(pos)), member);                        \
+<span class="lineNum">     529 </span>            :              pos;                                                       \
+<span class="lineNum">     530 </span>            :              pos = hlist_entry_safe(rcu_dereference((pos)-&gt;member.next),\
+<span class="lineNum">     531 </span>            :                         typeof(*(pos)), member))
+<span class="lineNum">     532 </span>            : 
+<span class="lineNum">     533 </span>            : /**
+<span class="lineNum">     534 </span>            :  * hlist_for_each_entry_continue_rcu_bh - iterate over a hlist continuing after current point
+<span class="lineNum">     535 </span>            :  * @pos:        the type * to use as a loop cursor.
+<span class="lineNum">     536 </span>            :  * @member:     the name of the hlist_node within the struct.
+<span class="lineNum">     537 </span>            :  */
+<span class="lineNum">     538 </span>            : #define hlist_for_each_entry_continue_rcu_bh(pos, member)               \
+<span class="lineNum">     539 </span>            :         for (pos = hlist_entry_safe(rcu_dereference_bh((pos)-&gt;member.next),\
+<span class="lineNum">     540 </span>            :                         typeof(*(pos)), member);                        \
+<span class="lineNum">     541 </span>            :              pos;                                                       \
+<span class="lineNum">     542 </span>            :              pos = hlist_entry_safe(rcu_dereference_bh((pos)-&gt;member.next),\
+<span class="lineNum">     543 </span>            :                         typeof(*(pos)), member))
+<span class="lineNum">     544 </span>            : 
+<span class="lineNum">     545 </span>            : 
+<span class="lineNum">     546 </span>            : #endif  /* __KERNEL__ */
+<span class="lineNum">     547 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

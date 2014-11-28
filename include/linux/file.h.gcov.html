@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/file.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - file.h<span style="font-size: 80%;"> (source / <a href="file.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">4</td>
+            <td class="headerCovTableEntryMed">75.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Wrapper functions for accessing the file_struct fd array.
+<span class="lineNum">       3 </span>            :  */
+<span class="lineNum">       4 </span>            : 
+<span class="lineNum">       5 </span>            : #ifndef __LINUX_FILE_H
+<span class="lineNum">       6 </span>            : #define __LINUX_FILE_H
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #include &lt;linux/compiler.h&gt;
+<span class="lineNum">       9 </span>            : #include &lt;linux/types.h&gt;
+<span class="lineNum">      10 </span>            : #include &lt;linux/posix_types.h&gt;
+<span class="lineNum">      11 </span>            : 
+<span class="lineNum">      12 </span>            : struct file;
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : extern void fput(struct file *);
+<span class="lineNum">      15 </span>            : 
+<span class="lineNum">      16 </span>            : struct file_operations;
+<span class="lineNum">      17 </span>            : struct vfsmount;
+<span class="lineNum">      18 </span>            : struct dentry;
+<span class="lineNum">      19 </span>            : struct path;
+<span class="lineNum">      20 </span>            : extern struct file *alloc_file(struct path *, fmode_t mode,
+<span class="lineNum">      21 </span>            :         const struct file_operations *fop);
+<span class="lineNum">      22 </span>            : 
+<span class="lineNum">      23 </span>            : static inline void fput_light(struct file *file, int fput_needed)
+<span class="lineNum">      24 </span>            : {
+<span class="lineNum">      25 </span>            :         if (fput_needed)
+<span class="lineNum">      26 </span>            :                 fput(file);
+<span class="lineNum">      27 </span>            : }
+<span class="lineNum">      28 </span>            : 
+<span class="lineNum">      29 </span>            : struct fd {
+<span class="lineNum">      30 </span>            :         struct file *file;
+<span class="lineNum">      31 </span>            :         unsigned int flags;
+<span class="lineNum">      32 </span>            : };
+<span class="lineNum">      33 </span>            : #define FDPUT_FPUT       1
+<span class="lineNum">      34 </span>            : #define FDPUT_POS_UNLOCK 2
+<span class="lineNum">      35 </span>            : 
+<span class="lineNum">      36 </span>            : static inline void fdput(struct fd fd)
+<span class="lineNum">      37 </span>            : {
+<span class="lineNum">      38 </span><span class="lineCov">        216 :         if (fd.flags &amp; FDPUT_FPUT)</span>
+<span class="lineNum">      39 </span><span class="lineNoCov">          0 :                 fput(fd.file);</span>
+<span class="lineNum">      40 </span>            : }
+<span class="lineNum">      41 </span>            : 
+<span class="lineNum">      42 </span>            : extern struct file *fget(unsigned int fd);
+<span class="lineNum">      43 </span>            : extern struct file *fget_raw(unsigned int fd);
+<span class="lineNum">      44 </span>            : extern unsigned long __fdget(unsigned int fd);
+<span class="lineNum">      45 </span>            : extern unsigned long __fdget_raw(unsigned int fd);
+<span class="lineNum">      46 </span>            : extern unsigned long __fdget_pos(unsigned int fd);
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : static inline struct fd __to_fd(unsigned long v)
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span><span class="lineCov">        216 :         return (struct fd){(struct file *)(v &amp; ~3),v &amp; 3};</span>
+<span class="lineNum">      51 </span>            : }
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : static inline struct fd fdget(unsigned int fd)
+<span class="lineNum">      54 </span>            : {
+<span class="lineNum">      55 </span><span class="lineCov">        216 :         return __to_fd(__fdget(fd));</span>
+<span class="lineNum">      56 </span>            : }
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            : static inline struct fd fdget_raw(unsigned int fd)
+<span class="lineNum">      59 </span>            : {
+<span class="lineNum">      60 </span>            :         return __to_fd(__fdget_raw(fd));
+<span class="lineNum">      61 </span>            : }
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : extern int f_dupfd(unsigned int from, struct file *file, unsigned flags);
+<span class="lineNum">      64 </span>            : extern int replace_fd(unsigned fd, struct file *file, unsigned flags);
+<span class="lineNum">      65 </span>            : extern void set_close_on_exec(unsigned int fd, int flag);
+<span class="lineNum">      66 </span>            : extern bool get_close_on_exec(unsigned int fd);
+<span class="lineNum">      67 </span>            : extern void put_filp(struct file *);
+<span class="lineNum">      68 </span>            : extern int get_unused_fd_flags(unsigned flags);
+<span class="lineNum">      69 </span>            : #define get_unused_fd() get_unused_fd_flags(0)
+<span class="lineNum">      70 </span>            : extern void put_unused_fd(unsigned int fd);
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            : extern void fd_install(unsigned int fd, struct file *file);
+<span class="lineNum">      73 </span>            : 
+<span class="lineNum">      74 </span>            : extern void flush_delayed_fput(void);
+<span class="lineNum">      75 </span>            : extern void __fput_sync(struct file *);
+<span class="lineNum">      76 </span>            : 
+<span class="lineNum">      77 </span>            : #endif /* __LINUX_FILE_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

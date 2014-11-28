@@ -1,0 +1,156 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/ulist.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - ulist.h<span style="font-size: 80%;"> (source / <a href="ulist.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2011 STRATO AG
+<span class="lineNum">       3 </span>            :  * written by Arne Jansen &lt;sensille@gmx.net&gt;
+<span class="lineNum">       4 </span>            :  * Distributed under the GNU GPL license version 2.
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  */
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : #ifndef __ULIST__
+<span class="lineNum">       9 </span>            : #define __ULIST__
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span>            : #include &lt;linux/list.h&gt;
+<span class="lineNum">      12 </span>            : #include &lt;linux/rbtree.h&gt;
+<span class="lineNum">      13 </span>            : 
+<span class="lineNum">      14 </span>            : /*
+<span class="lineNum">      15 </span>            :  * ulist is a generic data structure to hold a collection of unique u64
+<span class="lineNum">      16 </span>            :  * values. The only operations it supports is adding to the list and
+<span class="lineNum">      17 </span>            :  * enumerating it.
+<span class="lineNum">      18 </span>            :  * It is possible to store an auxiliary value along with the key.
+<span class="lineNum">      19 </span>            :  *
+<span class="lineNum">      20 </span>            :  */
+<span class="lineNum">      21 </span>            : struct ulist_iterator {
+<span class="lineNum">      22 </span>            : #ifdef CONFIG_BTRFS_DEBUG
+<span class="lineNum">      23 </span>            :         int i;
+<span class="lineNum">      24 </span>            : #endif
+<span class="lineNum">      25 </span>            :         struct list_head *cur_list;  /* hint to start search */
+<span class="lineNum">      26 </span>            : };
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : /*
+<span class="lineNum">      29 </span>            :  * element of the list
+<span class="lineNum">      30 </span>            :  */
+<span class="lineNum">      31 </span>            : struct ulist_node {
+<span class="lineNum">      32 </span>            :         u64 val;                /* value to store */
+<span class="lineNum">      33 </span>            :         u64 aux;                /* auxiliary value saved along with the val */
+<span class="lineNum">      34 </span>            : 
+<span class="lineNum">      35 </span>            : #ifdef CONFIG_BTRFS_DEBUG
+<span class="lineNum">      36 </span>            :         int seqnum;             /* sequence number this node is added */
+<span class="lineNum">      37 </span>            : #endif
+<span class="lineNum">      38 </span>            : 
+<span class="lineNum">      39 </span>            :         struct list_head list;  /* used to link node */
+<span class="lineNum">      40 </span>            :         struct rb_node rb_node; /* used to speed up search */
+<span class="lineNum">      41 </span>            : };
+<span class="lineNum">      42 </span>            : 
+<span class="lineNum">      43 </span>            : struct ulist {
+<span class="lineNum">      44 </span>            :         /*
+<span class="lineNum">      45 </span>            :          * number of elements stored in list
+<span class="lineNum">      46 </span>            :          */
+<span class="lineNum">      47 </span>            :         unsigned long nnodes;
+<span class="lineNum">      48 </span>            : 
+<span class="lineNum">      49 </span>            :         struct list_head nodes;
+<span class="lineNum">      50 </span>            :         struct rb_root root;
+<span class="lineNum">      51 </span>            : };
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            : void ulist_init(struct ulist *ulist);
+<span class="lineNum">      54 </span>            : void ulist_reinit(struct ulist *ulist);
+<span class="lineNum">      55 </span>            : struct ulist *ulist_alloc(gfp_t gfp_mask);
+<span class="lineNum">      56 </span>            : void ulist_free(struct ulist *ulist);
+<span class="lineNum">      57 </span>            : int ulist_add(struct ulist *ulist, u64 val, u64 aux, gfp_t gfp_mask);
+<span class="lineNum">      58 </span>            : int ulist_add_merge(struct ulist *ulist, u64 val, u64 aux,
+<span class="lineNum">      59 </span>            :                     u64 *old_aux, gfp_t gfp_mask);
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            : /* just like ulist_add_merge() but take a pointer for the aux data */
+<span class="lineNum">      62 </span>            : static inline int ulist_add_merge_ptr(struct ulist *ulist, u64 val, void *aux,
+<span class="lineNum">      63 </span>            :                                       void **old_aux, gfp_t gfp_mask)
+<span class="lineNum">      64 </span>            : {
+<span class="lineNum">      65 </span>            : #if BITS_PER_LONG == 32
+<span class="lineNum">      66 </span>            :         u64 old64 = (uintptr_t)*old_aux;
+<span class="lineNum">      67 </span>            :         int ret = ulist_add_merge(ulist, val, (uintptr_t)aux, &amp;old64, gfp_mask);
+<span class="lineNum">      68 </span>            :         *old_aux = (void *)((uintptr_t)old64);
+<span class="lineNum">      69 </span>            :         return ret;
+<span class="lineNum">      70 </span>            : #else
+<span class="lineNum">      71 </span><span class="lineCov">     643325 :         return ulist_add_merge(ulist, val, (u64)aux, (u64 *)old_aux, gfp_mask);</span>
+<span class="lineNum">      72 </span>            : #endif
+<span class="lineNum">      73 </span>            : }
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            : struct ulist_node *ulist_next(struct ulist *ulist,
+<span class="lineNum">      76 </span>            :                               struct ulist_iterator *uiter);
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            : #define ULIST_ITER_INIT(uiter) ((uiter)-&gt;cur_list = NULL)
+<span class="lineNum">      79 </span>            : 
+<span class="lineNum">      80 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

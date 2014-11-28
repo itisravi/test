@@ -1,0 +1,255 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - include/linux/mutex.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">include/linux</a> - mutex.h<span style="font-size: 80%;"> (source / <a href="mutex.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntryHi">-</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Mutexes: blocking mutual exclusion locks
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * started by Ingo Molnar:
+<span class="lineNum">       5 </span>            :  *
+<span class="lineNum">       6 </span>            :  *  Copyright (C) 2004, 2005, 2006 Red Hat, Inc., Ingo Molnar &lt;mingo@redhat.com&gt;
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This file contains the main data structure and API definitions.
+<span class="lineNum">       9 </span>            :  */
+<span class="lineNum">      10 </span>            : #ifndef __LINUX_MUTEX_H
+<span class="lineNum">      11 </span>            : #define __LINUX_MUTEX_H
+<span class="lineNum">      12 </span>            : 
+<span class="lineNum">      13 </span>            : #include &lt;asm/current.h&gt;
+<span class="lineNum">      14 </span>            : #include &lt;linux/list.h&gt;
+<span class="lineNum">      15 </span>            : #include &lt;linux/spinlock_types.h&gt;
+<span class="lineNum">      16 </span>            : #include &lt;linux/linkage.h&gt;
+<span class="lineNum">      17 </span>            : #include &lt;linux/lockdep.h&gt;
+<span class="lineNum">      18 </span>            : #include &lt;linux/atomic.h&gt;
+<span class="lineNum">      19 </span>            : #include &lt;asm/processor.h&gt;
+<span class="lineNum">      20 </span>            : #include &lt;linux/osq_lock.h&gt;
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : /*
+<span class="lineNum">      23 </span>            :  * Simple, straightforward mutexes with strict semantics:
+<span class="lineNum">      24 </span>            :  *
+<span class="lineNum">      25 </span>            :  * - only one task can hold the mutex at a time
+<span class="lineNum">      26 </span>            :  * - only the owner can unlock the mutex
+<span class="lineNum">      27 </span>            :  * - multiple unlocks are not permitted
+<span class="lineNum">      28 </span>            :  * - recursive locking is not permitted
+<span class="lineNum">      29 </span>            :  * - a mutex object must be initialized via the API
+<span class="lineNum">      30 </span>            :  * - a mutex object must not be initialized via memset or copying
+<span class="lineNum">      31 </span>            :  * - task may not exit with mutex held
+<span class="lineNum">      32 </span>            :  * - memory areas where held locks reside must not be freed
+<span class="lineNum">      33 </span>            :  * - held mutexes must not be reinitialized
+<span class="lineNum">      34 </span>            :  * - mutexes may not be used in hardware or software interrupt
+<span class="lineNum">      35 </span>            :  *   contexts such as tasklets and timers
+<span class="lineNum">      36 </span>            :  *
+<span class="lineNum">      37 </span>            :  * These semantics are fully enforced when DEBUG_MUTEXES is
+<span class="lineNum">      38 </span>            :  * enabled. Furthermore, besides enforcing the above rules, the mutex
+<span class="lineNum">      39 </span>            :  * debugging code also implements a number of additional features
+<span class="lineNum">      40 </span>            :  * that make lock debugging easier and faster:
+<span class="lineNum">      41 </span>            :  *
+<span class="lineNum">      42 </span>            :  * - uses symbolic names of mutexes, whenever they are printed in debug output
+<span class="lineNum">      43 </span>            :  * - point-of-acquire tracking, symbolic lookup of function names
+<span class="lineNum">      44 </span>            :  * - list of all locks held in the system, printout of them
+<span class="lineNum">      45 </span>            :  * - owner tracking
+<span class="lineNum">      46 </span>            :  * - detects self-recursing locks and prints out all relevant info
+<span class="lineNum">      47 </span>            :  * - detects multi-task circular deadlocks and prints out all affected
+<span class="lineNum">      48 </span>            :  *   locks and tasks (and only those tasks)
+<span class="lineNum">      49 </span>            :  */
+<span class="lineNum">      50 </span>            : struct mutex {
+<span class="lineNum">      51 </span>            :         /* 1: unlocked, 0: locked, negative: locked, possible waiters */
+<span class="lineNum">      52 </span>            :         atomic_t                count;
+<span class="lineNum">      53 </span>            :         spinlock_t              wait_lock;
+<span class="lineNum">      54 </span>            :         struct list_head        wait_list;
+<span class="lineNum">      55 </span>            : #if defined(CONFIG_DEBUG_MUTEXES) || defined(CONFIG_SMP)
+<span class="lineNum">      56 </span>            :         struct task_struct      *owner;
+<span class="lineNum">      57 </span>            : #endif
+<span class="lineNum">      58 </span>            : #ifdef CONFIG_MUTEX_SPIN_ON_OWNER
+<span class="lineNum">      59 </span>            :         struct optimistic_spin_queue osq; /* Spinner MCS lock */
+<span class="lineNum">      60 </span>            : #endif
+<span class="lineNum">      61 </span>            : #ifdef CONFIG_DEBUG_MUTEXES
+<span class="lineNum">      62 </span>            :         const char              *name;
+<span class="lineNum">      63 </span>            :         void                    *magic;
+<span class="lineNum">      64 </span>            : #endif
+<span class="lineNum">      65 </span>            : #ifdef CONFIG_DEBUG_LOCK_ALLOC
+<span class="lineNum">      66 </span>            :         struct lockdep_map      dep_map;
+<span class="lineNum">      67 </span>            : #endif
+<span class="lineNum">      68 </span>            : };
+<span class="lineNum">      69 </span>            : 
+<span class="lineNum">      70 </span>            : /*
+<span class="lineNum">      71 </span>            :  * This is the control structure for tasks blocked on mutex,
+<span class="lineNum">      72 </span>            :  * which resides on the blocked task's kernel stack:
+<span class="lineNum">      73 </span>            :  */
+<span class="lineNum">      74 </span>            : struct mutex_waiter {
+<span class="lineNum">      75 </span>            :         struct list_head        list;
+<span class="lineNum">      76 </span>            :         struct task_struct      *task;
+<span class="lineNum">      77 </span>            : #ifdef CONFIG_DEBUG_MUTEXES
+<span class="lineNum">      78 </span>            :         void                    *magic;
+<span class="lineNum">      79 </span>            : #endif
+<span class="lineNum">      80 </span>            : };
+<span class="lineNum">      81 </span>            : 
+<span class="lineNum">      82 </span>            : #ifdef CONFIG_DEBUG_MUTEXES
+<span class="lineNum">      83 </span>            : # include &lt;linux/mutex-debug.h&gt;
+<span class="lineNum">      84 </span>            : #else
+<span class="lineNum">      85 </span>            : # define __DEBUG_MUTEX_INITIALIZER(lockname)
+<span class="lineNum">      86 </span>            : /**
+<span class="lineNum">      87 </span>            :  * mutex_init - initialize the mutex
+<span class="lineNum">      88 </span>            :  * @mutex: the mutex to be initialized
+<span class="lineNum">      89 </span>            :  *
+<span class="lineNum">      90 </span>            :  * Initialize the mutex to unlocked state.
+<span class="lineNum">      91 </span>            :  *
+<span class="lineNum">      92 </span>            :  * It is not allowed to initialize an already locked mutex.
+<span class="lineNum">      93 </span>            :  */
+<span class="lineNum">      94 </span>            : # define mutex_init(mutex) \
+<span class="lineNum">      95 </span>            : do {                                                    \
+<span class="lineNum">      96 </span>            :         static struct lock_class_key __key;             \
+<span class="lineNum">      97 </span>            :                                                         \
+<span class="lineNum">      98 </span>            :         __mutex_init((mutex), #mutex, &amp;__key);              \
+<span class="lineNum">      99 </span>            : } while (0)
+<span class="lineNum">     100 </span>            : static inline void mutex_destroy(struct mutex *lock) {}
+<span class="lineNum">     101 </span>            : #endif
+<span class="lineNum">     102 </span>            : 
+<span class="lineNum">     103 </span>            : #ifdef CONFIG_DEBUG_LOCK_ALLOC
+<span class="lineNum">     104 </span>            : # define __DEP_MAP_MUTEX_INITIALIZER(lockname) \
+<span class="lineNum">     105 </span>            :                 , .dep_map = { .name = #lockname }
+<span class="lineNum">     106 </span>            : #else
+<span class="lineNum">     107 </span>            : # define __DEP_MAP_MUTEX_INITIALIZER(lockname)
+<span class="lineNum">     108 </span>            : #endif
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            : #define __MUTEX_INITIALIZER(lockname) \
+<span class="lineNum">     111 </span>            :                 { .count = ATOMIC_INIT(1) \
+<span class="lineNum">     112 </span>            :                 , .wait_lock = __SPIN_LOCK_UNLOCKED(lockname.wait_lock) \
+<span class="lineNum">     113 </span>            :                 , .wait_list = LIST_HEAD_INIT(lockname.wait_list) \
+<span class="lineNum">     114 </span>            :                 __DEBUG_MUTEX_INITIALIZER(lockname) \
+<span class="lineNum">     115 </span>            :                 __DEP_MAP_MUTEX_INITIALIZER(lockname) }
+<span class="lineNum">     116 </span>            : 
+<span class="lineNum">     117 </span>            : #define DEFINE_MUTEX(mutexname) \
+<span class="lineNum">     118 </span>            :         struct mutex mutexname = __MUTEX_INITIALIZER(mutexname)
+<span class="lineNum">     119 </span>            : 
+<span class="lineNum">     120 </span>            : extern void __mutex_init(struct mutex *lock, const char *name,
+<span class="lineNum">     121 </span>            :                          struct lock_class_key *key);
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            : /**
+<span class="lineNum">     124 </span>            :  * mutex_is_locked - is the mutex locked
+<span class="lineNum">     125 </span>            :  * @lock: the mutex to be queried
+<span class="lineNum">     126 </span>            :  *
+<span class="lineNum">     127 </span>            :  * Returns 1 if the mutex is locked, 0 if unlocked.
+<span class="lineNum">     128 </span>            :  */
+<span class="lineNum">     129 </span>            : static inline int mutex_is_locked(struct mutex *lock)
+<span class="lineNum">     130 </span>            : {
+<span class="lineNum">     131 </span><span class="lineCov">     256445 :         return atomic_read(&amp;lock-&gt;count) != 1;</span>
+<span class="lineNum">     132 </span>            : }
+<span class="lineNum">     133 </span>            : 
+<span class="lineNum">     134 </span>            : /*
+<span class="lineNum">     135 </span>            :  * See kernel/locking/mutex.c for detailed documentation of these APIs.
+<span class="lineNum">     136 </span>            :  * Also see Documentation/mutex-design.txt.
+<span class="lineNum">     137 </span>            :  */
+<span class="lineNum">     138 </span>            : #ifdef CONFIG_DEBUG_LOCK_ALLOC
+<span class="lineNum">     139 </span>            : extern void mutex_lock_nested(struct mutex *lock, unsigned int subclass);
+<span class="lineNum">     140 </span>            : extern void _mutex_lock_nest_lock(struct mutex *lock, struct lockdep_map *nest_lock);
+<span class="lineNum">     141 </span>            : 
+<span class="lineNum">     142 </span>            : extern int __must_check mutex_lock_interruptible_nested(struct mutex *lock,
+<span class="lineNum">     143 </span>            :                                         unsigned int subclass);
+<span class="lineNum">     144 </span>            : extern int __must_check mutex_lock_killable_nested(struct mutex *lock,
+<span class="lineNum">     145 </span>            :                                         unsigned int subclass);
+<span class="lineNum">     146 </span>            : 
+<span class="lineNum">     147 </span>            : #define mutex_lock(lock) mutex_lock_nested(lock, 0)
+<span class="lineNum">     148 </span>            : #define mutex_lock_interruptible(lock) mutex_lock_interruptible_nested(lock, 0)
+<span class="lineNum">     149 </span>            : #define mutex_lock_killable(lock) mutex_lock_killable_nested(lock, 0)
+<span class="lineNum">     150 </span>            : 
+<span class="lineNum">     151 </span>            : #define mutex_lock_nest_lock(lock, nest_lock)                           \
+<span class="lineNum">     152 </span>            : do {                                                                    \
+<span class="lineNum">     153 </span>            :         typecheck(struct lockdep_map *, &amp;(nest_lock)-&gt;dep_map);  \
+<span class="lineNum">     154 </span>            :         _mutex_lock_nest_lock(lock, &amp;(nest_lock)-&gt;dep_map);              \
+<span class="lineNum">     155 </span>            : } while (0)
+<span class="lineNum">     156 </span>            : 
+<span class="lineNum">     157 </span>            : #else
+<span class="lineNum">     158 </span>            : extern void mutex_lock(struct mutex *lock);
+<span class="lineNum">     159 </span>            : extern int __must_check mutex_lock_interruptible(struct mutex *lock);
+<span class="lineNum">     160 </span>            : extern int __must_check mutex_lock_killable(struct mutex *lock);
+<span class="lineNum">     161 </span>            : 
+<span class="lineNum">     162 </span>            : # define mutex_lock_nested(lock, subclass) mutex_lock(lock)
+<span class="lineNum">     163 </span>            : # define mutex_lock_interruptible_nested(lock, subclass) mutex_lock_interruptible(lock)
+<span class="lineNum">     164 </span>            : # define mutex_lock_killable_nested(lock, subclass) mutex_lock_killable(lock)
+<span class="lineNum">     165 </span>            : # define mutex_lock_nest_lock(lock, nest_lock) mutex_lock(lock)
+<span class="lineNum">     166 </span>            : #endif
+<span class="lineNum">     167 </span>            : 
+<span class="lineNum">     168 </span>            : /*
+<span class="lineNum">     169 </span>            :  * NOTE: mutex_trylock() follows the spin_trylock() convention,
+<span class="lineNum">     170 </span>            :  *       not the down_trylock() convention!
+<span class="lineNum">     171 </span>            :  *
+<span class="lineNum">     172 </span>            :  * Returns 1 if the mutex has been acquired successfully, and 0 on contention.
+<span class="lineNum">     173 </span>            :  */
+<span class="lineNum">     174 </span>            : extern int mutex_trylock(struct mutex *lock);
+<span class="lineNum">     175 </span>            : extern void mutex_unlock(struct mutex *lock);
+<span class="lineNum">     176 </span>            : 
+<span class="lineNum">     177 </span>            : extern int atomic_dec_and_mutex_lock(atomic_t *cnt, struct mutex *lock);
+<span class="lineNum">     178 </span>            : 
+<span class="lineNum">     179 </span>            : #endif /* __LINUX_MUTEX_H */
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

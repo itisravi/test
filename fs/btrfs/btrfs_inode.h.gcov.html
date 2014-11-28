@@ -1,0 +1,368 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/btrfs_inode.h</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - btrfs_inode.h<span style="font-size: 80%;"> (source / <a href="btrfs_inode.h.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntry">21</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntry">1</td>
+            <td class="headerCovTableEntryHi">100.0 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : /*</a>
+<span class="lineNum">       2 </span>            :  * Copyright (C) 2007 Oracle.  All rights reserved.
+<span class="lineNum">       3 </span>            :  *
+<span class="lineNum">       4 </span>            :  * This program is free software; you can redistribute it and/or
+<span class="lineNum">       5 </span>            :  * modify it under the terms of the GNU General Public
+<span class="lineNum">       6 </span>            :  * License v2 as published by the Free Software Foundation.
+<span class="lineNum">       7 </span>            :  *
+<span class="lineNum">       8 </span>            :  * This program is distributed in the hope that it will be useful,
+<span class="lineNum">       9 </span>            :  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+<span class="lineNum">      10 </span>            :  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+<span class="lineNum">      11 </span>            :  * General Public License for more details.
+<span class="lineNum">      12 </span>            :  *
+<span class="lineNum">      13 </span>            :  * You should have received a copy of the GNU General Public
+<span class="lineNum">      14 </span>            :  * License along with this program; if not, write to the
+<span class="lineNum">      15 </span>            :  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+<span class="lineNum">      16 </span>            :  * Boston, MA 021110-1307, USA.
+<span class="lineNum">      17 </span>            :  */
+<span class="lineNum">      18 </span>            : 
+<span class="lineNum">      19 </span>            : #ifndef __BTRFS_I__
+<span class="lineNum">      20 </span>            : #define __BTRFS_I__
+<span class="lineNum">      21 </span>            : 
+<span class="lineNum">      22 </span>            : #include &lt;linux/hash.h&gt;
+<span class="lineNum">      23 </span>            : #include &quot;extent_map.h&quot;
+<span class="lineNum">      24 </span>            : #include &quot;extent_io.h&quot;
+<span class="lineNum">      25 </span>            : #include &quot;ordered-data.h&quot;
+<span class="lineNum">      26 </span>            : #include &quot;delayed-inode.h&quot;
+<span class="lineNum">      27 </span>            : 
+<span class="lineNum">      28 </span>            : /*
+<span class="lineNum">      29 </span>            :  * ordered_data_close is set by truncate when a file that used
+<span class="lineNum">      30 </span>            :  * to have good data has been truncated to zero.  When it is set
+<span class="lineNum">      31 </span>            :  * the btrfs file release call will add this inode to the
+<span class="lineNum">      32 </span>            :  * ordered operations list so that we make sure to flush out any
+<span class="lineNum">      33 </span>            :  * new data the application may have written before commit.
+<span class="lineNum">      34 </span>            :  */
+<span class="lineNum">      35 </span>            : #define BTRFS_INODE_ORDERED_DATA_CLOSE          0
+<span class="lineNum">      36 </span>            : #define BTRFS_INODE_ORPHAN_META_RESERVED        1
+<span class="lineNum">      37 </span>            : #define BTRFS_INODE_DUMMY                       2
+<span class="lineNum">      38 </span>            : #define BTRFS_INODE_IN_DEFRAG                   3
+<span class="lineNum">      39 </span>            : #define BTRFS_INODE_DELALLOC_META_RESERVED      4
+<span class="lineNum">      40 </span>            : #define BTRFS_INODE_HAS_ORPHAN_ITEM             5
+<span class="lineNum">      41 </span>            : #define BTRFS_INODE_HAS_ASYNC_EXTENT            6
+<span class="lineNum">      42 </span>            : #define BTRFS_INODE_NEEDS_FULL_SYNC             7
+<span class="lineNum">      43 </span>            : #define BTRFS_INODE_COPY_EVERYTHING             8
+<span class="lineNum">      44 </span>            : #define BTRFS_INODE_IN_DELALLOC_LIST            9
+<span class="lineNum">      45 </span>            : #define BTRFS_INODE_READDIO_NEED_LOCK           10
+<span class="lineNum">      46 </span>            : #define BTRFS_INODE_HAS_PROPS                   11
+<span class="lineNum">      47 </span>            : 
+<span class="lineNum">      48 </span>            : /* in memory btrfs inode */
+<span class="lineNum">      49 </span>            : struct btrfs_inode {
+<span class="lineNum">      50 </span>            :         /* which subvolume this inode belongs to */
+<span class="lineNum">      51 </span>            :         struct btrfs_root *root;
+<span class="lineNum">      52 </span>            : 
+<span class="lineNum">      53 </span>            :         /* key used to find this inode on disk.  This is used by the code
+<span class="lineNum">      54 </span>            :          * to read in roots of subvolumes
+<span class="lineNum">      55 </span>            :          */
+<span class="lineNum">      56 </span>            :         struct btrfs_key location;
+<span class="lineNum">      57 </span>            : 
+<span class="lineNum">      58 </span>            :         /* Lock for counters */
+<span class="lineNum">      59 </span>            :         spinlock_t lock;
+<span class="lineNum">      60 </span>            : 
+<span class="lineNum">      61 </span>            :         /* the extent_tree has caches of all the extent mappings to disk */
+<span class="lineNum">      62 </span>            :         struct extent_map_tree extent_tree;
+<span class="lineNum">      63 </span>            : 
+<span class="lineNum">      64 </span>            :         /* the io_tree does range state (DIRTY, LOCKED etc) */
+<span class="lineNum">      65 </span>            :         struct extent_io_tree io_tree;
+<span class="lineNum">      66 </span>            : 
+<span class="lineNum">      67 </span>            :         /* special utility tree used to record which mirrors have already been
+<span class="lineNum">      68 </span>            :          * tried when checksums fail for a given block
+<span class="lineNum">      69 </span>            :          */
+<span class="lineNum">      70 </span>            :         struct extent_io_tree io_failure_tree;
+<span class="lineNum">      71 </span>            : 
+<span class="lineNum">      72 </span>            :         /* held while logging the inode in tree-log.c */
+<span class="lineNum">      73 </span>            :         struct mutex log_mutex;
+<span class="lineNum">      74 </span>            : 
+<span class="lineNum">      75 </span>            :         /* held while doing delalloc reservations */
+<span class="lineNum">      76 </span>            :         struct mutex delalloc_mutex;
+<span class="lineNum">      77 </span>            : 
+<span class="lineNum">      78 </span>            :         /* used to order data wrt metadata */
+<span class="lineNum">      79 </span>            :         struct btrfs_ordered_inode_tree ordered_tree;
+<span class="lineNum">      80 </span>            : 
+<span class="lineNum">      81 </span>            :         /* list of all the delalloc inodes in the FS.  There are times we need
+<span class="lineNum">      82 </span>            :          * to write all the delalloc pages to disk, and this list is used
+<span class="lineNum">      83 </span>            :          * to walk them all.
+<span class="lineNum">      84 </span>            :          */
+<span class="lineNum">      85 </span>            :         struct list_head delalloc_inodes;
+<span class="lineNum">      86 </span>            : 
+<span class="lineNum">      87 </span>            :         /* node for the red-black tree that links inodes in subvolume root */
+<span class="lineNum">      88 </span>            :         struct rb_node rb_node;
+<span class="lineNum">      89 </span>            : 
+<span class="lineNum">      90 </span>            :         unsigned long runtime_flags;
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span>            :         /* Keep track of who's O_SYNC/fsyncing currently */
+<span class="lineNum">      93 </span>            :         atomic_t sync_writers;
+<span class="lineNum">      94 </span>            : 
+<span class="lineNum">      95 </span>            :         /* full 64 bit generation number, struct vfs_inode doesn't have a big
+<span class="lineNum">      96 </span>            :          * enough field for this.
+<span class="lineNum">      97 </span>            :          */
+<span class="lineNum">      98 </span>            :         u64 generation;
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span>            :         /*
+<span class="lineNum">     101 </span>            :          * transid of the trans_handle that last modified this inode
+<span class="lineNum">     102 </span>            :          */
+<span class="lineNum">     103 </span>            :         u64 last_trans;
+<span class="lineNum">     104 </span>            : 
+<span class="lineNum">     105 </span>            :         /*
+<span class="lineNum">     106 </span>            :          * transid that last logged this inode
+<span class="lineNum">     107 </span>            :          */
+<span class="lineNum">     108 </span>            :         u64 logged_trans;
+<span class="lineNum">     109 </span>            : 
+<span class="lineNum">     110 </span>            :         /*
+<span class="lineNum">     111 </span>            :          * log transid when this inode was last modified
+<span class="lineNum">     112 </span>            :          */
+<span class="lineNum">     113 </span>            :         int last_sub_trans;
+<span class="lineNum">     114 </span>            : 
+<span class="lineNum">     115 </span>            :         /* a local copy of root's last_log_commit */
+<span class="lineNum">     116 </span>            :         int last_log_commit;
+<span class="lineNum">     117 </span>            : 
+<span class="lineNum">     118 </span>            :         /* total number of bytes pending delalloc, used by stat to calc the
+<span class="lineNum">     119 </span>            :          * real block usage of the file
+<span class="lineNum">     120 </span>            :          */
+<span class="lineNum">     121 </span>            :         u64 delalloc_bytes;
+<span class="lineNum">     122 </span>            : 
+<span class="lineNum">     123 </span>            :         /*
+<span class="lineNum">     124 </span>            :          * the size of the file stored in the metadata on disk.  data=ordered
+<span class="lineNum">     125 </span>            :          * means the in-memory i_size might be larger than the size on disk
+<span class="lineNum">     126 </span>            :          * because not all the blocks are written yet.
+<span class="lineNum">     127 </span>            :          */
+<span class="lineNum">     128 </span>            :         u64 disk_i_size;
+<span class="lineNum">     129 </span>            : 
+<span class="lineNum">     130 </span>            :         /*
+<span class="lineNum">     131 </span>            :          * if this is a directory then index_cnt is the counter for the index
+<span class="lineNum">     132 </span>            :          * number for new files that are created
+<span class="lineNum">     133 </span>            :          */
+<span class="lineNum">     134 </span>            :         u64 index_cnt;
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            :         /* Cache the directory index number to speed the dir/file remove */
+<span class="lineNum">     137 </span>            :         u64 dir_index;
+<span class="lineNum">     138 </span>            : 
+<span class="lineNum">     139 </span>            :         /* the fsync log has some corner cases that mean we have to check
+<span class="lineNum">     140 </span>            :          * directories to see if any unlinks have been done before
+<span class="lineNum">     141 </span>            :          * the directory was logged.  See tree-log.c for all the
+<span class="lineNum">     142 </span>            :          * details
+<span class="lineNum">     143 </span>            :          */
+<span class="lineNum">     144 </span>            :         u64 last_unlink_trans;
+<span class="lineNum">     145 </span>            : 
+<span class="lineNum">     146 </span>            :         /*
+<span class="lineNum">     147 </span>            :          * Number of bytes outstanding that are going to need csums.  This is
+<span class="lineNum">     148 </span>            :          * used in ENOSPC accounting.
+<span class="lineNum">     149 </span>            :          */
+<span class="lineNum">     150 </span>            :         u64 csum_bytes;
+<span class="lineNum">     151 </span>            : 
+<span class="lineNum">     152 </span>            :         /* flags field from the on disk inode */
+<span class="lineNum">     153 </span>            :         u32 flags;
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span>            :         /*
+<span class="lineNum">     156 </span>            :          * Counters to keep track of the number of extent item's we may use due
+<span class="lineNum">     157 </span>            :          * to delalloc and such.  outstanding_extents is the number of extent
+<span class="lineNum">     158 </span>            :          * items we think we'll end up using, and reserved_extents is the number
+<span class="lineNum">     159 </span>            :          * of extent items we've reserved metadata for.
+<span class="lineNum">     160 </span>            :          */
+<span class="lineNum">     161 </span>            :         unsigned outstanding_extents;
+<span class="lineNum">     162 </span>            :         unsigned reserved_extents;
+<span class="lineNum">     163 </span>            : 
+<span class="lineNum">     164 </span>            :         /*
+<span class="lineNum">     165 </span>            :          * always compress this one file
+<span class="lineNum">     166 </span>            :          */
+<span class="lineNum">     167 </span>            :         unsigned force_compress;
+<span class="lineNum">     168 </span>            : 
+<span class="lineNum">     169 </span>            :         struct btrfs_delayed_node *delayed_node;
+<span class="lineNum">     170 </span>            : 
+<span class="lineNum">     171 </span>            :         struct inode vfs_inode;
+<span class="lineNum">     172 </span>            : };
+<span class="lineNum">     173 </span>            : 
+<span class="lineNum">     174 </span>            : extern unsigned char btrfs_filetype_table[];
+<span class="lineNum">     175 </span>            : 
+<span class="lineNum">     176 </span>            : static inline struct btrfs_inode *BTRFS_I(struct inode *inode)
+<span class="lineNum">     177 </span>            : {
+<span class="lineNum">     178 </span>            :         return container_of(inode, struct btrfs_inode, vfs_inode);
+<span class="lineNum">     179 </span>            : }
+<span class="lineNum">     180 </span>            : 
+<span class="lineNum">     181 </span>            : static inline unsigned long btrfs_inode_hash(u64 objectid,
+<span class="lineNum">     182 </span>            :                                              const struct btrfs_root *root)
+<span class="lineNum">     183 </span>            : {
+<span class="lineNum">     184 </span><span class="lineCov">      56904 :         u64 h = objectid ^ (root-&gt;objectid * GOLDEN_RATIO_PRIME);</span>
+<span class="lineNum">     185 </span>            : 
+<span class="lineNum">     186 </span>            : #if BITS_PER_LONG == 32
+<span class="lineNum">     187 </span>            :         h = (h &gt;&gt; 32) ^ (h &amp; 0xffffffff);
+<span class="lineNum">     188 </span>            : #endif
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            :         return (unsigned long)h;
+<span class="lineNum">     191 </span>            : }
+<span class="lineNum">     192 </span>            : 
+<span class="lineNum">     193 </span>            : static inline void btrfs_insert_inode_hash(struct inode *inode)
+<span class="lineNum">     194 </span>            : {
+<span class="lineNum">     195 </span><span class="lineCov">        221 :         unsigned long h = btrfs_inode_hash(inode-&gt;i_ino, BTRFS_I(inode)-&gt;root);</span>
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineCov">        221 :         __insert_inode_hash(inode, h);</span>
+<span class="lineNum">     198 </span>            : }
+<span class="lineNum">     199 </span>            : 
+<a name="200"><span class="lineNum">     200 </span>            : static inline u64 btrfs_ino(struct inode *inode)</a>
+<span class="lineNum">     201 </span>            : {
+<span class="lineNum">     202 </span><span class="lineCov">    4740136 :         u64 ino = BTRFS_I(inode)-&gt;location.objectid;</span>
+<span class="lineNum">     203 </span>            : 
+<span class="lineNum">     204 </span>            :         /*
+<span class="lineNum">     205 </span>            :          * !ino: btree_inode
+<span class="lineNum">     206 </span>            :          * type == BTRFS_ROOT_ITEM_KEY: subvol dir
+<span class="lineNum">     207 </span>            :          */
+<span class="lineNum">     208 </span><span class="lineCov">    5057611 :         if (!ino || BTRFS_I(inode)-&gt;location.type == BTRFS_ROOT_ITEM_KEY)</span>
+<span class="lineNum">     209 </span><span class="lineCov">        221 :                 ino = inode-&gt;i_ino;</span>
+<span class="lineNum">     210 </span>            :         return ino;
+<span class="lineNum">     211 </span>            : }
+<span class="lineNum">     212 </span>            : 
+<span class="lineNum">     213 </span>            : static inline void btrfs_i_size_write(struct inode *inode, u64 size)
+<span class="lineNum">     214 </span>            : {
+<span class="lineNum">     215 </span><span class="lineCov">       4970 :         i_size_write(inode, size);</span>
+<span class="lineNum">     216 </span><span class="lineCov">      60354 :         BTRFS_I(inode)-&gt;disk_i_size = size;</span>
+<span class="lineNum">     217 </span>            : }
+<span class="lineNum">     218 </span>            : 
+<span class="lineNum">     219 </span><span class="lineCov">     987527 : static inline bool btrfs_is_free_space_inode(struct inode *inode)</span>
+<span class="lineNum">     220 </span>            : {
+<span class="lineNum">     221 </span><span class="lineCov">     987527 :         struct btrfs_root *root = BTRFS_I(inode)-&gt;root;</span>
+<span class="lineNum">     222 </span>            : 
+<span class="lineNum">     223 </span><span class="lineCov">    1037024 :         if (root == root-&gt;fs_info-&gt;tree_root &amp;&amp;</span>
+<span class="lineNum">     224 </span>            :             btrfs_ino(inode) != BTRFS_BTREE_INODE_OBJECTID)
+<span class="lineNum">     225 </span>            :                 return true;
+<span class="lineNum">     226 </span><span class="lineCov">     938292 :         if (BTRFS_I(inode)-&gt;location.objectid == BTRFS_FREE_INO_OBJECTID)</span>
+<span class="lineNum">     227 </span>            :                 return true;
+<span class="lineNum">     228 </span><span class="lineCov">     938292 :         return false;</span>
+<span class="lineNum">     229 </span>            : }
+<span class="lineNum">     230 </span>            : 
+<span class="lineNum">     231 </span>            : static inline int btrfs_inode_in_log(struct inode *inode, u64 generation)
+<span class="lineNum">     232 </span>            : {
+<span class="lineNum">     233 </span><span class="lineCov">       6310 :         if (BTRFS_I(inode)-&gt;logged_trans == generation &amp;&amp;</span>
+<span class="lineNum">     234 </span><span class="lineCov">       2325 :             BTRFS_I(inode)-&gt;last_sub_trans &lt;=</span>
+<span class="lineNum">     235 </span><span class="lineCov">       2359 :             BTRFS_I(inode)-&gt;last_log_commit &amp;&amp;</span>
+<span class="lineNum">     236 </span>            :             BTRFS_I(inode)-&gt;last_sub_trans &lt;=
+<span class="lineNum">     237 </span><span class="lineCov">         34 :             BTRFS_I(inode)-&gt;root-&gt;last_log_commit) {</span>
+<span class="lineNum">     238 </span>            :                 /*
+<span class="lineNum">     239 </span>            :                  * After a ranged fsync we might have left some extent maps
+<span class="lineNum">     240 </span>            :                  * (that fall outside the fsync's range). So return false
+<span class="lineNum">     241 </span>            :                  * here if the list isn't empty, to make sure btrfs_log_inode()
+<span class="lineNum">     242 </span>            :                  * will be called and process those extent maps.
+<span class="lineNum">     243 </span>            :                  */
+<span class="lineNum">     244 </span><span class="lineCov">         14 :                 smp_mb();</span>
+<span class="lineNum">     245 </span><span class="lineCov">         28 :                 if (list_empty(&amp;BTRFS_I(inode)-&gt;extent_tree.modified_extents))</span>
+<span class="lineNum">     246 </span>            :                         return 1;
+<span class="lineNum">     247 </span>            :         }
+<span class="lineNum">     248 </span>            :         return 0;
+<span class="lineNum">     249 </span>            : }
+<span class="lineNum">     250 </span>            : 
+<span class="lineNum">     251 </span>            : struct btrfs_dio_private {
+<span class="lineNum">     252 </span>            :         struct inode *inode;
+<span class="lineNum">     253 </span>            :         u64 logical_offset;
+<span class="lineNum">     254 </span>            :         u64 disk_bytenr;
+<span class="lineNum">     255 </span>            :         u64 bytes;
+<span class="lineNum">     256 </span>            :         void *private;
+<span class="lineNum">     257 </span>            : 
+<span class="lineNum">     258 </span>            :         /* number of bios pending for this dio */
+<span class="lineNum">     259 </span>            :         atomic_t pending_bios;
+<span class="lineNum">     260 </span>            : 
+<span class="lineNum">     261 </span>            :         /* IO errors */
+<span class="lineNum">     262 </span>            :         int errors;
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            :         /* orig_bio is our btrfs_io_bio */
+<span class="lineNum">     265 </span>            :         struct bio *orig_bio;
+<span class="lineNum">     266 </span>            : 
+<span class="lineNum">     267 </span>            :         /* dio_bio came from fs/direct-io.c */
+<span class="lineNum">     268 </span>            :         struct bio *dio_bio;
+<span class="lineNum">     269 </span>            :         u8 csum[0];
+<span class="lineNum">     270 </span>            : };
+<span class="lineNum">     271 </span>            : 
+<span class="lineNum">     272 </span>            : /*
+<span class="lineNum">     273 </span>            :  * Disable DIO read nolock optimization, so new dio readers will be forced
+<span class="lineNum">     274 </span>            :  * to grab i_mutex. It is used to avoid the endless truncate due to
+<span class="lineNum">     275 </span>            :  * nonlocked dio read.
+<span class="lineNum">     276 </span>            :  */
+<span class="lineNum">     277 </span>            : static inline void btrfs_inode_block_unlocked_dio(struct inode *inode)
+<span class="lineNum">     278 </span>            : {
+<span class="lineNum">     279 </span>            :         set_bit(BTRFS_INODE_READDIO_NEED_LOCK, &amp;BTRFS_I(inode)-&gt;runtime_flags);
+<span class="lineNum">     280 </span><span class="lineCov">       2723 :         smp_mb();</span>
+<span class="lineNum">     281 </span>            : }
+<span class="lineNum">     282 </span>            : 
+<span class="lineNum">     283 </span>            : static inline void btrfs_inode_resume_unlocked_dio(struct inode *inode)
+<span class="lineNum">     284 </span>            : {
+<span class="lineNum">     285 </span><span class="lineCov">       2723 :         smp_mb__before_atomic();</span>
+<span class="lineNum">     286 </span>            :         clear_bit(BTRFS_INODE_READDIO_NEED_LOCK,
+<span class="lineNum">     287 </span>            :                   &amp;BTRFS_I(inode)-&gt;runtime_flags);
+<span class="lineNum">     288 </span>            : }
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span>            : bool btrfs_page_exists_in_range(struct inode *inode, loff_t start, loff_t end);
+<span class="lineNum">     291 </span>            : 
+<span class="lineNum">     292 </span>            : #endif
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>

@@ -1,0 +1,533 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - btrfstest.info - fs/btrfs/extent_map.c</title>
+  <link rel="stylesheet" type="text/css" href="../../gcov.css">
+</head>
+
+<body>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="title">LCOV - code coverage report</td></tr>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+
+    <tr>
+      <td width="100%">
+        <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="35%" class="headerValue"><a href="../../index.html">top level</a> - <a href="index.html">fs/btrfs</a> - extent_map.c<span style="font-size: 80%;"> (source / <a href="extent_map.c.func.html">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="15%"></td>
+            <td width="10%" class="headerCovTableHead">Hit</td>
+            <td width="10%" class="headerCovTableHead">Total</td>
+            <td width="15%" class="headerCovTableHead">Coverage</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">btrfstest.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntry">166</td>
+            <td class="headerCovTableEntry">176</td>
+            <td class="headerCovTableEntryHi">94.3 %</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Date:</td>
+            <td class="headerValue">2014-11-28</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntry">16</td>
+            <td class="headerCovTableEntry">18</td>
+            <td class="headerCovTableEntryMed">88.9 %</td>
+          </tr>
+          <tr><td><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+  </table>
+
+  <table cellpadding=0 cellspacing=0 border=0>
+    <tr>
+      <td><br></td>
+    </tr>
+    <tr>
+      <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+<a name="1"><span class="lineNum">       1 </span>            : #include &lt;linux/err.h&gt;</a>
+<span class="lineNum">       2 </span>            : #include &lt;linux/slab.h&gt;
+<span class="lineNum">       3 </span>            : #include &lt;linux/spinlock.h&gt;
+<span class="lineNum">       4 </span>            : #include &lt;linux/hardirq.h&gt;
+<span class="lineNum">       5 </span>            : #include &quot;ctree.h&quot;
+<span class="lineNum">       6 </span>            : #include &quot;extent_map.h&quot;
+<span class="lineNum">       7 </span>            : 
+<span class="lineNum">       8 </span>            : 
+<a name="9"><span class="lineNum">       9 </span>            : static struct kmem_cache *extent_map_cache;</a>
+<span class="lineNum">      10 </span>            : 
+<span class="lineNum">      11 </span><span class="lineNoCov">          0 : int __init extent_map_init(void)</span>
+<span class="lineNum">      12 </span>            : {
+<span class="lineNum">      13 </span><span class="lineNoCov">          0 :         extent_map_cache = kmem_cache_create(&quot;btrfs_extent_map&quot;,</span>
+<span class="lineNum">      14 </span>            :                         sizeof(struct extent_map), 0,
+<span class="lineNum">      15 </span>            :                         SLAB_RECLAIM_ACCOUNT | SLAB_MEM_SPREAD, NULL);
+<span class="lineNum">      16 </span><span class="lineNoCov">          0 :         if (!extent_map_cache)</span>
+<span class="lineNum">      17 </span>            :                 return -ENOMEM;
+<span class="lineNum">      18 </span><span class="lineNoCov">          0 :         return 0;</span>
+<a name="19"><span class="lineNum">      19 </span>            : }</a>
+<span class="lineNum">      20 </span>            : 
+<span class="lineNum">      21 </span><span class="lineNoCov">          0 : void extent_map_exit(void)</span>
+<span class="lineNum">      22 </span>            : {
+<span class="lineNum">      23 </span><span class="lineNoCov">          0 :         if (extent_map_cache)</span>
+<span class="lineNum">      24 </span><span class="lineNoCov">          0 :                 kmem_cache_destroy(extent_map_cache);</span>
+<span class="lineNum">      25 </span><span class="lineNoCov">          0 : }</span>
+<span class="lineNum">      26 </span>            : 
+<span class="lineNum">      27 </span>            : /**
+<span class="lineNum">      28 </span>            :  * extent_map_tree_init - initialize extent map tree
+<span class="lineNum">      29 </span>            :  * @tree:               tree to initialize
+<span class="lineNum">      30 </span>            :  *
+<span class="lineNum">      31 </span>            :  * Initialize the extent tree @tree.  Should be called for each new inode
+<a name="32"><span class="lineNum">      32 </span>            :  * or other user of the extent_map interface.</a>
+<span class="lineNum">      33 </span>            :  */
+<span class="lineNum">      34 </span><span class="lineCov">      26150 : void extent_map_tree_init(struct extent_map_tree *tree)</span>
+<span class="lineNum">      35 </span>            : {
+<span class="lineNum">      36 </span><span class="lineCov">      26150 :         tree-&gt;map = RB_ROOT;</span>
+<span class="lineNum">      37 </span><span class="lineCov">      26150 :         INIT_LIST_HEAD(&amp;tree-&gt;modified_extents);</span>
+<span class="lineNum">      38 </span><span class="lineCov">      26150 :         rwlock_init(&amp;tree-&gt;lock);</span>
+<span class="lineNum">      39 </span><span class="lineCov">      26150 : }</span>
+<span class="lineNum">      40 </span>            : 
+<span class="lineNum">      41 </span>            : /**
+<span class="lineNum">      42 </span>            :  * alloc_extent_map - allocate new extent map structure
+<span class="lineNum">      43 </span>            :  *
+<span class="lineNum">      44 </span>            :  * Allocate a new extent_map structure.  The new structure is
+<span class="lineNum">      45 </span>            :  * returned with a reference count of one and needs to be
+<a name="46"><span class="lineNum">      46 </span>            :  * freed using free_extent_map()</a>
+<span class="lineNum">      47 </span>            :  */
+<span class="lineNum">      48 </span><span class="lineCov">     372729 : struct extent_map *alloc_extent_map(void)</span>
+<span class="lineNum">      49 </span>            : {
+<span class="lineNum">      50 </span>            :         struct extent_map *em;
+<span class="lineNum">      51 </span><span class="lineCov">     372729 :         em = kmem_cache_zalloc(extent_map_cache, GFP_NOFS);</span>
+<span class="lineNum">      52 </span><span class="lineCov">     372731 :         if (!em)</span>
+<span class="lineNum">      53 </span>            :                 return NULL;
+<span class="lineNum">      54 </span><span class="lineCov">     372733 :         RB_CLEAR_NODE(&amp;em-&gt;rb_node);</span>
+<span class="lineNum">      55 </span><span class="lineCov">     372733 :         em-&gt;flags = 0;</span>
+<span class="lineNum">      56 </span><span class="lineCov">     372733 :         em-&gt;compress_type = BTRFS_COMPRESS_NONE;</span>
+<span class="lineNum">      57 </span><span class="lineCov">     372733 :         em-&gt;generation = 0;</span>
+<span class="lineNum">      58 </span>            :         atomic_set(&amp;em-&gt;refs, 1);
+<span class="lineNum">      59 </span><span class="lineCov">     372733 :         INIT_LIST_HEAD(&amp;em-&gt;list);</span>
+<span class="lineNum">      60 </span><span class="lineCov">     372733 :         return em;</span>
+<span class="lineNum">      61 </span>            : }
+<span class="lineNum">      62 </span>            : 
+<span class="lineNum">      63 </span>            : /**
+<span class="lineNum">      64 </span>            :  * free_extent_map - drop reference count of an extent_map
+<span class="lineNum">      65 </span>            :  * @em:         extent map beeing releasead
+<span class="lineNum">      66 </span>            :  *
+<span class="lineNum">      67 </span>            :  * Drops the reference out on @em by one and free the structure
+<a name="68"><span class="lineNum">      68 </span>            :  * if the reference count hits zero.</a>
+<span class="lineNum">      69 </span>            :  */
+<span class="lineNum">      70 </span><span class="lineCov">    4505039 : void free_extent_map(struct extent_map *em)</span>
+<span class="lineNum">      71 </span>            : {
+<span class="lineNum">      72 </span><span class="lineCov">    4505039 :         if (!em)</span>
+<span class="lineNum">      73 </span><span class="lineCov">    4509428 :                 return;</span>
+<span class="lineNum">      74 </span><span class="lineCov">    4499280 :         WARN_ON(atomic_read(&amp;em-&gt;refs) == 0);</span>
+<span class="lineNum">      75 </span><span class="lineCov">    9002953 :         if (atomic_dec_and_test(&amp;em-&gt;refs)) {</span>
+<span class="lineNum">      76 </span><span class="lineCov">     372537 :                 WARN_ON(extent_map_in_tree(em));</span>
+<span class="lineNum">      77 </span><span class="lineCov">     745066 :                 WARN_ON(!list_empty(&amp;em-&gt;list));</span>
+<span class="lineNum">      78 </span><span class="lineCov">     372533 :                 if (test_bit(EXTENT_FLAG_FS_MAPPING, &amp;em-&gt;flags))</span>
+<span class="lineNum">      79 </span><span class="lineCov">       1228 :                         kfree(em-&gt;bdev);</span>
+<span class="lineNum">      80 </span><span class="lineCov">     372533 :                 kmem_cache_free(extent_map_cache, em);</span>
+<span class="lineNum">      81 </span>            :         }
+<span class="lineNum">      82 </span>            : }
+<span class="lineNum">      83 </span>            : 
+<span class="lineNum">      84 </span>            : /* simple helper to do math around the end of an extent, handling wrap */
+<a name="85"><span class="lineNum">      85 </span>            : static u64 range_end(u64 start, u64 len)</a>
+<span class="lineNum">      86 </span>            : {
+<span class="lineNum">      87 </span><span class="lineCov">    3814487 :         if (start + len &lt; start)</span>
+<span class="lineNum">      88 </span>            :                 return (u64)-1;
+<span class="lineNum">      89 </span>            :         return start + len;
+<span class="lineNum">      90 </span>            : }
+<span class="lineNum">      91 </span>            : 
+<span class="lineNum">      92 </span><span class="lineCov">     113026 : static int tree_insert(struct rb_root *root, struct extent_map *em)</span>
+<span class="lineNum">      93 </span>            : {
+<span class="lineNum">      94 </span><span class="lineCov">     113026 :         struct rb_node **p = &amp;root-&gt;rb_node;</span>
+<span class="lineNum">      95 </span>            :         struct rb_node *parent = NULL;
+<span class="lineNum">      96 </span><span class="lineCov">     980128 :         struct extent_map *entry = NULL;</span>
+<span class="lineNum">      97 </span>            :         struct rb_node *orig_parent = NULL;
+<span class="lineNum">      98 </span><span class="lineCov">     113026 :         u64 end = range_end(em-&gt;start, em-&gt;len);</span>
+<span class="lineNum">      99 </span>            : 
+<span class="lineNum">     100 </span><span class="lineCov">    1492313 :         while (*p) {</span>
+<span class="lineNum">     101 </span>            :                 parent = *p;
+<span class="lineNum">     102 </span>            :                 entry = rb_entry(parent, struct extent_map, rb_node);
+<span class="lineNum">     103 </span>            : 
+<span class="lineNum">     104 </span><span class="lineCov">    1271746 :                 if (em-&gt;start &lt; entry-&gt;start)</span>
+<span class="lineNum">     105 </span><span class="lineCov">     481905 :                         p = &amp;(*p)-&gt;rb_left;</span>
+<span class="lineNum">     106 </span><span class="lineCov">     789841 :                 else if (em-&gt;start &gt;= extent_map_end(entry))</span>
+<span class="lineNum">     107 </span><span class="lineCov">     784356 :                         p = &amp;(*p)-&gt;rb_right;</span>
+<span class="lineNum">     108 </span>            :                 else
+<span class="lineNum">     109 </span>            :                         return -EEXIST;
+<span class="lineNum">     110 </span>            :         }
+<span class="lineNum">     111 </span>            : 
+<span class="lineNum">     112 </span>            :         orig_parent = parent;
+<span class="lineNum">     113 </span><span class="lineCov">     279230 :         while (parent &amp;&amp; em-&gt;start &gt;= extent_map_end(entry)) {</span>
+<span class="lineNum">     114 </span><span class="lineCov">      66251 :                 parent = rb_next(parent);</span>
+<span class="lineNum">     115 </span>            :                 entry = rb_entry(parent, struct extent_map, rb_node);
+<span class="lineNum">     116 </span>            :         }
+<span class="lineNum">     117 </span><span class="lineCov">     107542 :         if (parent)</span>
+<span class="lineNum">     118 </span><span class="lineCov">      39311 :                 if (end &gt; entry-&gt;start &amp;&amp; em-&gt;start &lt; extent_map_end(entry))</span>
+<span class="lineNum">     119 </span>            :                         return -EEXIST;
+<span class="lineNum">     120 </span>            : 
+<span class="lineNum">     121 </span>            :         parent = orig_parent;
+<span class="lineNum">     122 </span>            :         entry = rb_entry(parent, struct extent_map, rb_node);
+<span class="lineNum">     123 </span><span class="lineCov">     126495 :         while (parent &amp;&amp; em-&gt;start &lt; entry-&gt;start) {</span>
+<span class="lineNum">     124 </span><span class="lineCov">      19081 :                 parent = rb_prev(parent);</span>
+<span class="lineNum">     125 </span>            :                 entry = rb_entry(parent, struct extent_map, rb_node);
+<span class="lineNum">     126 </span>            :         }
+<span class="lineNum">     127 </span><span class="lineCov">     107414 :         if (parent)</span>
+<span class="lineNum">     128 </span><span class="lineCov">     169451 :                 if (end &gt; entry-&gt;start &amp;&amp; em-&gt;start &lt; extent_map_end(entry))</span>
+<span class="lineNum">     129 </span>            :                         return -EEXIST;
+<span class="lineNum">     130 </span>            : 
+<span class="lineNum">     131 </span><span class="lineCov">     107411 :         rb_link_node(&amp;em-&gt;rb_node, orig_parent, p);</span>
+<span class="lineNum">     132 </span><span class="lineCov">     107411 :         rb_insert_color(&amp;em-&gt;rb_node, root);</span>
+<span class="lineNum">     133 </span><span class="lineCov">     107409 :         return 0;</span>
+<span class="lineNum">     134 </span>            : }
+<span class="lineNum">     135 </span>            : 
+<span class="lineNum">     136 </span>            : /*
+<span class="lineNum">     137 </span>            :  * search through the tree for an extent_map with a given offset.  If
+<a name="138"><span class="lineNum">     138 </span>            :  * it can't be found, try to find some neighboring extents</a>
+<span class="lineNum">     139 </span>            :  */
+<span class="lineNum">     140 </span><span class="lineCov">    3692179 : static struct rb_node *__tree_search(struct rb_root *root, u64 offset,</span>
+<span class="lineNum">     141 </span>            :                                      struct rb_node **prev_ret,
+<span class="lineNum">     142 </span>            :                                      struct rb_node **next_ret)
+<span class="lineNum">     143 </span>            : {
+<span class="lineNum">     144 </span><span class="lineCov">    3692179 :         struct rb_node *n = root-&gt;rb_node;</span>
+<span class="lineNum">     145 </span>            :         struct rb_node *prev = NULL;
+<span class="lineNum">     146 </span>            :         struct rb_node *orig_prev = NULL;
+<span class="lineNum">     147 </span><span class="lineCov">   10401324 :         struct extent_map *entry;</span>
+<span class="lineNum">     148 </span><span class="lineCov">     122114 :         struct extent_map *prev_entry = NULL;</span>
+<span class="lineNum">     149 </span>            : 
+<span class="lineNum">     150 </span><span class="lineCov">   17961885 :         while (n) {</span>
+<span class="lineNum">     151 </span>            :                 entry = rb_entry(n, struct extent_map, rb_node);
+<span class="lineNum">     152 </span>            :                 prev = n;
+<span class="lineNum">     153 </span>            :                 prev_entry = entry;
+<span class="lineNum">     154 </span>            : 
+<span class="lineNum">     155 </span><span class="lineCov">   14095633 :                 if (offset &lt; entry-&gt;start)</span>
+<span class="lineNum">     156 </span><span class="lineCov">    3694309 :                         n = n-&gt;rb_left;</span>
+<span class="lineNum">     157 </span><span class="lineCov">   10401324 :                 else if (offset &gt;= extent_map_end(entry))</span>
+<span class="lineNum">     158 </span><span class="lineCov">    6883218 :                         n = n-&gt;rb_right;</span>
+<span class="lineNum">     159 </span>            :                 else
+<span class="lineNum">     160 </span>            :                         return n;
+<span class="lineNum">     161 </span>            :         }
+<span class="lineNum">     162 </span>            : 
+<span class="lineNum">     163 </span><span class="lineCov">     174073 :         if (prev_ret) {</span>
+<span class="lineNum">     164 </span>            :                 orig_prev = prev;
+<span class="lineNum">     165 </span><span class="lineCov">     372100 :                 while (prev &amp;&amp; offset &gt;= extent_map_end(prev_entry)) {</span>
+<span class="lineNum">     166 </span><span class="lineCov">      75914 :                         prev = rb_next(prev);</span>
+<span class="lineNum">     167 </span>            :                         prev_entry = rb_entry(prev, struct extent_map, rb_node);
+<span class="lineNum">     168 </span>            :                 }
+<span class="lineNum">     169 </span><span class="lineCov">     174072 :                 *prev_ret = prev;</span>
+<span class="lineNum">     170 </span>            :                 prev = orig_prev;
+<span class="lineNum">     171 </span>            :         }
+<span class="lineNum">     172 </span>            : 
+<span class="lineNum">     173 </span><span class="lineCov">     174072 :         if (next_ret) {</span>
+<span class="lineNum">     174 </span>            :                 prev_entry = rb_entry(prev, struct extent_map, rb_node);
+<span class="lineNum">     175 </span><span class="lineCov">     196148 :                 while (prev &amp;&amp; offset &lt; prev_entry-&gt;start) {</span>
+<span class="lineNum">     176 </span><span class="lineCov">      22078 :                         prev = rb_prev(prev);</span>
+<span class="lineNum">     177 </span>            :                         prev_entry = rb_entry(prev, struct extent_map, rb_node);
+<span class="lineNum">     178 </span>            :                 }
+<span class="lineNum">     179 </span><span class="lineCov">     174070 :                 *next_ret = prev;</span>
+<span class="lineNum">     180 </span>            :         }
+<span class="lineNum">     181 </span>            :         return NULL;
+<span class="lineNum">     182 </span>            : }
+<a name="183"><span class="lineNum">     183 </span>            : </a>
+<span class="lineNum">     184 </span>            : /* check to see if two extent_map structs are adjacent and safe to merge */
+<span class="lineNum">     185 </span><span class="lineCov">     181610 : static int mergable_maps(struct extent_map *prev, struct extent_map *next)</span>
+<span class="lineNum">     186 </span>            : {
+<span class="lineNum">     187 </span><span class="lineCov">     122791 :         if (test_bit(EXTENT_FLAG_PINNED, &amp;prev-&gt;flags))</span>
+<span class="lineNum">     188 </span>            :                 return 0;
+<span class="lineNum">     189 </span>            : 
+<span class="lineNum">     190 </span>            :         /*
+<span class="lineNum">     191 </span>            :          * don't merge compressed extents, we need to know their
+<span class="lineNum">     192 </span>            :          * actual size
+<span class="lineNum">     193 </span>            :          */
+<span class="lineNum">     194 </span><span class="lineCov">     116899 :         if (test_bit(EXTENT_FLAG_COMPRESSED, &amp;prev-&gt;flags))</span>
+<span class="lineNum">     195 </span>            :                 return 0;
+<span class="lineNum">     196 </span>            : 
+<span class="lineNum">     197 </span><span class="lineCov">     233312 :         if (test_bit(EXTENT_FLAG_LOGGING, &amp;prev-&gt;flags) ||</span>
+<span class="lineNum">     198 </span>            :             test_bit(EXTENT_FLAG_LOGGING, &amp;next-&gt;flags))
+<span class="lineNum">     199 </span>            :                 return 0;
+<span class="lineNum">     200 </span>            : 
+<span class="lineNum">     201 </span>            :         /*
+<span class="lineNum">     202 </span>            :          * We don't want to merge stuff that hasn't been written to the log yet
+<span class="lineNum">     203 </span>            :          * since it may not reflect exactly what is on disk, and that would be
+<span class="lineNum">     204 </span>            :          * bad.
+<span class="lineNum">     205 </span>            :          */
+<span class="lineNum">     206 </span><span class="lineCov">     273710 :         if (!list_empty(&amp;prev-&gt;list) || !list_empty(&amp;next-&gt;list))</span>
+<span class="lineNum">     207 </span>            :                 return 0;
+<span class="lineNum">     208 </span>            : 
+<span class="lineNum">     209 </span><span class="lineCov">      65650 :         if (extent_map_end(prev) == next-&gt;start &amp;&amp;</span>
+<span class="lineNum">     210 </span><span class="lineCov">      58794 :             prev-&gt;flags == next-&gt;flags &amp;&amp;</span>
+<span class="lineNum">     211 </span><span class="lineCov">      52897 :             prev-&gt;bdev == next-&gt;bdev &amp;&amp;</span>
+<span class="lineNum">     212 </span><span class="lineCov">      26880 :             ((next-&gt;block_start == EXTENT_MAP_HOLE &amp;&amp;</span>
+<span class="lineNum">     213 </span><span class="lineCov">      26744 :               prev-&gt;block_start == EXTENT_MAP_HOLE) ||</span>
+<span class="lineNum">     214 </span><span class="lineNoCov">          0 :              (next-&gt;block_start == EXTENT_MAP_INLINE &amp;&amp;</span>
+<span class="lineNum">     215 </span><span class="lineCov">      25810 :               prev-&gt;block_start == EXTENT_MAP_INLINE) ||</span>
+<span class="lineNum">     216 </span><span class="lineNoCov">          0 :              (next-&gt;block_start == EXTENT_MAP_DELALLOC &amp;&amp;</span>
+<span class="lineNum">     217 </span><span class="lineCov">      25810 :               prev-&gt;block_start == EXTENT_MAP_DELALLOC) ||</span>
+<span class="lineNum">     218 </span><span class="lineCov">      25012 :              (next-&gt;block_start &lt; EXTENT_MAP_LAST_BYTE - 1 &amp;&amp;</span>
+<span class="lineNum">     219 </span>            :               next-&gt;block_start == extent_map_block_end(prev)))) {
+<span class="lineNum">     220 </span>            :                 return 1;
+<span class="lineNum">     221 </span>            :         }
+<span class="lineNum">     222 </span><span class="lineCov">      33167 :         return 0;</span>
+<a name="223"><span class="lineNum">     223 </span>            : }</a>
+<span class="lineNum">     224 </span>            : 
+<span class="lineNum">     225 </span><span class="lineCov">      98626 : static void try_merge_map(struct extent_map_tree *tree, struct extent_map *em)</span>
+<span class="lineNum">     226 </span>            : {
+<span class="lineNum">     227 </span>            :         struct extent_map *merge = NULL;
+<span class="lineNum">     228 </span>            :         struct rb_node *rb;
+<span class="lineNum">     229 </span>            : 
+<span class="lineNum">     230 </span><span class="lineCov">      98626 :         if (em-&gt;start != 0) {</span>
+<span class="lineNum">     231 </span><span class="lineCov">      80909 :                 rb = rb_prev(&amp;em-&gt;rb_node);</span>
+<span class="lineNum">     232 </span><span class="lineCov">      80912 :                 if (rb)</span>
+<span class="lineNum">     233 </span>            :                         merge = rb_entry(rb, struct extent_map, rb_node);
+<span class="lineNum">     234 </span><span class="lineCov">      80912 :                 if (rb &amp;&amp; mergable_maps(merge, em)) {</span>
+<span class="lineNum">     235 </span><span class="lineCov">        513 :                         em-&gt;start = merge-&gt;start;</span>
+<span class="lineNum">     236 </span><span class="lineCov">        513 :                         em-&gt;orig_start = merge-&gt;orig_start;</span>
+<span class="lineNum">     237 </span><span class="lineCov">        513 :                         em-&gt;len += merge-&gt;len;</span>
+<span class="lineNum">     238 </span><span class="lineCov">        513 :                         em-&gt;block_len += merge-&gt;block_len;</span>
+<span class="lineNum">     239 </span><span class="lineCov">        513 :                         em-&gt;block_start = merge-&gt;block_start;</span>
+<span class="lineNum">     240 </span><span class="lineCov">        513 :                         em-&gt;mod_len = (em-&gt;mod_len + em-&gt;mod_start) - merge-&gt;mod_start;</span>
+<span class="lineNum">     241 </span><span class="lineCov">        513 :                         em-&gt;mod_start = merge-&gt;mod_start;</span>
+<span class="lineNum">     242 </span><span class="lineCov">        513 :                         em-&gt;generation = max(em-&gt;generation, merge-&gt;generation);</span>
+<span class="lineNum">     243 </span>            : 
+<span class="lineNum">     244 </span><span class="lineCov">        513 :                         rb_erase(&amp;merge-&gt;rb_node, &amp;tree-&gt;map);</span>
+<span class="lineNum">     245 </span><span class="lineCov">        513 :                         RB_CLEAR_NODE(&amp;merge-&gt;rb_node);</span>
+<span class="lineNum">     246 </span><span class="lineCov">        513 :                         free_extent_map(merge);</span>
+<span class="lineNum">     247 </span>            :                 }
+<span class="lineNum">     248 </span>            :         }
+<span class="lineNum">     249 </span>            : 
+<span class="lineNum">     250 </span><span class="lineCov">      98626 :         rb = rb_next(&amp;em-&gt;rb_node);</span>
+<span class="lineNum">     251 </span><span class="lineCov">      98627 :         if (rb)</span>
+<span class="lineNum">     252 </span>            :                 merge = rb_entry(rb, struct extent_map, rb_node);
+<span class="lineNum">     253 </span><span class="lineCov">      98627 :         if (rb &amp;&amp; mergable_maps(em, merge)) {</span>
+<span class="lineNum">     254 </span><span class="lineCov">        127 :                 em-&gt;len += merge-&gt;len;</span>
+<span class="lineNum">     255 </span><span class="lineCov">        127 :                 em-&gt;block_len += merge-&gt;block_len;</span>
+<span class="lineNum">     256 </span><span class="lineCov">        127 :                 rb_erase(&amp;merge-&gt;rb_node, &amp;tree-&gt;map);</span>
+<span class="lineNum">     257 </span><span class="lineCov">        127 :                 RB_CLEAR_NODE(&amp;merge-&gt;rb_node);</span>
+<span class="lineNum">     258 </span><span class="lineCov">        127 :                 em-&gt;mod_len = (merge-&gt;mod_start + merge-&gt;mod_len) - em-&gt;mod_start;</span>
+<span class="lineNum">     259 </span><span class="lineCov">        127 :                 em-&gt;generation = max(em-&gt;generation, merge-&gt;generation);</span>
+<span class="lineNum">     260 </span><span class="lineCov">        127 :                 free_extent_map(merge);</span>
+<span class="lineNum">     261 </span>            :         }
+<span class="lineNum">     262 </span><span class="lineCov">      98627 : }</span>
+<span class="lineNum">     263 </span>            : 
+<span class="lineNum">     264 </span>            : /**
+<span class="lineNum">     265 </span>            :  * unpin_extent_cache - unpin an extent from the cache
+<span class="lineNum">     266 </span>            :  * @tree:       tree to unpin the extent in
+<span class="lineNum">     267 </span>            :  * @start:      logical offset in the file
+<span class="lineNum">     268 </span>            :  * @len:        length of the extent
+<span class="lineNum">     269 </span>            :  * @gen:        generation that this extent has been modified in
+<span class="lineNum">     270 </span>            :  *
+<span class="lineNum">     271 </span>            :  * Called after an extent has been written to disk properly.  Set the generation
+<span class="lineNum">     272 </span>            :  * to the generation that actually added the file item to the inode so we know
+<a name="273"><span class="lineNum">     273 </span>            :  * we need to sync this extent when we call fsync().</a>
+<span class="lineNum">     274 </span>            :  */
+<span class="lineNum">     275 </span><span class="lineCov">      51422 : int unpin_extent_cache(struct extent_map_tree *tree, u64 start, u64 len,</span>
+<span class="lineNum">     276 </span>            :                        u64 gen)
+<span class="lineNum">     277 </span>            : {
+<span class="lineNum">     278 </span>            :         int ret = 0;
+<span class="lineNum">     279 </span>            :         struct extent_map *em;
+<span class="lineNum">     280 </span>            :         bool prealloc = false;
+<span class="lineNum">     281 </span>            : 
+<span class="lineNum">     282 </span><span class="lineCov">      51422 :         write_lock(&amp;tree-&gt;lock);</span>
+<span class="lineNum">     283 </span>            :         em = lookup_extent_mapping(tree, start, len);
+<span class="lineNum">     284 </span>            : 
+<span class="lineNum">     285 </span><span class="lineCov">      51423 :         WARN_ON(!em || em-&gt;start != start);</span>
+<span class="lineNum">     286 </span>            : 
+<span class="lineNum">     287 </span><span class="lineCov">      51423 :         if (!em)</span>
+<span class="lineNum">     288 </span>            :                 goto out;
+<span class="lineNum">     289 </span>            : 
+<span class="lineNum">     290 </span><span class="lineCov">      51423 :         if (!test_bit(EXTENT_FLAG_LOGGING, &amp;em-&gt;flags))</span>
+<span class="lineNum">     291 </span><span class="lineCov">      51412 :                 list_move(&amp;em-&gt;list, &amp;tree-&gt;modified_extents);</span>
+<span class="lineNum">     292 </span><span class="lineCov">      51423 :         em-&gt;generation = gen;</span>
+<span class="lineNum">     293 </span>            :         clear_bit(EXTENT_FLAG_PINNED, &amp;em-&gt;flags);
+<span class="lineNum">     294 </span><span class="lineCov">      51423 :         em-&gt;mod_start = em-&gt;start;</span>
+<span class="lineNum">     295 </span><span class="lineCov">      51423 :         em-&gt;mod_len = em-&gt;len;</span>
+<span class="lineNum">     296 </span>            : 
+<span class="lineNum">     297 </span><span class="lineCov">      51423 :         if (test_bit(EXTENT_FLAG_FILLING, &amp;em-&gt;flags)) {</span>
+<span class="lineNum">     298 </span>            :                 prealloc = true;
+<span class="lineNum">     299 </span>            :                 clear_bit(EXTENT_FLAG_FILLING, &amp;em-&gt;flags);
+<span class="lineNum">     300 </span>            :         }
+<span class="lineNum">     301 </span>            : 
+<span class="lineNum">     302 </span><span class="lineCov">      51423 :         try_merge_map(tree, em);</span>
+<span class="lineNum">     303 </span>            : 
+<span class="lineNum">     304 </span><span class="lineCov">      51421 :         if (prealloc) {</span>
+<span class="lineNum">     305 </span><span class="lineCov">       5625 :                 em-&gt;mod_start = em-&gt;start;</span>
+<span class="lineNum">     306 </span><span class="lineCov">       5625 :                 em-&gt;mod_len = em-&gt;len;</span>
+<span class="lineNum">     307 </span>            :         }
+<span class="lineNum">     308 </span>            : 
+<span class="lineNum">     309 </span><span class="lineCov">      51421 :         free_extent_map(em);</span>
+<span class="lineNum">     310 </span>            : out:
+<span class="lineNum">     311 </span>            :         write_unlock(&amp;tree-&gt;lock);
+<span class="lineNum">     312 </span><span class="lineCov">      51421 :         return ret;</span>
+<span class="lineNum">     313 </span>            : 
+<a name="314"><span class="lineNum">     314 </span>            : }</a>
+<span class="lineNum">     315 </span>            : 
+<span class="lineNum">     316 </span><span class="lineCov">       2403 : void clear_em_logging(struct extent_map_tree *tree, struct extent_map *em)</span>
+<span class="lineNum">     317 </span>            : {
+<span class="lineNum">     318 </span>            :         clear_bit(EXTENT_FLAG_LOGGING, &amp;em-&gt;flags);
+<span class="lineNum">     319 </span><span class="lineCov">       2403 :         if (extent_map_in_tree(em))</span>
+<span class="lineNum">     320 </span><span class="lineCov">       2403 :                 try_merge_map(tree, em);</span>
+<a name="321"><span class="lineNum">     321 </span><span class="lineCov">       2403 : }</span></a>
+<span class="lineNum">     322 </span>            : 
+<span class="lineNum">     323 </span><span class="lineCov">     140109 : static inline void setup_extent_mapping(struct extent_map_tree *tree,</span>
+<span class="lineNum">     324 </span>            :                                         struct extent_map *em,
+<span class="lineNum">     325 </span>            :                                         int modified)
+<span class="lineNum">     326 </span>            : {
+<span class="lineNum">     327 </span><span class="lineCov">     140109 :         atomic_inc(&amp;em-&gt;refs);</span>
+<span class="lineNum">     328 </span><span class="lineCov">     140134 :         em-&gt;mod_start = em-&gt;start;</span>
+<span class="lineNum">     329 </span><span class="lineCov">     140134 :         em-&gt;mod_len = em-&gt;len;</span>
+<span class="lineNum">     330 </span>            : 
+<span class="lineNum">     331 </span><span class="lineCov">     140134 :         if (modified)</span>
+<span class="lineNum">     332 </span><span class="lineCov">      95324 :                 list_move(&amp;em-&gt;list, &amp;tree-&gt;modified_extents);</span>
+<span class="lineNum">     333 </span>            :         else
+<span class="lineNum">     334 </span><span class="lineCov">      44810 :                 try_merge_map(tree, em);</span>
+<span class="lineNum">     335 </span><span class="lineCov">     140125 : }</span>
+<span class="lineNum">     336 </span>            : 
+<span class="lineNum">     337 </span>            : /**
+<span class="lineNum">     338 </span>            :  * add_extent_mapping - add new extent map to the extent tree
+<span class="lineNum">     339 </span>            :  * @tree:       tree to insert new map in
+<span class="lineNum">     340 </span>            :  * @em:         map to insert
+<span class="lineNum">     341 </span>            :  *
+<span class="lineNum">     342 </span>            :  * Insert @em into @tree or perform a simple forward/backward merge with
+<span class="lineNum">     343 </span>            :  * existing mappings.  The extent_map struct passed in will be inserted
+<span class="lineNum">     344 </span>            :  * into the tree directly, with an additional reference taken, or a
+<a name="345"><span class="lineNum">     345 </span>            :  * reference dropped if the merge attempt was successful.</a>
+<span class="lineNum">     346 </span>            :  */
+<span class="lineNum">     347 </span><span class="lineCov">     113186 : int add_extent_mapping(struct extent_map_tree *tree,</span>
+<span class="lineNum">     348 </span>            :                        struct extent_map *em, int modified)
+<span class="lineNum">     349 </span>            : {
+<span class="lineNum">     350 </span>            :         int ret = 0;
+<span class="lineNum">     351 </span>            : 
+<span class="lineNum">     352 </span><span class="lineCov">     113186 :         ret = tree_insert(&amp;tree-&gt;map, em);</span>
+<span class="lineNum">     353 </span><span class="lineCov">     113166 :         if (ret)</span>
+<span class="lineNum">     354 </span>            :                 goto out;
+<span class="lineNum">     355 </span>            : 
+<span class="lineNum">     356 </span><span class="lineCov">     107407 :         setup_extent_mapping(tree, em, modified);</span>
+<span class="lineNum">     357 </span>            : out:
+<span class="lineNum">     358 </span><span class="lineCov">     113177 :         return ret;</span>
+<span class="lineNum">     359 </span>            : }
+<span class="lineNum">     360 </span>            : 
+<span class="lineNum">     361 </span>            : static struct extent_map *
+<span class="lineNum">     362 </span><span class="lineCov">    3701461 : __lookup_extent_mapping(struct extent_map_tree *tree,</span>
+<span class="lineNum">     363 </span>            :                         u64 start, u64 len, int strict)
+<span class="lineNum">     364 </span>            : {
+<span class="lineNum">     365 </span><span class="lineCov">    3517941 :         struct extent_map *em;</span>
+<span class="lineNum">     366 </span>            :         struct rb_node *rb_node;
+<span class="lineNum">     367 </span><span class="lineCov">    3701461 :         struct rb_node *prev = NULL;</span>
+<span class="lineNum">     368 </span><span class="lineCov">    3701461 :         struct rb_node *next = NULL;</span>
+<span class="lineNum">     369 </span>            :         u64 end = range_end(start, len);
+<span class="lineNum">     370 </span>            : 
+<span class="lineNum">     371 </span><span class="lineCov">    3701461 :         rb_node = __tree_search(&amp;tree-&gt;map, start, &amp;prev, &amp;next);</span>
+<span class="lineNum">     372 </span><span class="lineCov">    3700911 :         if (!rb_node) {</span>
+<span class="lineNum">     373 </span><span class="lineCov">     174070 :                 if (prev)</span>
+<span class="lineNum">     374 </span>            :                         rb_node = prev;
+<span class="lineNum">     375 </span><span class="lineCov">     127875 :                 else if (next)</span>
+<span class="lineNum">     376 </span>            :                         rb_node = next;
+<span class="lineNum">     377 </span>            :                 else
+<span class="lineNum">     378 </span>            :                         return NULL;
+<span class="lineNum">     379 </span>            :         }
+<span class="lineNum">     380 </span>            : 
+<span class="lineNum">     381 </span>            :         em = rb_entry(rb_node, struct extent_map, rb_node);
+<span class="lineNum">     382 </span>            : 
+<span class="lineNum">     383 </span><span class="lineCov">    7143055 :         if (strict &amp;&amp; !(end &gt; em-&gt;start &amp;&amp; start &lt; extent_map_end(em)))</span>
+<span class="lineNum">     384 </span>            :                 return NULL;
+<span class="lineNum">     385 </span>            : 
+<span class="lineNum">     386 </span><span class="lineCov">    3535056 :         atomic_inc(&amp;em-&gt;refs);</span>
+<span class="lineNum">     387 </span><span class="lineCov">    3536722 :         return em;</span>
+<span class="lineNum">     388 </span>            : }
+<span class="lineNum">     389 </span>            : 
+<span class="lineNum">     390 </span>            : /**
+<span class="lineNum">     391 </span>            :  * lookup_extent_mapping - lookup extent_map
+<span class="lineNum">     392 </span>            :  * @tree:       tree to lookup in
+<span class="lineNum">     393 </span>            :  * @start:      byte offset to start the search
+<span class="lineNum">     394 </span>            :  * @len:        length of the lookup range
+<span class="lineNum">     395 </span>            :  *
+<span class="lineNum">     396 </span>            :  * Find and return the first extent_map struct in @tree that intersects the
+<span class="lineNum">     397 </span>            :  * [start, len] range.  There may be additional objects in the tree that
+<span class="lineNum">     398 </span>            :  * intersect, so check the object returned carefully to make sure that no
+<a name="399"><span class="lineNum">     399 </span>            :  * additional lookups are needed.</a>
+<span class="lineNum">     400 </span>            :  */
+<span class="lineNum">     401 </span><span class="lineCov">    3574591 : struct extent_map *lookup_extent_mapping(struct extent_map_tree *tree,</span>
+<span class="lineNum">     402 </span>            :                                          u64 start, u64 len)
+<span class="lineNum">     403 </span>            : {
+<span class="lineNum">     404 </span><span class="lineCov">    3626013 :         return __lookup_extent_mapping(tree, start, len, 1);</span>
+<span class="lineNum">     405 </span>            : }
+<span class="lineNum">     406 </span>            : 
+<span class="lineNum">     407 </span>            : /**
+<span class="lineNum">     408 </span>            :  * search_extent_mapping - find a nearby extent map
+<span class="lineNum">     409 </span>            :  * @tree:       tree to lookup in
+<span class="lineNum">     410 </span>            :  * @start:      byte offset to start the search
+<span class="lineNum">     411 </span>            :  * @len:        length of the lookup range
+<span class="lineNum">     412 </span>            :  *
+<span class="lineNum">     413 </span>            :  * Find and return the first extent_map struct in @tree that intersects the
+<span class="lineNum">     414 </span>            :  * [start, len] range.
+<span class="lineNum">     415 </span>            :  *
+<a name="416"><span class="lineNum">     416 </span>            :  * If one can't be found, any nearby extent may be returned</a>
+<span class="lineNum">     417 </span>            :  */
+<span class="lineNum">     418 </span><span class="lineCov">      75910 : struct extent_map *search_extent_mapping(struct extent_map_tree *tree,</span>
+<span class="lineNum">     419 </span>            :                                          u64 start, u64 len)
+<span class="lineNum">     420 </span>            : {
+<span class="lineNum">     421 </span><span class="lineCov">      75910 :         return __lookup_extent_mapping(tree, start, len, 0);</span>
+<span class="lineNum">     422 </span>            : }
+<span class="lineNum">     423 </span>            : 
+<span class="lineNum">     424 </span>            : /**
+<span class="lineNum">     425 </span>            :  * remove_extent_mapping - removes an extent_map from the extent tree
+<span class="lineNum">     426 </span>            :  * @tree:       extent tree to remove from
+<span class="lineNum">     427 </span>            :  * @em:         extent map beeing removed
+<span class="lineNum">     428 </span>            :  *
+<span class="lineNum">     429 </span>            :  * Removes @em from @tree.  No reference counts are dropped, and no checks
+<a name="430"><span class="lineNum">     430 </span>            :  * are done to see if the range is in use</a>
+<span class="lineNum">     431 </span>            :  */
+<span class="lineNum">     432 </span><span class="lineCov">     106547 : int remove_extent_mapping(struct extent_map_tree *tree, struct extent_map *em)</span>
+<span class="lineNum">     433 </span>            : {
+<span class="lineNum">     434 </span>            :         int ret = 0;
+<span class="lineNum">     435 </span>            : 
+<span class="lineNum">     436 </span><span class="lineCov">     106547 :         WARN_ON(test_bit(EXTENT_FLAG_PINNED, &amp;em-&gt;flags));</span>
+<span class="lineNum">     437 </span><span class="lineCov">     106547 :         rb_erase(&amp;em-&gt;rb_node, &amp;tree-&gt;map);</span>
+<span class="lineNum">     438 </span><span class="lineCov">     106547 :         if (!test_bit(EXTENT_FLAG_LOGGING, &amp;em-&gt;flags))</span>
+<span class="lineNum">     439 </span><span class="lineCov">     106546 :                 list_del_init(&amp;em-&gt;list);</span>
+<span class="lineNum">     440 </span><span class="lineCov">     106547 :         RB_CLEAR_NODE(&amp;em-&gt;rb_node);</span>
+<span class="lineNum">     441 </span><span class="lineCov">     106547 :         return ret;</span>
+<a name="442"><span class="lineNum">     442 </span>            : }</a>
+<span class="lineNum">     443 </span>            : 
+<span class="lineNum">     444 </span><span class="lineCov">      32703 : void replace_extent_mapping(struct extent_map_tree *tree,</span>
+<span class="lineNum">     445 </span>            :                             struct extent_map *cur,
+<span class="lineNum">     446 </span>            :                             struct extent_map *new,
+<span class="lineNum">     447 </span>            :                             int modified)
+<span class="lineNum">     448 </span>            : {
+<span class="lineNum">     449 </span><span class="lineCov">      32703 :         WARN_ON(test_bit(EXTENT_FLAG_PINNED, &amp;cur-&gt;flags));</span>
+<span class="lineNum">     450 </span>            :         ASSERT(extent_map_in_tree(cur));
+<span class="lineNum">     451 </span><span class="lineCov">      32703 :         if (!test_bit(EXTENT_FLAG_LOGGING, &amp;cur-&gt;flags))</span>
+<span class="lineNum">     452 </span><span class="lineCov">      32703 :                 list_del_init(&amp;cur-&gt;list);</span>
+<span class="lineNum">     453 </span><span class="lineCov">      32703 :         rb_replace_node(&amp;cur-&gt;rb_node, &amp;new-&gt;rb_node, &amp;tree-&gt;map);</span>
+<span class="lineNum">     454 </span><span class="lineCov">      32703 :         RB_CLEAR_NODE(&amp;cur-&gt;rb_node);</span>
+<span class="lineNum">     455 </span>            : 
+<span class="lineNum">     456 </span><span class="lineCov">      32703 :         setup_extent_mapping(tree, new, modified);</span>
+<span class="lineNum">     457 </span><span class="lineCov">      32703 : }</span>
+</pre>
+      </td>
+    </tr>
+  </table>
+  <br>
+
+  <table width="100%" border=0 cellspacing=0 cellpadding=0>
+    <tr><td class="ruler"><img src="../../glass.png" width=3 height=3 alt=""></td></tr>
+    <tr><td class="versionInfo">Generated by: <a href="http://ltp.sourceforge.net/coverage/lcov.php" target="_parent">LCOV version 1.10</a></td></tr>
+  </table>
+  <br>
+
+</body>
+</html>
